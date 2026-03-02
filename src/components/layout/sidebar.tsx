@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone } from "lucide-react";
+import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/conversas", label: "Conversas", icon: MessageCircle },
   { href: "/agenda", label: "Agenda", icon: Calendar },
   { href: "/meta-ads", label: "Meta Ads", icon: Megaphone },
+  { href: "/videos", label: "Gerador de Vídeos", icon: Video },
 ];
 
 export function Sidebar() {

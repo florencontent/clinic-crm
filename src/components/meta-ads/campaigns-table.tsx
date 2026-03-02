@@ -42,7 +42,6 @@ export function CampaignsTable({ campaigns, adsets }: CampaignsTableProps) {
 
   const visible = sorted.slice(0, visibleCount);
 
-  const maxSpend = useMemo(() => Math.max(...filtered.map((c) => c.spend), 1), [filtered]);
   const avgCpl = useMemo(() => {
     const totalSpend = filtered.reduce((s, c) => s + c.spend, 0);
     const totalLeads = filtered.reduce((s, c) => s + c.leads, 0);
@@ -123,7 +122,6 @@ export function CampaignsTable({ campaigns, adsets }: CampaignsTableProps) {
               <SortHeader col="leads" align="right">Leads</SortHeader>
               <SortHeader col="cpl" align="right">CPL</SortHeader>
               <SortHeader col="ctr" align="right">CTR</SortHeader>
-              <th className="py-3 px-2 text-right text-gray-500 font-medium">Performance</th>
             </tr>
           </thead>
           <tbody>
@@ -163,14 +161,6 @@ export function CampaignsTable({ campaigns, adsets }: CampaignsTableProps) {
                       R$ {campaign.cpl.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td className="py-3 px-2 text-right text-gray-700">{campaign.ctr.toFixed(2)}%</td>
-                    <td className="py-3 px-2 text-right">
-                      <div className="w-20 h-2 bg-gray-100 rounded-full ml-auto">
-                        <div
-                          className="h-2 bg-blue-500 rounded-full"
-                          style={{ width: `${(campaign.spend / maxSpend) * 100}%` }}
-                        />
-                      </div>
-                    </td>
                   </tr>
                   {isExpanded && childAdsets.map((adset) => (
                     <tr key={adset.id} className="bg-gray-50/50 border-b border-gray-50">
@@ -189,7 +179,6 @@ export function CampaignsTable({ campaigns, adsets }: CampaignsTableProps) {
                           : "—"}
                       </td>
                       <td className="py-2.5 px-2 text-right text-gray-500 text-xs">{adset.clicks}</td>
-                      <td />
                     </tr>
                   ))}
                 </Fragment>

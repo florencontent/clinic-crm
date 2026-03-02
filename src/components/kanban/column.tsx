@@ -7,9 +7,10 @@ import { Lead, LeadStatus, statusLabels, columnColors } from "@/data/mock-data";
 interface KanbanColumnProps {
   status: LeadStatus;
   leads: Lead[];
+  onOpenChat: (leadId: string) => void;
 }
 
-export function KanbanColumn({ status, leads }: KanbanColumnProps) {
+export function KanbanColumn({ status, leads, onOpenChat }: KanbanColumnProps) {
   return (
     <div className={`flex-1 min-w-[280px] bg-gray-50 rounded-xl border-t-4 ${columnColors[status]}`}>
       <div className="p-4 pb-2">
@@ -31,7 +32,7 @@ export function KanbanColumn({ status, leads }: KanbanColumnProps) {
             }`}
           >
             {leads.map((lead, index) => (
-              <KanbanCard key={lead.id} lead={lead} index={index} />
+              <KanbanCard key={lead.id} lead={lead} index={index} onOpenChat={onOpenChat} />
             ))}
             {provided.placeholder}
           </div>

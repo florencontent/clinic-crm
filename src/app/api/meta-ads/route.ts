@@ -8,7 +8,7 @@ const API_VERSION = "v21.0";
 const BASE_URL = `https://graph.facebook.com/${API_VERSION}`;
 
 const CACHE_DIR = path.join(process.cwd(), ".cache");
-const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes (was 6 hours — too stale)
 
 const VALID_PRESETS = ["last_7d", "last_14d", "last_30d"] as const;
 type DatePreset = (typeof VALID_PRESETS)[number];
@@ -43,7 +43,7 @@ async function writeCache(preset: DatePreset, data: unknown) {
   }
 }
 
-async function fetchWithRetry(url: string, retries = 5): Promise<Response> {
+async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     const res = await fetch(url, { cache: "no-store" });
     if (res.ok) return res;
@@ -51,9 +51,12 @@ async function fetchWithRetry(url: string, retries = 5): Promise<Response> {
     const body = await res.json().catch(() => ({}));
     const errorMsg = body?.error?.message || "";
 
-    const isRateLimit = errorMsg.includes("request limit") || errorMsg.includes("reduce the amount");
+    const isRateLimit =
+      errorMsg.includes("request limit") ||
+      errorMsg.includes("reduce the amount") ||
+      errorMsg.includes("too many calls");
     if (isRateLimit && i < retries - 1) {
-      await sleep(15000 * (i + 1)); // 15s, 30s, 45s, 60s
+      await sleep(30000 * (i + 1)); // 30s, 60s
       continue;
     }
 
@@ -71,7 +74,7 @@ async function fetchAllPages(endpoint: string) {
     const json = await res.json();
     allData.push(...(json.data || []));
     url = json.paging?.next || null;
-    if (url) await sleep(1000);
+    if (url) await sleep(2000);
   }
 
   return allData;
@@ -94,86 +97,60 @@ function extractLeads(actions?: Array<{ action_type: string; value: string }>) {
 }
 
 async function fetchMetaAdsData(datePreset: DatePreset) {
-  const delayMs = datePreset === "last_30d" ? 5000 : 2000;
-
-  // Fetch sequentially to avoid rate limits
-  const campaignsData = await fetchAllPages(`${ACCOUNT_ID}/campaigns?fields=name,status`);
-  await sleep(delayMs);
-
+  // 1. Campaign insights (includes campaign-level metrics for the period)
   const campaignInsights = await fetchAllPages(
-    `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,ctr,cpc,actions,campaign_id&date_preset=${datePreset}&level=campaign`
+    `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,ctr,cpc,actions,campaign_id,campaign_name&date_preset=${datePreset}&level=campaign`
   );
-  await sleep(delayMs);
+  await sleep(3000);
 
-  const adsetsData = await fetchAllPages(`${ACCOUNT_ID}/adsets?fields=name,campaign_id`);
-  await sleep(delayMs);
-
+  // 2. Adset insights
   const adsetInsights = await fetchAllPages(
-    `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,actions,adset_id&date_preset=${datePreset}&level=adset`
+    `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,actions,adset_id,adset_name,campaign_id&date_preset=${datePreset}&level=adset`
   );
-  await sleep(delayMs);
+  await sleep(3000);
 
-  const adsData = await fetchAllPages(`${ACCOUNT_ID}/ads?fields=name,adset_id,creative{name}`);
-  await sleep(delayMs);
-
+  // 3. Ad insights
   const adInsights = await fetchAllPages(
-    `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,actions,ad_id&date_preset=${datePreset}&level=ad`
+    `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,actions,ad_id,ad_name,adset_id&date_preset=${datePreset}&level=ad`
   );
-  await sleep(delayMs);
+  await sleep(3000);
 
+  // 4. Daily breakdown
   const dailyData = await fetchAllPages(
     `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,actions&date_preset=${datePreset}&time_increment=1`
   );
 
-  // Map insights by id
-  const campaignInsightsMap = new Map<string, Record<string, unknown>>();
-  for (const ins of campaignInsights) {
-    campaignInsightsMap.set(ins.campaign_id as string, ins);
-  }
-
-  const adsetInsightsMap = new Map<string, Record<string, unknown>>();
-  for (const ins of adsetInsights) {
-    adsetInsightsMap.set(ins.adset_id as string, ins);
-  }
-
-  const adInsightsMap = new Map<string, Record<string, unknown>>();
-  for (const ins of adInsights) {
-    adInsightsMap.set(ins.ad_id as string, ins);
-  }
-
-  // Build campaigns
-  const campaigns = campaignsData.map((c) => {
-    const ins = campaignInsightsMap.get(c.id as string);
-    const spend = parseFloat((ins?.spend as string) || "0");
-    const impressions = parseInt((ins?.impressions as string) || "0", 10);
-    const clicks = parseInt((ins?.clicks as string) || "0", 10);
-    const leads = extractLeads(ins?.actions as Array<{ action_type: string; value: string }> | undefined);
+  // Build campaigns from insights (only campaigns with data in the period)
+  const campaigns = campaignInsights.map((ins) => {
+    const spend = parseFloat((ins.spend as string) || "0");
+    const impressions = parseInt((ins.impressions as string) || "0", 10);
+    const clicks = parseInt((ins.clicks as string) || "0", 10);
+    const leads = extractLeads(ins.actions as Array<{ action_type: string; value: string }> | undefined);
     return {
-      id: c.id as string,
-      name: c.name as string,
-      status: c.status as string,
+      id: ins.campaign_id as string,
+      name: (ins.campaign_name as string) || "Sem nome",
+      status: "ACTIVE" as string,
       spend,
       impressions,
       clicks,
       leads,
       cpl: leads > 0 ? spend / leads : 0,
-      ctr: parseFloat((ins?.ctr as string) || "0"),
-      cpc: parseFloat((ins?.cpc as string) || "0"),
+      ctr: parseFloat((ins.ctr as string) || "0"),
+      cpc: parseFloat((ins.cpc as string) || "0"),
     };
   });
 
-  // Build adsets
-  const adsets = adsetsData.map((s) => {
-    const ins = adsetInsightsMap.get(s.id as string);
-    const spend = parseFloat((ins?.spend as string) || "0");
-    const impressions = parseInt((ins?.impressions as string) || "0", 10);
-    const clicks = parseInt((ins?.clicks as string) || "0", 10);
-    const leads = extractLeads(ins?.actions as Array<{ action_type: string; value: string }> | undefined);
+  // Build adsets from insights
+  const adsets = adsetInsights.map((ins) => {
+    const spend = parseFloat((ins.spend as string) || "0");
+    const impressions = parseInt((ins.impressions as string) || "0", 10);
+    const clicks = parseInt((ins.clicks as string) || "0", 10);
+    const leads = extractLeads(ins.actions as Array<{ action_type: string; value: string }> | undefined);
     return {
-      id: s.id as string,
-      name: s.name as string,
-      campaignId: s.campaign_id as string,
-      audience: s.name as string,
+      id: ins.adset_id as string,
+      name: (ins.adset_name as string) || "Sem nome",
+      campaignId: ins.campaign_id as string,
+      audience: (ins.adset_name as string) || "Sem nome",
       spend,
       leads,
       impressions,
@@ -181,18 +158,17 @@ async function fetchMetaAdsData(datePreset: DatePreset) {
     };
   });
 
-  // Build ads
-  const ads = adsData.map((a) => {
-    const ins = adInsightsMap.get(a.id as string);
-    const spend = parseFloat((ins?.spend as string) || "0");
-    const impressions = parseInt((ins?.impressions as string) || "0", 10);
-    const clicks = parseInt((ins?.clicks as string) || "0", 10);
-    const leads = extractLeads(ins?.actions as Array<{ action_type: string; value: string }> | undefined);
+  // Build ads from insights
+  const ads = adInsights.map((ins) => {
+    const spend = parseFloat((ins.spend as string) || "0");
+    const impressions = parseInt((ins.impressions as string) || "0", 10);
+    const clicks = parseInt((ins.clicks as string) || "0", 10);
+    const leads = extractLeads(ins.actions as Array<{ action_type: string; value: string }> | undefined);
     return {
-      id: a.id as string,
-      name: a.name as string,
-      adsetId: a.adset_id as string,
-      creative: ((a.creative as Record<string, unknown>)?.name as string) || (a.name as string),
+      id: ins.ad_id as string,
+      name: (ins.ad_name as string) || "Sem nome",
+      adsetId: ins.adset_id as string,
+      creative: (ins.ad_name as string) || "Sem nome",
       spend,
       leads,
       impressions,
@@ -203,9 +179,10 @@ async function fetchMetaAdsData(datePreset: DatePreset) {
 
   // Build daily metrics
   const daily = dailyData.map((d) => {
-    const dateObj = new Date(d.date_start as string);
+    const dateStr = d.date_start as string; // "YYYY-MM-DD"
+    const [year, month, day] = dateStr.split("-");
     return {
-      date: `${String(dateObj.getDate()).padStart(2, "0")}/${String(dateObj.getMonth() + 1).padStart(2, "0")}`,
+      date: `${day}/${month}`,
       spend: parseFloat((d.spend as string) || "0"),
       leads: extractLeads(d.actions as Array<{ action_type: string; value: string }> | undefined),
       impressions: parseInt((d.impressions as string) || "0", 10),
@@ -263,18 +240,12 @@ export async function GET(request: Request) {
     console.error("Meta Ads API error:", error);
 
     // If fetch fails, try returning stale cache (ignore TTL)
-    const fallbackFiles = [
-      getCacheFile(datePreset),
-      path.join(CACHE_DIR, "meta-ads.json"), // legacy filename
-    ];
-    for (const file of fallbackFiles) {
-      try {
-        const raw = await readFile(file, "utf-8");
-        const stale = JSON.parse(raw);
-        return NextResponse.json(stale.data);
-      } catch {
-        // try next file
-      }
+    try {
+      const raw = await readFile(getCacheFile(datePreset), "utf-8");
+      const stale = JSON.parse(raw);
+      return NextResponse.json({ ...stale.data, stale: true });
+    } catch {
+      // no cache available
     }
 
     return NextResponse.json(

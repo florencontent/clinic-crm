@@ -1,0 +1,313 @@
+import { supabase } from "./supabase";
+import type { Lead, LeadStatus, Conversation, Message, Appointment } from "@/data/mock-data";
+
+// ── Status mapping: DB (8 statuses) → Kanban (4 columns) ──
+
+type DbPatientStatus =
+  | "novo"
+  | "em_contato"
+  | "qualificado"
+  | "agendado"
+  | "confirmado"
+  | "compareceu"
+  | "fechado"
+  | "perdido";
+
+const statusToKanban: Record<DbPatientStatus, LeadStatus> = {
+  novo: "em_contato",
+  em_contato: "em_contato",
+  qualificado: "em_contato",
+  agendado: "agendado",
+  confirmado: "agendado",
+  compareceu: "compareceu",
+  fechado: "fechado",
+  perdido: "fechado",
+};
+
+// Kanban column → DB statuses (for writing back)
+export const kanbanToDbStatuses: Record<LeadStatus, DbPatientStatus[]> = {
+  em_contato: ["novo", "em_contato", "qualificado"],
+  agendado: ["agendado", "confirmado"],
+  compareceu: ["compareceu"],
+  fechado: ["fechado", "perdido"],
+};
+
+// When dragging to a column, use the first DB status as default
+const kanbanToDefaultDb: Record<LeadStatus, DbPatientStatus> = {
+  em_contato: "em_contato",
+  agendado: "agendado",
+  compareceu: "compareceu",
+  fechado: "fechado",
+};
+
+// ── Source mapping ──
+
+function mapSource(source: string | null): "Site" | "Meta Ads" {
+  if (!source) return "Site";
+  if (source === "meta_ads") return "Meta Ads";
+  return "Site";
+}
+
+// ── Fetch Patients ──
+
+export async function fetchPatients(): Promise<Lead[]> {
+  const { data, error } = await supabase
+    .from("patients")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching patients:", error);
+    return [];
+  }
+
+  return (data || []).map((p) => ({
+    id: p.id,
+    name: p.name || "Sem nome",
+    phone: p.phone,
+    procedure: p.procedure_interest || "",
+    source: mapSource(p.source),
+    status: statusToKanban[(p.status as DbPatientStatus) || "novo"],
+    date: p.created_at ? p.created_at.split("T")[0] : "",
+  }));
+}
+
+// ── Update patient status (Kanban drag) ──
+
+export async function updatePatientStatus(
+  patientId: string,
+  kanbanStatus: LeadStatus
+): Promise<void> {
+  const dbStatus = kanbanToDefaultDb[kanbanStatus];
+  const { error } = await supabase
+    .from("patients")
+    .update({ status: dbStatus, updated_at: new Date().toISOString() })
+    .eq("id", patientId);
+
+  if (error) {
+    console.error("Error updating patient status:", error);
+  }
+}
+
+// ── Fetch Conversations ──
+
+export async function fetchConversations(): Promise<Conversation[]> {
+  const { data, error } = await supabase
+    .from("conversations")
+    .select(`
+      id,
+      patient_id,
+      last_message_at,
+      patients ( id, name, status ),
+      messages ( id, content, direction, sender, sent_at )
+    `)
+    .order("last_message_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching conversations:", error);
+    return [];
+  }
+
+  return (data || []).map((conv) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patient = conv.patients as any as { id: string; name: string | null; status: string } | null;
+    const msgs = (conv.messages as Array<{
+      id: string;
+      content: string | null;
+      direction: string;
+      sender: string;
+      sent_at: string;
+    }>) || [];
+
+    // Sort messages by sent_at
+    const sortedMsgs = [...msgs].sort(
+      (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
+    );
+
+    const mappedMessages: Message[] = sortedMsgs.map((m) => ({
+      id: m.id,
+      text: m.content || "",
+      sender: m.sender === "patient" ? "lead" : "clinic",
+      timestamp: m.sent_at
+        ? new Date(m.sent_at).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "",
+    }));
+
+    const lastMsg = sortedMsgs[sortedMsgs.length - 1];
+    const unreadCount = sortedMsgs.filter(
+      (m) => m.direction === "inbound" && m.sender === "patient"
+    ).length;
+
+    const patientStatus = patient?.status as DbPatientStatus | undefined;
+
+    return {
+      leadId: patient?.id || conv.patient_id,
+      leadName: patient?.name || "Sem nome",
+      lastMessage: lastMsg?.content || "",
+      lastTime: lastMsg?.sent_at
+        ? formatRelativeTime(lastMsg.sent_at)
+        : "",
+      unread: unreadCount,
+      status: statusToKanban[patientStatus || "novo"],
+      messages: mappedMessages,
+    };
+  });
+}
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) {
+    return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+  if (diffDays === 1) return "Ontem";
+  if (diffDays < 7) {
+    return date.toLocaleDateString("pt-BR", { weekday: "short" });
+  }
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+// ── Fetch Appointments ──
+
+export async function fetchAppointments(): Promise<Appointment[]> {
+  const { data, error } = await supabase
+    .from("appointments")
+    .select(`
+      id,
+      date,
+      start_time,
+      end_time,
+      notes,
+      status,
+      patients ( name ),
+      procedures ( name ),
+      doctors ( name )
+    `)
+    .in("status", ["agendado", "confirmado", "compareceu"])
+    .order("date", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching appointments:", error);
+    return [];
+  }
+
+  return (data || []).map((apt) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patient = apt.patients as any as { name: string | null } | null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const procedure = apt.procedures as any as { name: string | null } | null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const doctor = apt.doctors as any as { name: string | null } | null;
+
+    // Calculate duration from start_time and end_time
+    let duration = 60;
+    if (apt.start_time && apt.end_time) {
+      const [sh, sm] = apt.start_time.split(":").map(Number);
+      const [eh, em] = apt.end_time.split(":").map(Number);
+      duration = (eh * 60 + em) - (sh * 60 + sm);
+    }
+
+    return {
+      id: apt.id,
+      leadName: patient?.name || "Sem nome",
+      procedure: procedure?.name || "",
+      date: apt.date,
+      time: apt.start_time ? apt.start_time.substring(0, 5) : "",
+      duration,
+      doctor: doctor?.name || "",
+      notes: apt.notes || "",
+    };
+  });
+}
+
+// ── Dashboard Metrics ──
+
+export interface DashboardData {
+  metrics: {
+    totalLeads: number;
+    totalSales: number;
+  };
+  funnel: Array<{ stage: string; value: number; fill: string }>;
+  source: Array<{ name: string; value: number; fill: string }>;
+  conversion: Array<{ name: string; value: number }>;
+}
+
+export async function fetchDashboardMetrics(): Promise<DashboardData> {
+  const { data: patients, error } = await supabase
+    .from("patients")
+    .select("status, source");
+
+  if (error) {
+    console.error("Error fetching dashboard metrics:", error);
+    return emptyDashboard();
+  }
+
+  const all = patients || [];
+  const total = all.length;
+
+  // Count by kanban status
+  const agendados = all.filter((p) => p.status === "agendado" || p.status === "confirmado").length;
+  const compareceram = all.filter((p) => p.status === "compareceu").length;
+  const fechados = all.filter((p) => p.status === "fechado").length;
+
+  // Source counts
+  const metaAds = all.filter((p) => p.source === "meta_ads").length;
+  const site = all.filter((p) => p.source === "site").length;
+  const indicacao = all.filter((p) => p.source === "indicacao").length;
+  const organico = all.filter((p) => p.source === "organico").length;
+  const outros = total - metaAds - site - indicacao - organico;
+
+  // Conversion rates
+  const agendamentoRate = total > 0 ? (agendados + compareceram + fechados) / total * 100 : 0;
+  const comparecimentoRate = (agendados + compareceram + fechados) > 0 ? (compareceram + fechados) / (agendados + compareceram + fechados) * 100 : 0;
+  const vendaRate = (compareceram + fechados) > 0 ? fechados / (compareceram + fechados) * 100 : 0;
+
+  return {
+    metrics: {
+      totalLeads: total,
+      totalSales: fechados,
+    },
+    funnel: [
+      { stage: "Leads", value: total, fill: "#3B82F6" },
+      { stage: "Agendados", value: agendados + compareceram + fechados, fill: "#6366F1" },
+      { stage: "Compareceram", value: compareceram + fechados, fill: "#8B5CF6" },
+      { stage: "Fechados", value: fechados, fill: "#22C55E" },
+    ],
+    source: [
+      ...(metaAds > 0 ? [{ name: "Meta Ads", value: metaAds, fill: "#3B82F6" }] : []),
+      ...(site > 0 ? [{ name: "Site", value: site, fill: "#6366F1" }] : []),
+      ...(indicacao > 0 ? [{ name: "Indicacao", value: indicacao, fill: "#8B5CF6" }] : []),
+      ...(organico > 0 ? [{ name: "Organico", value: organico, fill: "#22C55E" }] : []),
+      ...(outros > 0 ? [{ name: "Outros", value: outros, fill: "#F59E0B" }] : []),
+    ],
+    conversion: [
+      { name: "Agendamento", value: Number(agendamentoRate.toFixed(1)) },
+      { name: "Comparecimento", value: Number(comparecimentoRate.toFixed(1)) },
+      { name: "Venda", value: Number(vendaRate.toFixed(1)) },
+    ],
+  };
+}
+
+function emptyDashboard(): DashboardData {
+  return {
+    metrics: { totalLeads: 0, totalSales: 0 },
+    funnel: [
+      { stage: "Leads", value: 0, fill: "#3B82F6" },
+      { stage: "Agendados", value: 0, fill: "#6366F1" },
+      { stage: "Compareceram", value: 0, fill: "#8B5CF6" },
+      { stage: "Fechados", value: 0, fill: "#22C55E" },
+    ],
+    source: [],
+    conversion: [
+      { name: "Agendamento", value: 0 },
+      { name: "Comparecimento", value: 0 },
+      { name: "Venda", value: 0 },
+    ],
+  };
+}

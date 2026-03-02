@@ -8,11 +8,12 @@ import { cn } from "@/lib/utils";
 interface WeekViewProps {
   currentDate: Date;
   appointments: Appointment[];
+  onSelectAppointment: (appointment: Appointment) => void;
 }
 
 const hours = Array.from({ length: 10 }, (_, i) => i + 8); // 8:00 to 17:00
 
-export function WeekView({ currentDate, appointments }: WeekViewProps) {
+export function WeekView({ currentDate, appointments, onSelectAppointment }: WeekViewProps) {
   const weekStart = startOfWeek(currentDate, { locale: ptBR });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -67,13 +68,14 @@ export function WeekView({ currentDate, appointments }: WeekViewProps) {
                   )}
                 >
                   {apts.map((apt) => (
-                    <div
+                    <button
                       key={apt.id}
-                      className="bg-blue-500 text-white rounded-lg px-2 py-1.5 text-[11px] mb-1"
+                      onClick={() => onSelectAppointment(apt)}
+                      className="w-full text-left bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-2 py-1.5 text-[11px] mb-1 transition-colors cursor-pointer"
                     >
                       <p className="font-medium truncate">{apt.leadName.split(" ")[0]}</p>
                       <p className="opacity-80 truncate">{apt.time} - {apt.procedure}</p>
-                    </div>
+                    </button>
                   ))}
                 </div>
               );

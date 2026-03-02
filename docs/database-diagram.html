@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DER - Clinic CRM</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #e2e8f0;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 4px;
+      color: #f1f5f9;
+    }
+    p.subtitle {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+    .mermaid svg {
+      max-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>Diagrama Entidade-Relacionamento — Clinic CRM</h1>
+  <p class="subtitle">Floren Odonto | PostgreSQL</p>
+
+  <div class="mermaid">
+erDiagram
+
+    patients {
+        uuid id PK
+        varchar name
+        varchar phone UK
+        varchar email
+        enum status
+        varchar source
+        varchar utm_campaign
+        varchar utm_adset
+        varchar utm_ad
+        varchar procedure_interest
+        text problem_description
+        text notes
+        varchar lost_reason
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    conversations {
+        uuid id PK
+        uuid patient_id FK
+        enum channel
+        varchar whatsapp_thread_id
+        boolean is_ai_active
+        timestamptz started_at
+        timestamptz last_message_at
+    }
+
+    messages {
+        uuid id PK
+        uuid conversation_id FK
+        enum direction
+        enum sender
+        text content
+        varchar media_url
+        varchar media_type
+        varchar whatsapp_message_id
+        enum status
+        timestamptz sent_at
+    }
+
+    appointments {
+        uuid id PK
+        uuid patient_id FK
+        uuid doctor_id FK
+        uuid procedure_id FK
+        varchar google_event_id
+        date date
+        time start_time
+        time end_time
+        enum status
+        text notes
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    appointment_reminders {
+        uuid id PK
+        uuid appointment_id FK
+        enum type
+        enum channel
+        timestamptz scheduled_at
+        timestamptz sent_at
+        enum status
+    }
+
+    follow_up_messages {
+        uuid id PK
+        uuid patient_id FK
+        int step
+        varchar step_type
+        timestamptz scheduled_at
+        timestamptz sent_at
+        enum status
+    }
+
+    lead_status_history {
+        uuid id PK
+        uuid patient_id FK
+        varchar from_status
+        varchar to_status
+        varchar changed_by
+        timestamptz changed_at
+    }
+
+    doctors {
+        uuid id PK
+        varchar name
+        varchar specialty
+        boolean is_active
+    }
+
+    procedures {
+        uuid id PK
+        varchar name
+        text description
+        decimal price_range_min
+        decimal price_range_max
+    }
+
+    patient_procedures {
+        uuid id PK
+        uuid patient_id FK
+        uuid procedure_id FK
+        uuid appointment_id FK
+        decimal value
+        enum status
+        date started_at
+        date completed_at
+    }
+
+    meta_campaigns {
+        varchar id PK
+        varchar name
+        varchar status
+        timestamptz last_synced_at
+    }
+
+    meta_adsets {
+        varchar id PK
+        varchar campaign_id FK
+        varchar name
+    }
+
+    meta_daily_metrics {
+        uuid id PK
+        date date
+        varchar campaign_id FK
+        varchar adset_id FK
+        decimal spend
+        int impressions
+        int clicks
+        int leads
+    }
+
+    patients ||--o{ conversations : "tem"
+    conversations ||--o{ messages : "contem"
+    patients ||--o{ appointments : "agenda"
+    doctors ||--o{ appointments : "atende"
+    procedures ||--o{ appointments : "tipo"
+    appointments ||--o{ appointment_reminders : "gera"
+    patients ||--o{ follow_up_messages : "recebe"
+    patients ||--o{ lead_status_history : "movimenta"
+    patients ||--o{ patient_procedures : "realiza"
+    procedures ||--o{ patient_procedures : "tipo"
+    appointments ||--o{ patient_procedures : "origina"
+    meta_campaigns ||--o{ meta_adsets : "contem"
+    meta_campaigns ||--o{ meta_daily_metrics : "metrica"
+    meta_adsets ||--o{ meta_daily_metrics : "metrica"
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      er: {
+        diagramPadding: 20,
+        layoutDirection: 'TB',
+        minEntityWidth: 100,
+        minEntityHeight: 75,
+        entityPadding: 15,
+        useMaxWidth: false,
+      },
+      themeVariables: {
+        primaryColor: '#3b82f6',
+        primaryTextColor: '#f1f5f9',
+        lineColor: '#64748b',
+        tertiaryColor: '#1e293b',
+      }
+    });
+  </script>
+</body>
+</html>

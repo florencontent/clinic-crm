@@ -3,17 +3,21 @@
 import { useState } from "react";
 import { format, addMonths, subMonths, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { CalendarView } from "@/components/agenda/calendar-view";
 import { WeekView } from "@/components/agenda/week-view";
-import { appointments } from "@/data/mock-data";
+import { AppointmentModal } from "@/components/agenda/appointment-modal";
+import { Appointment } from "@/data/mock-data";
+import { useAppointments } from "@/hooks/use-supabase-data";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "month" | "week";
 
 export default function AgendaPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 1, 15)); // Feb 2026
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const { appointments, loading, setAppointments } = useAppointments();
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
   const navigate = (direction: "prev" | "next") => {
     if (viewMode === "month") {
@@ -22,6 +26,21 @@ export default function AgendaPage() {
       setCurrentDate((d) => (direction === "prev" ? subWeeks(d, 1) : addWeeks(d, 1)));
     }
   };
+
+  const handleSave = (updated: Appointment) => {
+    setAppointments((prev) =>
+      prev.map((apt) => (apt.id === updated.id ? updated : apt))
+    );
+    setSelectedAppointment(updated);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
@@ -80,9 +99,25 @@ export default function AgendaPage() {
       </div>
 
       {viewMode === "month" ? (
-        <CalendarView currentDate={currentDate} appointments={appointments} />
+        <CalendarView
+          currentDate={currentDate}
+          appointments={appointments}
+          onSelectAppointment={setSelectedAppointment}
+        />
       ) : (
-        <WeekView currentDate={currentDate} appointments={appointments} />
+        <WeekView
+          currentDate={currentDate}
+          appointments={appointments}
+          onSelectAppointment={setSelectedAppointment}
+        />
+      )}
+
+      {selectedAppointment && (
+        <AppointmentModal
+          appointment={selectedAppointment}
+          onClose={() => setSelectedAppointment(null)}
+          onSave={handleSave}
+        />
       )}
     </div>
   );

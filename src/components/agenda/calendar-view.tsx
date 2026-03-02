@@ -18,9 +18,10 @@ import { cn } from "@/lib/utils";
 interface CalendarViewProps {
   currentDate: Date;
   appointments: Appointment[];
+  onSelectAppointment: (appointment: Appointment) => void;
 }
 
-export function CalendarView({ currentDate, appointments }: CalendarViewProps) {
+export function CalendarView({ currentDate, appointments, onSelectAppointment }: CalendarViewProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calStart = startOfWeek(monthStart, { locale: ptBR });
@@ -65,12 +66,13 @@ export function CalendarView({ currentDate, appointments }: CalendarViewProps) {
               </span>
               <div className="mt-1 space-y-1">
                 {dayAppointments.slice(0, 3).map((apt) => (
-                  <div
+                  <button
                     key={apt.id}
-                    className="bg-blue-50 text-blue-700 text-[10px] px-1.5 py-0.5 rounded truncate"
+                    onClick={() => onSelectAppointment(apt)}
+                    className="w-full text-left bg-blue-50 text-blue-700 text-[10px] px-1.5 py-0.5 rounded truncate hover:bg-blue-100 transition-colors cursor-pointer"
                   >
                     {apt.time} {apt.leadName.split(" ")[0]}
-                  </div>
+                  </button>
                 ))}
                 {dayAppointments.length > 3 && (
                   <span className="text-[10px] text-gray-400">+{dayAppointments.length - 3} mais</span>

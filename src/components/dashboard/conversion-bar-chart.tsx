@@ -1,14 +1,17 @@
 "use client";
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { conversionData } from "@/data/mock-data";
 
-export function ConversionBarChart() {
+interface ConversionBarChartProps {
+  data: Array<{ name: string; value: number }>;
+}
+
+export function ConversionBarChart({ data }: ConversionBarChartProps) {
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
       <h3 className="text-base font-semibold text-gray-900 mb-4">Taxas de Conversão</h3>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={conversionData} layout="vertical" margin={{ left: 30 }}>
+        <BarChart data={data} layout="vertical" margin={{ left: 30 }}>
           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
           <XAxis
             type="number"

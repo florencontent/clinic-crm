@@ -2,7 +2,6 @@
 
 import {
   ComposedChart,
-  Area,
   Line,
   XAxis,
   YAxis,
@@ -55,34 +54,31 @@ export function SpendLeadsChart({ data }: { data: MetaDailyMetric[] }) {
       </h3>
       <ResponsiveContainer width="100%" height={340}>
         <ComposedChart data={data} margin={{ left: 10, right: 10 }}>
-          <defs>
-            <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.01} />
-            </linearGradient>
-          </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
           <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#94a3b8" }} />
           <YAxis
             yAxisId="spend"
+            domain={[0, "auto"]}
             tick={{ fontSize: 12, fill: "#94a3b8" }}
             tickFormatter={(v) => `R$${v}`}
           />
           <YAxis
             yAxisId="leads"
             orientation="right"
+            domain={[0, "auto"]}
             tick={{ fontSize: 12, fill: "#94a3b8" }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          <Area
+          <Line
             yAxisId="spend"
             type="monotone"
             dataKey="spend"
             name="Investimento"
             stroke="#3B82F6"
-            strokeWidth={2}
-            fill="url(#spendGradient)"
+            strokeWidth={2.5}
+            dot={{ r: 3, fill: "#3B82F6" }}
+            activeDot={{ r: 5 }}
           />
           <Line
             yAxisId="leads"
@@ -90,9 +86,9 @@ export function SpendLeadsChart({ data }: { data: MetaDailyMetric[] }) {
             dataKey="leads"
             name="Leads"
             stroke="#22C55E"
-            strokeWidth={2}
-            dot={{ r: 4 }}
-            activeDot={{ r: 6 }}
+            strokeWidth={2.5}
+            dot={{ r: 3, fill: "#22C55E" }}
+            activeDot={{ r: 5 }}
           />
         </ComposedChart>
       </ResponsiveContainer>

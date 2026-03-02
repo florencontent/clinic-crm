@@ -36,128 +36,9 @@ export interface Appointment {
   date: string;
   time: string;
   duration: number; // minutes
+  doctor: string;
+  notes: string;
 }
-
-export const leads: Lead[] = [
-  { id: "1", name: "Ana Paula Silva", phone: "(11) 99123-4567", procedure: "Botox", source: "Meta Ads", status: "em_contato", date: "2026-02-10" },
-  { id: "2", name: "Carlos Eduardo Santos", phone: "(11) 98234-5678", procedure: "Preenchimento Labial", source: "Site", status: "em_contato", date: "2026-02-11" },
-  { id: "3", name: "Mariana Costa", phone: "(11) 97345-6789", procedure: "Harmonização Facial", source: "Meta Ads", status: "em_contato", date: "2026-02-12" },
-  { id: "4", name: "Roberto Almeida", phone: "(11) 96456-7890", procedure: "Limpeza de Pele", source: "Site", status: "em_contato", date: "2026-02-12" },
-  { id: "5", name: "Fernanda Lima", phone: "(11) 95567-8901", procedure: "Botox", source: "Meta Ads", status: "agendado", date: "2026-02-08" },
-  { id: "6", name: "João Pedro Oliveira", phone: "(11) 94678-9012", procedure: "Peeling Químico", source: "Site", status: "agendado", date: "2026-02-09" },
-  { id: "7", name: "Beatriz Rodrigues", phone: "(11) 93789-0123", procedure: "Preenchimento Labial", source: "Meta Ads", status: "agendado", date: "2026-02-07" },
-  { id: "8", name: "Lucas Ferreira", phone: "(11) 92890-1234", procedure: "Harmonização Facial", source: "Meta Ads", status: "compareceu", date: "2026-02-05" },
-  { id: "9", name: "Juliana Martins", phone: "(11) 91901-2345", procedure: "Botox", source: "Site", status: "compareceu", date: "2026-02-04" },
-  { id: "10", name: "Rafael Souza", phone: "(11) 90012-3456", procedure: "Limpeza de Pele", source: "Meta Ads", status: "compareceu", date: "2026-02-06" },
-  { id: "11", name: "Camila Nascimento", phone: "(11) 99876-5432", procedure: "Harmonização Facial", source: "Site", status: "fechado", date: "2026-01-28" },
-  { id: "12", name: "Thiago Barbosa", phone: "(11) 98765-4321", procedure: "Botox", source: "Meta Ads", status: "fechado", date: "2026-01-30" },
-  { id: "13", name: "Patrícia Gomes", phone: "(11) 97654-3210", procedure: "Preenchimento Labial", source: "Meta Ads", status: "fechado", date: "2026-02-01" },
-  { id: "14", name: "Diego Mendes", phone: "(11) 96543-2109", procedure: "Peeling Químico", source: "Site", status: "em_contato", date: "2026-02-13" },
-  { id: "15", name: "Isabela Teixeira", phone: "(11) 95432-1098", procedure: "Botox", source: "Meta Ads", status: "agendado", date: "2026-02-10" },
-  { id: "16", name: "Gustavo Cardoso", phone: "(11) 94321-0987", procedure: "Harmonização Facial", source: "Site", status: "compareceu", date: "2026-02-03" },
-];
-
-export const conversations: Conversation[] = [
-  {
-    leadId: "1",
-    leadName: "Ana Paula Silva",
-    lastMessage: "Olá, gostaria de saber mais sobre o Botox",
-    lastTime: "10:30",
-    unread: 2,
-    status: "em_contato",
-    messages: [
-      { id: "m1", text: "Olá, boa tarde! Vi o anúncio de vocês no Instagram sobre Botox. Quanto custa?", sender: "lead", timestamp: "10:15" },
-      { id: "m2", text: "Olá Ana Paula! Tudo bem? 😊 O valor do Botox começa a partir de R$ 1.200, dependendo da região a ser aplicada.", sender: "clinic", timestamp: "10:20" },
-      { id: "m3", text: "Entendi! E como funciona o agendamento?", sender: "lead", timestamp: "10:25" },
-      { id: "m4", text: "Olá, gostaria de saber mais sobre o Botox", sender: "lead", timestamp: "10:30" },
-    ],
-  },
-  {
-    leadId: "2",
-    leadName: "Carlos Eduardo Santos",
-    lastMessage: "Perfeito, vou confirmar com minha esposa",
-    lastTime: "09:45",
-    unread: 0,
-    status: "em_contato",
-    messages: [
-      { id: "m5", text: "Bom dia! Encontrei vocês pelo Google. Fazem preenchimento labial?", sender: "lead", timestamp: "09:00" },
-      { id: "m6", text: "Bom dia Carlos! Sim, realizamos preenchimento labial com ácido hialurônico. Gostaria de agendar uma avaliação?", sender: "clinic", timestamp: "09:10" },
-      { id: "m7", text: "Sim! Qual o valor da avaliação?", sender: "lead", timestamp: "09:20" },
-      { id: "m8", text: "A avaliação é gratuita! Temos horários disponíveis na terça e quinta. Qual prefere?", sender: "clinic", timestamp: "09:30" },
-      { id: "m9", text: "Perfeito, vou confirmar com minha esposa", sender: "lead", timestamp: "09:45" },
-    ],
-  },
-  {
-    leadId: "5",
-    leadName: "Fernanda Lima",
-    lastMessage: "Confirmado! Terça às 14h 👍",
-    lastTime: "Ontem",
-    unread: 0,
-    status: "agendado",
-    messages: [
-      { id: "m10", text: "Oi! Quero agendar Botox", sender: "lead", timestamp: "14:00" },
-      { id: "m11", text: "Olá Fernanda! Que bom! Temos horário na terça-feira às 14h, serve para você?", sender: "clinic", timestamp: "14:15" },
-      { id: "m12", text: "Confirmado! Terça às 14h 👍", sender: "lead", timestamp: "14:20" },
-    ],
-  },
-  {
-    leadId: "3",
-    leadName: "Mariana Costa",
-    lastMessage: "Vou pensar e retorno amanhã",
-    lastTime: "Ontem",
-    unread: 1,
-    status: "em_contato",
-    messages: [
-      { id: "m13", text: "Boa tarde! Vi no Instagram sobre harmonização facial. Gostaria de saber os valores.", sender: "lead", timestamp: "16:00" },
-      { id: "m14", text: "Boa tarde Mariana! A harmonização facial é um dos nossos procedimentos mais procurados. Os valores variam de R$ 3.500 a R$ 8.000 dependendo do protocolo.", sender: "clinic", timestamp: "16:10" },
-      { id: "m15", text: "Vou pensar e retorno amanhã", sender: "lead", timestamp: "16:30" },
-    ],
-  },
-  {
-    leadId: "8",
-    leadName: "Lucas Ferreira",
-    lastMessage: "Gostei muito do resultado da avaliação!",
-    lastTime: "08:20",
-    unread: 1,
-    status: "compareceu",
-    messages: [
-      { id: "m16", text: "Bom dia! Estive aí ontem para avaliação da harmonização", sender: "lead", timestamp: "08:00" },
-      { id: "m17", text: "Bom dia Lucas! Sim, como foi sua experiência?", sender: "clinic", timestamp: "08:10" },
-      { id: "m18", text: "Gostei muito do resultado da avaliação!", sender: "lead", timestamp: "08:20" },
-    ],
-  },
-  {
-    leadId: "11",
-    leadName: "Camila Nascimento",
-    lastMessage: "Muito obrigada! Adorei o resultado! ❤️",
-    lastTime: "Seg",
-    unread: 0,
-    status: "fechado",
-    messages: [
-      { id: "m19", text: "Dra., a harmonização ficou incrível!", sender: "lead", timestamp: "10:00" },
-      { id: "m20", text: "Que bom Camila! Ficou realmente muito natural. Lembre-se dos cuidados pós-procedimento!", sender: "clinic", timestamp: "10:15" },
-      { id: "m21", text: "Muito obrigada! Adorei o resultado! ❤️", sender: "lead", timestamp: "10:20" },
-    ],
-  },
-];
-
-export const appointments: Appointment[] = [
-  { id: "a1", leadName: "Fernanda Lima", procedure: "Botox", date: "2026-02-17", time: "09:00", duration: 60 },
-  { id: "a2", leadName: "João Pedro Oliveira", procedure: "Peeling Químico", date: "2026-02-17", time: "10:30", duration: 45 },
-  { id: "a3", leadName: "Beatriz Rodrigues", procedure: "Preenchimento Labial", date: "2026-02-17", time: "14:00", duration: 60 },
-  { id: "a4", leadName: "Isabela Teixeira", procedure: "Botox", date: "2026-02-18", time: "09:00", duration: 60 },
-  { id: "a5", leadName: "Ana Paula Silva", procedure: "Botox", date: "2026-02-18", time: "11:00", duration: 60 },
-  { id: "a6", leadName: "Carlos Eduardo Santos", procedure: "Preenchimento Labial", date: "2026-02-19", time: "10:00", duration: 90 },
-  { id: "a7", leadName: "Mariana Costa", procedure: "Harmonização Facial", date: "2026-02-19", time: "14:00", duration: 120 },
-  { id: "a8", leadName: "Diego Mendes", procedure: "Peeling Químico", date: "2026-02-20", time: "09:00", duration: 45 },
-  { id: "a9", leadName: "Fernanda Lima", procedure: "Retorno Botox", date: "2026-02-20", time: "15:00", duration: 30 },
-  { id: "a10", leadName: "Lucas Ferreira", procedure: "Harmonização Facial", date: "2026-02-21", time: "10:00", duration: 120 },
-  { id: "a11", leadName: "Juliana Martins", procedure: "Botox", date: "2026-02-16", time: "09:00", duration: 60 },
-  { id: "a12", leadName: "Rafael Souza", procedure: "Limpeza de Pele", date: "2026-02-16", time: "11:00", duration: 45 },
-  { id: "a13", leadName: "Gustavo Cardoso", procedure: "Harmonização Facial", date: "2026-02-23", time: "14:00", duration: 120 },
-  { id: "a14", leadName: "Patrícia Gomes", procedure: "Preenchimento Labial", date: "2026-02-24", time: "10:00", duration: 60 },
-  { id: "a15", leadName: "Thiago Barbosa", procedure: "Retorno Botox", date: "2026-02-25", time: "16:00", duration: 30 },
-];
 
 export const statusLabels: Record<LeadStatus, string> = {
   em_contato: "Em Contato",
@@ -179,32 +60,6 @@ export const columnColors: Record<LeadStatus, string> = {
   compareceu: "border-t-purple-400",
   fechado: "border-t-green-400",
 };
-
-// Dashboard metrics
-export const dashboardMetrics = {
-  investment: 12500,
-  totalSales: 8,
-  revenue: 42000,
-  roi: 236,
-};
-
-export const funnelData = [
-  { stage: "Leads", value: 16, fill: "#3B82F6" },
-  { stage: "Agendados", value: 7, fill: "#6366F1" },
-  { stage: "Compareceram", value: 5, fill: "#8B5CF6" },
-  { stage: "Fechados", value: 3, fill: "#22C55E" },
-];
-
-export const sourceData = [
-  { name: "Meta Ads", value: 10, fill: "#3B82F6" },
-  { name: "Site", value: 6, fill: "#6366F1" },
-];
-
-export const conversionData = [
-  { name: "Agendamento", value: 43.75 },
-  { name: "Comparecimento", value: 71.43 },
-  { name: "Venda", value: 60.0 },
-];
 
 // Meta Ads types
 export interface MetaCampaign {
@@ -304,3 +159,58 @@ export const metaAdsMetrics = {
   ctr: 2.65,
   reach: 185000,
 };
+
+// Video Generator types and mock data
+export type VideoStatus = "gerando" | "pronto" | "erro";
+export type VideoType = "Captação" | "Remarketing" | "Educativo";
+
+export interface GeneratedVideo {
+  id: string;
+  type: VideoType;
+  targetAudience: string;
+  procedure: string;
+  differential: string;
+  status: VideoStatus;
+  createdAt: string;
+}
+
+export const videoTypes: VideoType[] = ["Captação", "Remarketing", "Educativo"];
+
+export const mockVideos: GeneratedVideo[] = [
+  {
+    id: "v1",
+    type: "Captação",
+    targetAudience: "Mulheres 25-45 anos",
+    procedure: "Botox",
+    differential: "Resultado natural e indolor",
+    status: "pronto",
+    createdAt: "2026-02-15",
+  },
+  {
+    id: "v2",
+    type: "Educativo",
+    targetAudience: "Pacientes existentes",
+    procedure: "Harmonização Facial",
+    differential: "Pacote combo com desconto",
+    status: "pronto",
+    createdAt: "2026-02-12",
+  },
+  {
+    id: "v3",
+    type: "Remarketing",
+    targetAudience: "Visitantes do site",
+    procedure: "Preenchimento Labial",
+    differential: "Agende sua avaliação gratuita",
+    status: "pronto",
+    createdAt: "2026-02-10",
+  },
+  {
+    id: "v4",
+    type: "Captação",
+    targetAudience: "Mulheres 30-50 zona sul",
+    procedure: "Peeling Químico",
+    differential: "Pele renovada em 1 sessão",
+    status: "erro",
+    createdAt: "2026-02-08",
+  },
+];

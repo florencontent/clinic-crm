@@ -1,33 +1,42 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { funnelData } from "@/data/mock-data";
+interface FunnelChartProps {
+  data: Array<{ stage: string; value: number; fill: string }>;
+}
 
-export function FunnelChart() {
+export function FunnelChart({ data }: FunnelChartProps) {
+  const maxValue = data.length > 0 ? Math.max(...data.map((d) => d.value)) : 1;
+
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-base font-semibold text-gray-900 mb-4">Funil de Vendas</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={funnelData} layout="vertical" margin={{ left: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-          <XAxis type="number" tick={{ fontSize: 12, fill: "#94a3b8" }} />
-          <YAxis
-            type="category"
-            dataKey="stage"
-            tick={{ fontSize: 13, fill: "#475569" }}
-            width={100}
-          />
-          <Tooltip
-            contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-            formatter={(value) => [`${value} leads`, ""]}
-          />
-          <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={36}>
-            {funnelData.map((entry, index) => (
-              <Cell key={index} fill={entry.fill} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <h3 className="text-base font-semibold text-gray-900 mb-6">Funil de Vendas</h3>
+      <div className="flex flex-col items-center gap-1">
+        {data.map((item, index) => {
+          const widthPercent = Math.max((item.value / maxValue) * 100, 20);
+          const isLast = index === data.length - 1;
+
+          return (
+            <div key={item.stage} className="w-full flex flex-col items-center">
+              <div
+                className="relative py-4 text-center text-white font-semibold text-sm transition-all"
+                style={{
+                  width: `${widthPercent}%`,
+                  backgroundColor: item.fill,
+                  borderRadius: index === 0 ? "12px 12px 0 0" : isLast ? "0 0 12px 12px" : "0",
+                  clipPath: isLast
+                    ? "polygon(0% 0%, 100% 0%, 85% 100%, 15% 100%)"
+                    : index === 0
+                    ? undefined
+                    : "polygon(0% 0%, 100% 0%, 96% 100%, 4% 100%)",
+                }}
+              >
+                <span className="block text-base font-bold">{item.value}</span>
+                <span className="block text-xs font-medium opacity-90">{item.stage}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

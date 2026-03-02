@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Search } from "lucide-react";
 import { AdsMetricsCards } from "@/components/meta-ads/ads-metrics-cards";
 import { SpendLeadsChart } from "@/components/meta-ads/spend-leads-chart";
 import { LeadsByOriginChart } from "@/components/meta-ads/leads-by-origin-chart";
@@ -45,17 +44,14 @@ const periodLabels: Record<Period, string> = {
 export default function MetaAdsPage() {
   const [data, setData] = useState<MetaAdsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   const filters = useMetaAdsFilters(data);
   const isFirstLoad = useRef(true);
 
-  const fetchData = useCallback(async (preset: Period, isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else if (!data) setLoading(true);
-    else setRefreshing(true);
+  const fetchData = useCallback(async (preset: Period) => {
+    if (!data) setLoading(true);
     setError(null);
 
     try {
@@ -72,15 +68,9 @@ export default function MetaAdsPage() {
       setLastUpdated(json.lastUpdated || Date.now());
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro desconhecido";
-      // If we already have data, show error as toast-like but keep existing data
-      if (data) {
-        setError(msg);
-      } else {
-        setError(msg);
-      }
+      setError(msg);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, [data]);
 
@@ -95,16 +85,16 @@ export default function MetaAdsPage() {
       isFirstLoad.current = false;
       return;
     }
-    fetchData(filters.period, true);
+    fetchData(filters.period);
   }, [filters.period, fetchData]);
 
-  const handleRefresh = () => fetchData(filters.period, true);
+  const handleRefresh = () => fetchData(filters.period);
 
   if (loading) {
     return <MetaAdsSkeleton />;
   }
 
-  if (error || !data) {
+  if (error && !data) {
     return (
       <div className="min-h-screen p-8 flex items-center justify-center">
         <div className="bg-white rounded-xl p-8 shadow-sm border border-red-100 text-center max-w-md">
@@ -121,66 +111,40 @@ export default function MetaAdsPage() {
     );
   }
 
-  const hasResults = filters.filteredCampaigns.length > 0;
+  if (!data) return null;
 
   return (
     <div className="min-h-screen p-8 space-y-6">
-      <MetaAdsHeader
-        lastUpdated={lastUpdated}
-        loading={refreshing}
-        onRefresh={handleRefresh}
-      />
-
-      <MetaAdsFilters
-        period={filters.period}
-        onPeriodChange={filters.setPeriod}
-        statusFilter={filters.statusFilter}
-        onStatusFilterChange={filters.setStatusFilter}
-        searchQuery={filters.searchQuery}
-        onSearchChange={filters.setSearchQuery}
-        hideZeroSpend={filters.hideZeroSpend}
-        onHideZeroSpendChange={filters.setHideZeroSpend}
-      />
-
-      <div className={`transition-opacity duration-300 space-y-6 ${refreshing ? "opacity-50" : ""}`}>
-        {/* Top metrics: ALL campaigns with spend, regardless of filters */}
-        <AdsMetricsCards
-          metrics={filters.totalMetrics}
-          periodLabel={periodLabels[filters.period]}
+      <div className="flex items-start justify-between">
+        <MetaAdsHeader
+          lastUpdated={lastUpdated}
+          loading={false}
+          onRefresh={handleRefresh}
         />
-
-        {hasResults ? (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SpendLeadsChart data={filters.filteredDaily} />
-              <LeadsByOriginChart campaigns={data.campaigns} />
-            </div>
-
-            <CampaignsTable
-              campaigns={filters.filteredCampaigns}
-              adsets={filters.filteredAdsets}
-            />
-
-            <AdsetsBarChart adsets={filters.filteredAdsets} campaigns={filters.filteredCampaigns} />
-
-            <AdsPerformance ads={filters.filteredAds} adsets={filters.filteredAdsets} campaigns={filters.filteredCampaigns} />
-          </>
-        ) : (
-          <div className="bg-white rounded-xl p-12 shadow-sm border border-gray-100 text-center">
-            <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 font-medium mb-2">Nenhuma campanha encontrada</p>
-            <p className="text-sm text-gray-400 mb-4">
-              Tente ajustar os filtros ou limpar a busca
-            </p>
-            <button
-              onClick={filters.clearSearch}
-              className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-            >
-              Limpar busca
-            </button>
-          </div>
-        )}
+        <MetaAdsFilters
+          period={filters.period}
+          onPeriodChange={filters.setPeriod}
+        />
       </div>
+
+      <AdsMetricsCards
+        metrics={filters.totalMetrics}
+        periodLabel={periodLabels[filters.period]}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SpendLeadsChart data={filters.filteredDaily} />
+        <LeadsByOriginChart campaigns={data.campaigns} />
+      </div>
+
+      <CampaignsTable
+        campaigns={filters.filteredCampaigns}
+        adsets={filters.filteredAdsets}
+      />
+
+      <AdsetsBarChart adsets={filters.filteredAdsets} campaigns={filters.filteredCampaigns} />
+
+      <AdsPerformance ads={filters.filteredAds} adsets={filters.filteredAdsets} campaigns={filters.filteredCampaigns} />
     </div>
   );
 }

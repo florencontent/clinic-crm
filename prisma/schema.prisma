@@ -1,0 +1,292 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== ENUMS ====================
+
+enum PatientStatus {
+  novo
+  em_contato
+  qualificado
+  agendado
+  confirmado
+  compareceu
+  fechado
+  perdido
+}
+
+enum Channel {
+  whatsapp
+  email
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageSender {
+  patient
+  ai
+  human
+}
+
+enum MessageStatus {
+  sent
+  delivered
+  read
+  failed
+}
+
+enum AppointmentStatus {
+  agendado
+  confirmado
+  compareceu
+  nao_compareceu
+  cancelado
+  remarcado
+}
+
+enum ReminderType {
+  two_days
+  one_day
+  two_hours
+}
+
+enum ReminderStatus {
+  pending
+  sent
+  failed
+}
+
+enum FollowUpStep {
+  beneficios_objecao
+  educativo_depoimentos
+  depoimentos_objecao
+  break_final
+}
+
+enum FollowUpStatus {
+  pending
+  sent
+  replied
+  cancelled
+}
+
+enum ProcedureStatus {
+  em_tratamento
+  concluido
+  cancelado
+}
+
+// ==================== TABLES ====================
+
+model Patient {
+  id                 String        @id @default(uuid())
+  name               String?
+  phone              String        @unique
+  email              String?
+  status             PatientStatus @default(novo)
+  source             String?       // meta_ads, site, indicacao, organico
+  utmCampaign        String?       @map("utm_campaign")
+  utmAdset           String?       @map("utm_adset")
+  utmAd              String?       @map("utm_ad")
+  procedureInterest  String?       @map("procedure_interest")
+  problemDescription String?       @map("problem_description")
+  notes              String?
+  lostReason         String?       @map("lost_reason")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  conversations   Conversation[]
+  appointments    Appointment[]
+  followUps       FollowUpMessage[]
+  statusHistory   LeadStatusHistory[]
+  procedures      PatientProcedure[]
+
+  @@map("patients")
+}
+
+model Conversation {
+  id                String   @id @default(uuid())
+  patientId         String   @map("patient_id")
+  channel           Channel  @default(whatsapp)
+  whatsappThreadId  String?  @map("whatsapp_thread_id")
+  isAiActive        Boolean  @default(true) @map("is_ai_active")
+  startedAt         DateTime @default(now()) @map("started_at")
+  lastMessageAt     DateTime @default(now()) @map("last_message_at")
+
+  patient  Patient   @relation(fields: [patientId], references: [id])
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id                 String           @id @default(uuid())
+  conversationId     String           @map("conversation_id")
+  direction          MessageDirection
+  sender             MessageSender
+  content            String?
+  mediaUrl           String?          @map("media_url")
+  mediaType          String?          @map("media_type")
+  whatsappMessageId  String?          @map("whatsapp_message_id")
+  status             MessageStatus    @default(sent)
+  sentAt             DateTime         @default(now()) @map("sent_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@map("messages")
+}
+
+model Doctor {
+  id        String  @id @default(uuid())
+  name      String
+  specialty String?
+  isActive  Boolean @default(true) @map("is_active")
+
+  appointments Appointment[]
+
+  @@map("doctors")
+}
+
+model Procedure {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  priceRangeMin Decimal? @map("price_range_min") @db.Decimal(10, 2)
+  priceRangeMax Decimal? @map("price_range_max") @db.Decimal(10, 2)
+
+  appointments      Appointment[]
+  patientProcedures PatientProcedure[]
+
+  @@map("procedures")
+}
+
+model Appointment {
+  id            String            @id @default(uuid())
+  patientId     String            @map("patient_id")
+  doctorId      String?           @map("doctor_id")
+  procedureId   String?           @map("procedure_id")
+  googleEventId String?           @map("google_event_id")
+  date          DateTime          @db.Date
+  startTime     DateTime          @map("start_time") @db.Time()
+  endTime       DateTime          @map("end_time") @db.Time()
+  status        AppointmentStatus @default(agendado)
+  notes         String?
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  patient    Patient              @relation(fields: [patientId], references: [id])
+  doctor     Doctor?              @relation(fields: [doctorId], references: [id])
+  procedure  Procedure?           @relation(fields: [procedureId], references: [id])
+  reminders  AppointmentReminder[]
+  patientProcedures PatientProcedure[]
+
+  @@map("appointments")
+}
+
+model AppointmentReminder {
+  id            String         @id @default(uuid())
+  appointmentId String         @map("appointment_id")
+  type          ReminderType
+  channel       Channel
+  scheduledAt   DateTime       @map("scheduled_at")
+  sentAt        DateTime?      @map("sent_at")
+  status        ReminderStatus @default(pending)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+
+  @@map("appointment_reminders")
+}
+
+model FollowUpMessage {
+  id          String         @id @default(uuid())
+  patientId   String         @map("patient_id")
+  step        Int
+  stepType    FollowUpStep   @map("step_type")
+  scheduledAt DateTime       @map("scheduled_at")
+  sentAt      DateTime?      @map("sent_at")
+  status      FollowUpStatus @default(pending)
+
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@map("follow_up_messages")
+}
+
+model LeadStatusHistory {
+  id        String   @id @default(uuid())
+  patientId String   @map("patient_id")
+  fromStatus String  @map("from_status")
+  toStatus   String  @map("to_status")
+  changedBy  String  @map("changed_by") // ai, human, system
+  changedAt  DateTime @default(now()) @map("changed_at")
+
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@map("lead_status_history")
+}
+
+model PatientProcedure {
+  id            String          @id @default(uuid())
+  patientId     String          @map("patient_id")
+  procedureId   String          @map("procedure_id")
+  appointmentId String?         @map("appointment_id")
+  value         Decimal         @db.Decimal(10, 2)
+  status        ProcedureStatus @default(em_tratamento)
+  startedAt     DateTime?       @map("started_at") @db.Date
+  completedAt   DateTime?       @map("completed_at") @db.Date
+
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  procedure   Procedure   @relation(fields: [procedureId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@map("patient_procedures")
+}
+
+// ==================== META ADS (cache) ====================
+
+model MetaCampaign {
+  id           String   @id
+  name         String
+  status       String?
+  lastSyncedAt DateTime? @map("last_synced_at")
+
+  adsets  MetaAdset[]
+  metrics MetaDailyMetric[]
+
+  @@map("meta_campaigns")
+}
+
+model MetaAdset {
+  id         String @id
+  campaignId String @map("campaign_id")
+  name       String
+
+  campaign MetaCampaign      @relation(fields: [campaignId], references: [id])
+  metrics  MetaDailyMetric[]
+
+  @@map("meta_adsets")
+}
+
+model MetaDailyMetric {
+  id          String  @id @default(uuid())
+  date        DateTime @db.Date
+  campaignId  String?  @map("campaign_id")
+  adsetId     String?  @map("adset_id")
+  spend       Decimal  @db.Decimal(10, 2)
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  leads       Int      @default(0)
+
+  campaign MetaCampaign? @relation(fields: [campaignId], references: [id])
+  adset    MetaAdset?    @relation(fields: [adsetId], references: [id])
+
+  @@map("meta_daily_metrics")
+}
