@@ -1,15 +1,8 @@
 "use client";
 
 import {
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
-  format,
-  isSameMonth,
-  isSameDay,
-  isToday,
+  startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  eachDayOfInterval, format, isSameMonth, isSameDay, isToday, isWeekend,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Appointment } from "@/data/mock-data";
@@ -20,6 +13,14 @@ interface CalendarViewProps {
   appointments: Appointment[];
   onSelectAppointment: (appointment: Appointment) => void;
 }
+
+const APT_COLORS = [
+  "bg-blue-100 text-blue-700 hover:bg-blue-200",
+  "bg-violet-100 text-violet-700 hover:bg-violet-200",
+  "bg-emerald-100 text-emerald-700 hover:bg-emerald-200",
+  "bg-amber-100 text-amber-700 hover:bg-amber-200",
+  "bg-rose-100 text-rose-700 hover:bg-rose-200",
+];
 
 export function CalendarView({ currentDate, appointments, onSelectAppointment }: CalendarViewProps) {
   const monthStart = startOfMonth(currentDate);
@@ -34,48 +35,68 @@ export function CalendarView({ currentDate, appointments, onSelectAppointment }:
     appointments.filter((a) => isSameDay(new Date(a.date + "T00:00:00"), day));
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="grid grid-cols-7">
-        {weekDays.map((day) => (
-          <div key={day} className="py-3 text-center text-xs font-semibold text-gray-500 border-b border-gray-100">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Week day headers */}
+      <div className="grid grid-cols-7 border-b border-gray-100">
+        {weekDays.map((day, i) => (
+          <div
+            key={day}
+            className={cn(
+              "py-3 text-center text-xs font-semibold",
+              i === 0 || i === 6 ? "text-gray-300" : "text-gray-400"
+            )}
+          >
             {day}
           </div>
         ))}
       </div>
+
+      {/* Day grid */}
       <div className="grid grid-cols-7">
         {days.map((day, i) => {
-          const dayAppointments = getAppointmentsForDay(day);
+          const dayApts = getAppointmentsForDay(day);
           const inMonth = isSameMonth(day, currentDate);
+          const weekend = isWeekend(day);
+          const today = isToday(day);
+
           return (
             <div
               key={i}
               className={cn(
-                "min-h-[100px] p-2 border-b border-r border-gray-50",
-                !inMonth && "bg-gray-50/50"
+                "min-h-[110px] p-2.5 border-b border-r border-gray-50 transition-colors",
+                !inMonth && "bg-gray-50/40",
+                weekend && inMonth && "bg-gray-50/60",
+                today && "bg-blue-50/40"
               )}
             >
               <span
                 className={cn(
-                  "text-xs font-medium inline-flex items-center justify-center w-6 h-6 rounded-full",
+                  "text-xs font-semibold inline-flex items-center justify-center w-7 h-7 rounded-full mb-1",
                   !inMonth && "text-gray-300",
-                  inMonth && "text-gray-700",
-                  isToday(day) && "bg-blue-500 text-white"
+                  inMonth && !today && "text-gray-600",
+                  today && "bg-blue-500 text-white shadow-sm shadow-blue-200"
                 )}
               >
                 {format(day, "d")}
               </span>
-              <div className="mt-1 space-y-1">
-                {dayAppointments.slice(0, 3).map((apt) => (
+
+              <div className="space-y-0.5">
+                {dayApts.slice(0, 3).map((apt, aptIdx) => (
                   <button
                     key={apt.id}
                     onClick={() => onSelectAppointment(apt)}
-                    className="w-full text-left bg-blue-50 text-blue-700 text-[10px] px-1.5 py-0.5 rounded truncate hover:bg-blue-100 transition-colors cursor-pointer"
+                    className={cn(
+                      "w-full text-left text-[10px] font-medium px-1.5 py-1 rounded-lg truncate transition-colors",
+                      APT_COLORS[aptIdx % APT_COLORS.length]
+                    )}
                   >
-                    {apt.time} {apt.leadName.split(" ")[0]}
+                    {apt.time} · {apt.leadName.split(" ")[0]}
                   </button>
                 ))}
-                {dayAppointments.length > 3 && (
-                  <span className="text-[10px] text-gray-400">+{dayAppointments.length - 3} mais</span>
+                {dayApts.length > 3 && (
+                  <span className="text-[10px] text-gray-400 pl-1">
+                    +{dayApts.length - 3} mais
+                  </span>
                 )}
               </div>
             </div>
