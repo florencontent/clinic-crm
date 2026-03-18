@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { X, Send, Loader2, Search } from "lucide-react";
 import { KanbanColumn } from "./column";
@@ -109,10 +109,31 @@ export function KanbanBoard() {
       })
     );
     setInput("");
+    if (textareaRef.current) textareaRef.current.style.height = "40px";
+  };
+
+  const handleChatKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleChatInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const ta = e.target;
+    ta.style.height = "40px";
+    ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
   };
 
   const openConversation = conversations.find((c) => c.leadId === openLeadId) || null;
   const openLead = leads.find((l) => l.id === openLeadId) || null;
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [openConversation?.messages]);
 
   const hasActiveFilter = search !== "" || sourceFilter !== "all";
   const totalFiltered = filteredLeads.length;
@@ -219,54 +240,69 @@ export function KanbanBoard() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-[#F0F2F5]">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1" style={{ background: "#EFEAE2" }}>
               {openConversation && openConversation.messages.length > 0 ? (
-                openConversation.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={cn(
-                      "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm",
-                      msg.sender === "clinic"
-                        ? "bg-blue-500 text-white ml-auto rounded-br-md"
-                        : "bg-white text-gray-900 rounded-bl-md shadow-sm"
-                    )}
-                  >
-                    <p>{msg.text}</p>
-                    <p className={cn(
-                      "text-[10px] mt-1 text-right",
-                      msg.sender === "clinic" ? "text-blue-100" : "text-gray-400"
-                    )}>
-                      {msg.timestamp}
-                    </p>
-                  </div>
-                ))
+                <>
+                  {openConversation.messages.map((msg, idx) => {
+                    const isClinic = msg.sender === "clinic";
+                    const prev = idx > 0 ? openConversation.messages[idx - 1] : null;
+                    const isGrouped = prev?.sender === msg.sender;
+                    return (
+                      <div
+                        key={msg.id}
+                        className={cn("flex", isClinic ? "justify-end" : "justify-start", isGrouped ? "mt-0.5" : "mt-3")}
+                      >
+                        <div
+                          className={cn(
+                            "relative max-w-[75%] px-3 py-2 text-sm shadow-sm",
+                            isClinic
+                              ? "bg-[#D9FDD3] text-gray-900 rounded-tl-2xl rounded-bl-2xl rounded-tr-2xl"
+                              : "bg-white text-gray-900 rounded-tr-2xl rounded-br-2xl rounded-tl-2xl",
+                            !isGrouped && isClinic && "rounded-tr-md",
+                            !isGrouped && !isClinic && "rounded-tl-md"
+                          )}
+                        >
+                          <p className="whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
+                          <p className="text-[10px] text-gray-400 text-right mt-1 select-none">{msg.timestamp}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </>
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-sm text-gray-400">Nenhuma mensagem ainda. Envie a primeira!</p>
+                  <p className="text-xs text-gray-400 bg-white/60 px-3 py-1.5 rounded-full">Nenhuma mensagem ainda</p>
                 </div>
               )}
             </div>
 
             {/* Input */}
-            <div className="px-4 py-3 border-t border-gray-100 bg-white">
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
+            <div className="bg-[#F0F2F5] px-3 py-3 border-t border-gray-100 flex items-end gap-2">
+              <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm px-4 py-2">
+                <textarea
+                  ref={textareaRef}
                   value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  onChange={handleChatInput}
+                  onKeyDown={handleChatKeyDown}
                   placeholder="Digite uma mensagem..."
-                  className="flex-1 bg-gray-100 rounded-full px-5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-200 transition-all"
+                  rows={1}
                   autoFocus
+                  className="w-full text-sm outline-none resize-none bg-transparent text-gray-900 placeholder-gray-400 leading-relaxed"
+                  style={{ height: "40px", maxHeight: "120px" }}
                 />
-                <button
-                  onClick={handleSend}
-                  className="bg-blue-500 hover:bg-blue-600 text-white p-2.5 rounded-full transition-colors"
-                >
-                  <Send className="h-5 w-5" />
-                </button>
               </div>
+              <button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className="bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white p-2.5 rounded-full transition-colors flex-shrink-0"
+              >
+                <Send className="h-5 w-5" />
+              </button>
             </div>
+            <p className="text-[10px] text-gray-400 text-center pb-2 bg-[#F0F2F5] select-none">
+              Enter para enviar · Shift+Enter para nova linha
+            </p>
           </div>
         </div>
       )}
