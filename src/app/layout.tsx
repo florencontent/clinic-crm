@@ -6,8 +6,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ClinicCRM - Gestão de Vendas",
-  description: "CRM de vendas para clínicas médicas",
+  title: "Floren Manage",
+  description: "Gestão de vendas e relacionamento — Clínica Floren Odonto",
 };
 
 export default function RootLayout({

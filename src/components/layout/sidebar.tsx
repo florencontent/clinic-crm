@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,11 +20,15 @@ export function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 flex flex-col z-50">
-      <div className="p-6 border-b border-gray-100">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
-          ClinicCRM
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">Gestão de Vendas</p>
+      <div className="px-6 py-5 border-b border-gray-100 flex items-center">
+        <Image
+          src="/logo-floren.png"
+          alt="Floren Manage"
+          width={140}
+          height={40}
+          className="object-contain"
+          priority
+        />
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
@@ -50,11 +55,11 @@ export function Sidebar() {
       <div className="p-4 border-t border-gray-100">
         <div className="flex items-center gap-3 px-4 py-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold">
-            DR
+            FA
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">Dra. Renata</p>
-            <p className="text-xs text-gray-500">Clínica Estética</p>
+            <p className="text-sm font-medium text-gray-900">Dr. Alfredo</p>
+            <p className="text-xs text-gray-500">Floren Odonto</p>
           </div>
         </div>
       </div>

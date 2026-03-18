@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { X, Send, Loader2 } from "lucide-react";
+import { X, Send, Loader2, Search } from "lucide-react";
 import { KanbanColumn } from "./column";
 import {
   Lead,
   LeadStatus,
+  LeadSource,
   Conversation,
   statusLabels,
   statusColors,
@@ -17,11 +18,29 @@ import { cn } from "@/lib/utils";
 
 const columns: LeadStatus[] = ["em_contato", "agendado", "compareceu", "fechado"];
 
+const SOURCE_FILTERS: { value: LeadSource | "all"; label: string }[] = [
+  { value: "all", label: "Todas as origens" },
+  { value: "Meta Ads", label: "Meta Ads" },
+  { value: "Site", label: "Site" },
+];
+
 export function KanbanBoard() {
   const { patients: leads, loading, setPatients: setLeads } = usePatients();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<LeadSource | "all">("all");
+
+  const filteredLeads = useMemo(() => {
+    return leads.filter((lead) => {
+      if (search && !lead.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (sourceFilter !== "all" && lead.source !== sourceFilter) return false;
+      return true;
+    });
+  }, [leads, search, sourceFilter]);
 
   const handleDragEnd = (result: DropResult) => {
     const { draggableId, destination } = result;
@@ -35,12 +54,11 @@ export function KanbanBoard() {
       )
     );
 
-    // Persist to Supabase
     updatePatientStatus(draggableId, newStatus);
   };
 
   const getLeadsByStatus = (status: LeadStatus) =>
-    leads.filter((lead) => lead.status === status);
+    filteredLeads.filter((lead) => lead.status === status);
 
   const handleOpenChat = (leadId: string) => {
     if (!conversations.some((c) => c.leadId === leadId)) {
@@ -50,6 +68,8 @@ export function KanbanBoard() {
           ...prev,
           {
             leadId: lead.id,
+            conversationId: "",
+            phone: lead.phone,
             leadName: lead.name,
             lastMessage: "",
             lastTime: "Agora",
@@ -94,6 +114,9 @@ export function KanbanBoard() {
   const openConversation = conversations.find((c) => c.leadId === openLeadId) || null;
   const openLead = leads.find((l) => l.id === openLeadId) || null;
 
+  const hasActiveFilter = search !== "" || sourceFilter !== "all";
+  const totalFiltered = filteredLeads.length;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -104,6 +127,55 @@ export function KanbanBoard() {
 
   return (
     <>
+      {/* Filter bar */}
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar lead..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-400 transition-colors w-52"
+          />
+        </div>
+
+        {/* Source filter */}
+        <div className="flex gap-1.5">
+          {SOURCE_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setSourceFilter(f.value)}
+              className={cn(
+                "text-xs px-3 py-2 rounded-lg border font-medium transition-colors",
+                sourceFilter === f.value
+                  ? "bg-gray-800 text-white border-gray-800"
+                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Clear + counter */}
+        {hasActiveFilter && (
+          <>
+            <button
+              onClick={() => { setSearch(""); setSourceFilter("all"); }}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+              Limpar
+            </button>
+            <span className="text-xs text-gray-400">
+              {totalFiltered} lead{totalFiltered !== 1 ? "s" : ""}
+            </span>
+          </>
+        )}
+      </div>
+
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {columns.map((status) => (
