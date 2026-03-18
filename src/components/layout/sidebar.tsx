@@ -27,6 +27,7 @@ export function Sidebar() {
           width={140}
           height={40}
           className="object-contain"
+          style={{ marginLeft: "11%" }}
           priority
         />
       </div>
