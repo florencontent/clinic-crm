@@ -36,7 +36,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
   const unreadTotal = conversations.reduce((acc, c) => acc + c.unread, 0);
 
   return (
-    <div className="w-[360px] border-r border-gray-200 bg-white flex flex-col h-full">
+    <div className="w-[400px] border-r border-gray-200 bg-white flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between mb-3">
