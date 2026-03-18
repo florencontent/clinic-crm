@@ -12,7 +12,7 @@ import {
   statusLabels,
   statusColors,
 } from "@/data/mock-data";
-import { usePatients } from "@/hooks/use-supabase-data";
+import { usePatients, useConversations } from "@/hooks/use-supabase-data";
 import { updatePatientStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +26,7 @@ const SOURCE_FILTERS: { value: LeadSource | "all"; label: string }[] = [
 
 export function KanbanBoard() {
   const { patients: leads, loading, setPatients: setLeads } = usePatients();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const { conversations } = useConversations();
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
 
@@ -61,25 +61,6 @@ export function KanbanBoard() {
     filteredLeads.filter((lead) => lead.status === status);
 
   const handleOpenChat = (leadId: string) => {
-    if (!conversations.some((c) => c.leadId === leadId)) {
-      const lead = leads.find((l) => l.id === leadId);
-      if (lead) {
-        setConversations((prev) => [
-          ...prev,
-          {
-            leadId: lead.id,
-            conversationId: "",
-            phone: lead.phone,
-            leadName: lead.name,
-            lastMessage: "",
-            lastTime: "Agora",
-            unread: 0,
-            status: lead.status,
-            messages: [],
-          },
-        ]);
-      }
-    }
     setOpenLeadId(leadId);
     setInput("");
   };
@@ -90,24 +71,16 @@ export function KanbanBoard() {
   };
 
   const handleSend = () => {
-    if (!input.trim() || !openLeadId) return;
-    setConversations((prev) =>
-      prev.map((conv) => {
-        if (conv.leadId !== openLeadId) return conv;
-        const newMsg = {
-          id: `m-${Date.now()}`,
-          text: input.trim(),
-          sender: "clinic" as const,
-          timestamp: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-        };
-        return {
-          ...conv,
-          messages: [...conv.messages, newMsg],
-          lastMessage: input.trim(),
-          lastTime: "Agora",
-        };
-      })
-    );
+    if (!input.trim() || !openLeadId || !openConversation) return;
+    fetch("/api/messages/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: openConversation.conversationId,
+        content: input.trim(),
+        phone: openConversation.phone,
+      }),
+    });
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "40px";
   };

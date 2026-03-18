@@ -98,7 +98,7 @@ export async function fetchConversations(): Promise<Conversation[]> {
       id,
       patient_id,
       last_message_at,
-      patients ( id, name, status ),
+      patients ( id, name, status, phone ),
       messages ( id, content, direction, sender, sent_at )
     `)
     .order("last_message_at", { ascending: false });
@@ -110,7 +110,7 @@ export async function fetchConversations(): Promise<Conversation[]> {
 
   return (data || []).map((conv) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const patient = conv.patients as any as { id: string; name: string | null; status: string } | null;
+    const patient = conv.patients as any as { id: string; name: string | null; status: string; phone: string | null } | null;
     const msgs = (conv.messages as Array<{
       id: string;
       content: string | null;
@@ -145,6 +145,8 @@ export async function fetchConversations(): Promise<Conversation[]> {
 
     return {
       leadId: patient?.id || conv.patient_id,
+      conversationId: conv.id,
+      phone: patient?.phone || "",
       leadName: patient?.name || "Sem nome",
       lastMessage: lastMsg?.content || "",
       lastTime: lastMsg?.sent_at

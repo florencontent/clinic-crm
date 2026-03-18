@@ -21,6 +21,8 @@ export interface Message {
 
 export interface Conversation {
   leadId: string;
+  conversationId: string;
+  phone: string;
   leadName: string;
   lastMessage: string;
   lastTime: string;
