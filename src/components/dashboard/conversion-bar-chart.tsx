@@ -1,37 +1,46 @@
 "use client";
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-
 interface ConversionBarChartProps {
   data: Array<{ name: string; value: number }>;
 }
 
+const COLORS = [
+  { bar: "from-blue-400 to-blue-500", badge: "bg-blue-50 text-blue-700" },
+  { bar: "from-violet-400 to-violet-500", badge: "bg-violet-50 text-violet-700" },
+  { bar: "from-emerald-400 to-emerald-500", badge: "bg-emerald-50 text-emerald-700" },
+];
+
 export function ConversionBarChart({ data }: ConversionBarChartProps) {
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-base font-semibold text-gray-900 mb-4">Taxas de Conversão</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} layout="vertical" margin={{ left: 30 }}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-          <XAxis
-            type="number"
-            domain={[0, 100]}
-            tick={{ fontSize: 12, fill: "#94a3b8" }}
-            tickFormatter={(v) => `${v}%`}
-          />
-          <YAxis
-            type="category"
-            dataKey="name"
-            tick={{ fontSize: 13, fill: "#475569" }}
-            width={120}
-          />
-          <Tooltip
-            contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-            formatter={(value) => [`${Number(value).toFixed(1)}%`, "Taxa"]}
-          />
-          <Bar dataKey="value" fill="#3B82F6" radius={[0, 6, 6, 0]} barSize={30} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+      <div className="mb-5">
+        <h3 className="text-base font-semibold text-gray-900">Taxas de Conversão</h3>
+        <p className="text-xs text-gray-400 mt-0.5">Eficiência em cada etapa do funil</p>
+      </div>
+
+      <div className="space-y-5">
+        {data.map((item, index) => {
+          const color = COLORS[index % COLORS.length];
+          const pct = Math.min(Math.max(item.value, 0), 100);
+
+          return (
+            <div key={item.name}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">{item.name}</span>
+                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${color.badge}`}>
+                  {pct.toFixed(1)}%
+                </span>
+              </div>
+              <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full bg-gradient-to-r ${color.bar} transition-all duration-700`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
