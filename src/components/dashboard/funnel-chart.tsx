@@ -4,86 +4,107 @@ interface FunnelChartProps {
   data: Array<{ stage: string; value: number; fill: string }>;
 }
 
-const STAGE_ICONS = ["👥", "📅", "🏥", "✅"];
+// Lighter shade for gradient highlight
+function lighten(hex: string, amount = 40): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.min(255, (num >> 16) + amount);
+  const g = Math.min(255, ((num >> 8) & 0xff) + amount);
+  const b = Math.min(255, (num & 0xff) + amount);
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
 
 export function FunnelChart({ data }: FunnelChartProps) {
   const maxValue = data.length > 0 ? Math.max(...data.map((d) => d.value)) : 1;
-  const total = maxValue;
 
-  // Funnel dimensions
-  const svgWidth = 320;
-  const svgHeight = 260;
-  const topPad = 10;
-  const stageHeight = (svgHeight - topPad) / data.length;
-  const maxHalfWidth = svgWidth * 0.47;
-  const minHalfWidth = svgWidth * 0.08;
+  const svgWidth = 280;
+  const sliceH = 52;
+  const gap = 6;
+  const svgHeight = data.length * sliceH + (data.length - 1) * gap;
+  const maxHalfWidth = svgWidth * 0.46;
+  const minHalfWidth = svgWidth * 0.14;
+  const cx = svgWidth / 2;
+  const r = 8; // corner radius
 
   const getHalfWidth = (value: number) => {
-    const ratio = total > 0 ? value / total : 0;
+    const ratio = maxValue > 0 ? value / maxValue : 0;
     return minHalfWidth + (maxHalfWidth - minHalfWidth) * ratio;
   };
 
   return (
     <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-      <div className="mb-5">
+      <div className="mb-6">
         <h3 className="text-base font-semibold text-gray-900">Funil de Vendas</h3>
         <p className="text-xs text-gray-400 mt-0.5">Jornada do lead até o fechamento</p>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-8">
         {/* SVG Funnel */}
         <div className="flex-shrink-0">
           <svg width={svgWidth} height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`}>
             <defs>
               {data.map((item, i) => (
-                <linearGradient key={i} id={`fg-${i}`} x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor={item.fill} stopOpacity="0.75" />
-                  <stop offset="50%" stopColor={item.fill} stopOpacity="1" />
-                  <stop offset="100%" stopColor={item.fill} stopOpacity="0.75" />
+                <linearGradient key={i} id={`fg-${i}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={lighten(item.fill, 30)} stopOpacity="1" />
+                  <stop offset="100%" stopColor={item.fill} stopOpacity="1" />
                 </linearGradient>
               ))}
+              <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+                <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.10)" />
+              </filter>
             </defs>
 
             {data.map((item, i) => {
-              const topHW = getHalfWidth(item.value);
-              const botHW = i < data.length - 1 ? getHalfWidth(data[i + 1].value) : topHW * 0.72;
-              const y = topPad + i * stageHeight;
-              const cx = svgWidth / 2;
-              const gap = 3;
+              const hw = getHalfWidth(item.value);
+              const nextHw = i < data.length - 1 ? getHalfWidth(data[i + 1].value) : hw * 0.78;
+              const y = i * (sliceH + gap);
 
-              const points = [
-                `${cx - topHW},${y + gap / 2}`,
-                `${cx + topHW},${y + gap / 2}`,
-                `${cx + botHW},${y + stageHeight - gap / 2}`,
-                `${cx - botHW},${y + stageHeight - gap / 2}`,
+              // Rounded trapezoid via path
+              // Top edge: from (cx-hw, y) to (cx+hw, y) with rounded top corners
+              // Bottom edge: from (cx+nextHw, y+sliceH) to (cx-nextHw, y+sliceH) with rounded bottom corners
+              const tl = { x: cx - hw, y };
+              const tr = { x: cx + hw, y };
+              const br = { x: cx + nextHw, y: y + sliceH };
+              const bl = { x: cx - nextHw, y: y + sliceH };
+
+              // Clamp radius so it doesn't exceed half the side lengths
+              const topW = hw * 2;
+              const botW = nextHw * 2;
+              const rc = Math.min(r, topW / 2, botW / 2, sliceH / 2);
+
+              const path = [
+                `M ${tl.x + rc} ${tl.y}`,
+                `L ${tr.x - rc} ${tr.y}`,
+                `Q ${tr.x} ${tr.y} ${tr.x - (tr.x - br.x) * (rc / sliceH)} ${tr.y + rc}`,
+                `L ${br.x + (tr.x - br.x) * (rc / sliceH)} ${br.y - rc}`,
+                `Q ${br.x} ${br.y} ${br.x - rc} ${br.y}`,
+                `L ${bl.x + rc} ${bl.y}`,
+                `Q ${bl.x} ${bl.y} ${bl.x + (tl.x - bl.x) * (rc / sliceH)} ${bl.y - rc}`,
+                `L ${tl.x - (tl.x - bl.x) * (rc / sliceH)} ${tl.y + rc}`,
+                `Q ${tl.x} ${tl.y} ${tl.x + rc} ${tl.y}`,
+                `Z`,
               ].join(" ");
 
-              const pct = total > 0 ? Math.round((item.value / total) * 100) : 0;
+              const pct = maxValue > 0 ? Math.round((item.value / maxValue) * 100) : 0;
+              const midY = y + sliceH / 2;
 
               return (
-                <g key={i}>
-                  <polygon
-                    points={points}
-                    fill={`url(#fg-${i})`}
-                    rx="4"
-                    style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.08))" }}
-                  />
-                  {/* Center label */}
+                <g key={i} filter="url(#shadow)">
+                  <path d={path} fill={`url(#fg-${i})`} />
                   <text
                     x={cx}
-                    y={y + stageHeight / 2 - 5}
+                    y={midY - 7}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fill="white"
-                    fontSize="13"
+                    fontSize="14"
                     fontWeight="700"
-                    style={{ textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}
+                    style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
                   >
                     {item.value}
                   </text>
                   <text
                     x={cx}
-                    y={y + stageHeight / 2 + 11}
+                    y={midY + 10}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fill="white"
@@ -100,29 +121,17 @@ export function FunnelChart({ data }: FunnelChartProps) {
         </div>
 
         {/* Legend */}
-        <div className="flex-1 space-y-3">
-          {data.map((item, i) => {
-            const prevValue = i > 0 ? data[i - 1].value : item.value;
-            const dropRate = i > 0 && prevValue > 0
-              ? Math.round((item.value / prevValue) * 100)
-              : 100;
-
-            return (
-              <div key={item.stage} className="flex items-center gap-3">
-                <span className="text-lg">{STAGE_ICONS[i]}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-700 truncate">{item.stage}</span>
-                    <span className="text-sm font-bold text-gray-900 ml-2">{item.value}</span>
-                  </div>
-                  {i > 0 && (
-                    <span className="text-[10px] text-gray-400">{dropRate}% do estágio anterior</span>
-                  )}
-                </div>
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.fill }} />
-              </div>
-            );
-          })}
+        <div className="flex-1 space-y-4">
+          {data.map((item, i) => (
+            <div key={item.stage} className="flex items-center gap-2.5">
+              <div
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: item.fill }}
+              />
+              <span className="text-xs font-medium text-gray-600 flex-1">{item.stage}</span>
+              <span className="text-sm font-bold text-gray-900 tabular-nums">{item.value}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

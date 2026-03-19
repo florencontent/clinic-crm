@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Video } from "lucide-react";
+import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -11,8 +11,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/conversas", label: "Conversas", icon: MessageCircle },
   { href: "/agenda", label: "Agenda", icon: Calendar },
-  { href: "/meta-ads", label: "Meta Ads", icon: Megaphone },
-  { href: "/videos", label: "Gerador de Vídeos", icon: Video },
+  { href: "/meta-ads", label: "Campanhas", icon: Megaphone },
 ];
 
 export function Sidebar() {
