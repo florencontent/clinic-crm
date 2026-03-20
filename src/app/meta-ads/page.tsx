@@ -44,6 +44,8 @@ interface MetaAdsData {
     reach: number;
     cpm?: number;
   };
+  leadOrigins?: { whatsapp: number; site: number };
+  datePreset?: string;
   lastUpdated?: number;
   stale?: boolean;
 }
@@ -153,8 +155,6 @@ export default function MetaAdsPage() {
   if (!data) return null;
 
   const activeCampaigns = data.campaigns.filter(c => c.status === "ACTIVE").length;
-  const withLeads = data.campaigns.filter(c => c.cpl > 0);
-  const bestCampaign = withLeads.length > 0 ? withLeads.reduce((a, b) => a.cpl < b.cpl ? a : b) : null;
 
   const lastUpdatedText = data.lastUpdated
     ? formatDistanceToNow(new Date(data.lastUpdated), { addSuffix: true, locale: ptBR })
@@ -262,8 +262,6 @@ export default function MetaAdsPage() {
       {/* Overview cards */}
       <OverviewCards
         metrics={data.metrics}
-        bestCpl={bestCampaign?.cpl ?? 0}
-        bestCampaignName={bestCampaign?.name ?? ""}
         activeCampaigns={activeCampaigns}
       />
 
@@ -294,7 +292,7 @@ export default function MetaAdsPage() {
       {/* Tab content */}
       <div>
         {activeTab === "campanhas" && (
-          <CampaignsTab campaigns={data.campaigns} adsets={data.adsets} />
+          <CampaignsTab campaigns={data.campaigns} adsets={data.adsets} daily={data.daily} leadOrigins={data.leadOrigins} datePreset={data.datePreset} />
         )}
         {activeTab === "publicos" && (
           <AudiencesTab adsets={data.adsets} />

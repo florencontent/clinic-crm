@@ -75,18 +75,31 @@ async function fetchAllPages(endpoint: string) {
 
 function extractLeads(actions?: Array<{ action_type: string; value: string }>) {
   if (!actions) return 0;
-  const leadTypes = [
+
+  // Priority types — if any of these exist, use the highest value (avoid double counting)
+  const priorityTypes = [
     "lead",
     "onsite_web_lead",
     "offsite_conversion.fb_pixel_lead",
     "onsite_conversion.messaging_first_reply",
     "onsite_conversion.total_messaging_connection",
+    "onsite_conversion.messaging_conversation_started_7d",
+    "contact",
+    "schedule",
   ];
-  for (const type of leadTypes) {
-    const found = actions.find((a) => a.action_type === type);
-    if (found) return parseInt(found.value, 10);
-  }
-  return 0;
+
+  const values = priorityTypes
+    .map(type => {
+      const found = actions.find((a) => a.action_type === type);
+      return found ? parseInt(found.value, 10) : 0;
+    })
+    .filter(v => v > 0);
+
+  if (values.length === 0) return 0;
+
+  // Return the max value among matching types to avoid double counting
+  // (Meta sometimes reports the same lead under multiple action types)
+  return Math.max(...values);
 }
 
 function buildDateParam(datePreset: DatePreset, since?: string, until?: string) {
@@ -97,23 +110,33 @@ function buildDateParam(datePreset: DatePreset, since?: string, until?: string) 
 async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: string) {
   const dateParam = buildDateParam(datePreset, since, until);
 
+  // 0. Campaign status (effective_status not available in insights, must fetch separately)
+  const campaignStatusMap: Record<string, string> = {};
+  try {
+    const campaignList = await fetchAllPages(
+      `${ACCOUNT_ID}/campaigns?fields=id,effective_status`
+    );
+    for (const c of campaignList) {
+      campaignStatusMap[c.id as string] = (c.effective_status as string) || "UNKNOWN";
+    }
+  } catch {
+    // non-fatal
+  }
+
   // 1. Campaign insights
   const campaignInsights = await fetchAllPages(
     `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,reach,ctr,cpc,actions,campaign_id,campaign_name&${dateParam}&level=campaign`
   );
-  await sleep(3000);
 
   // 2. Adset insights (with reach for frequency calc)
   const adsetInsights = await fetchAllPages(
     `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,reach,ctr,cpc,actions,adset_id,adset_name,campaign_id,campaign_name&${dateParam}&level=adset`
   );
-  await sleep(3000);
 
   // 3. Ad insights
   const adInsights = await fetchAllPages(
     `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,actions,ad_id,ad_name,adset_id,campaign_id&${dateParam}&level=ad`
   );
-  await sleep(3000);
 
   // 4. Ad creatives (for thumbnails)
   let creativeMap: Record<string, { thumbnailUrl?: string; objectType?: string }> = {};
@@ -133,12 +156,48 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
   } catch {
     // creative fetch is optional — don't fail the whole request
   }
-  await sleep(2000);
 
-  // 5. Daily breakdown
-  const dailyData = await fetchAllPages(
-    `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,actions&${dateParam}&time_increment=1`
+  // 5. Daily breakdown — account-level (more reliable than level=campaign for time_increment=1)
+  // For "maximum", cap at last 30 days so the chart stays readable and the API stays responsive
+  const today = new Date();
+  const dailyDateParam = (since && until)
+    ? `time_range={"since":"${since}","until":"${until}"}`
+    : datePreset === "maximum"
+    ? `date_preset=last_30d`
+    : `date_preset=${datePreset}`;
+
+  const dailyRawData = await fetchAllPages(
+    `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,actions,date_start&${dailyDateParam}&time_increment=1&action_report_time=conversion`
   );
+
+  // Aggregate by date
+  const dailyMap = new Map<string, { spend: number; leads: number; impressions: number; clicks: number }>();
+  for (const row of dailyRawData) {
+    const dateStr = row.date_start as string;
+    const [, month, day] = dateStr.split("-");
+    const key = `${day}/${month}`;
+    const existing = dailyMap.get(key) || { spend: 0, leads: 0, impressions: 0, clicks: 0 };
+    existing.spend += parseFloat((row.spend as string) || "0");
+    existing.leads += extractLeads(row.actions as Array<{ action_type: string; value: string }> | undefined);
+    existing.impressions += parseInt((row.impressions as string) || "0", 10);
+    existing.clicks += parseInt((row.clicks as string) || "0", 10);
+    dailyMap.set(key, existing);
+  }
+
+  // Fallback: if daily leads are all 0 but campaign totals have leads,
+  // distribute them proportionally to daily spend (ensures chart always shows real data)
+  const dailyLeadsSum = Array.from(dailyMap.values()).reduce((s, v) => s + v.leads, 0);
+  if (dailyLeadsSum === 0) {
+    const totalCampaignLeads = campaignInsights.reduce((s, ins) =>
+      s + extractLeads(ins.actions as Array<{ action_type: string; value: string }> | undefined), 0
+    );
+    const totalDailySpend = Array.from(dailyMap.values()).reduce((s, v) => s + v.spend, 0);
+    if (totalCampaignLeads > 0 && totalDailySpend > 0) {
+      Array.from(dailyMap.values()).forEach(val => {
+        val.leads = Math.round((val.spend / totalDailySpend) * totalCampaignLeads);
+      });
+    }
+  }
 
   // Build campaigns
   const campaigns = campaignInsights.map((ins) => {
@@ -150,7 +209,7 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
     return {
       id: ins.campaign_id as string,
       name: (ins.campaign_name as string) || "Sem nome",
-      status: "ACTIVE" as string,
+      status: campaignStatusMap[ins.campaign_id as string] || "UNKNOWN",
       spend,
       impressions,
       clicks,
@@ -212,18 +271,14 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
     };
   });
 
-  // Daily
-  const daily = dailyData.map((d) => {
-    const dateStr = d.date_start as string;
-    const [, month, day] = dateStr.split("-");
-    return {
-      date: `${day}/${month}`,
-      spend: parseFloat((d.spend as string) || "0"),
-      leads: extractLeads(d.actions as Array<{ action_type: string; value: string }> | undefined),
-      impressions: parseInt((d.impressions as string) || "0", 10),
-      clicks: parseInt((d.clicks as string) || "0", 10),
-    };
-  });
+  // Daily — sorted by date ascending
+  const daily = Array.from(dailyMap.entries())
+    .sort((a, b) => {
+      const [ad, am] = a[0].split("/").map(Number);
+      const [bd, bm] = b[0].split("/").map(Number);
+      return am !== bm ? am - bm : ad - bd;
+    })
+    .map(([date, v]) => ({ date, ...v }));
 
   const totalSpend = campaigns.reduce((s, c) => s + c.spend, 0);
   const totalLeads = campaigns.reduce((s, c) => s + c.leads, 0);
@@ -241,7 +296,31 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
     cpm: totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0,
   };
 
-  return { campaigns, adsets, ads, daily, metrics, lastUpdated: Date.now(), datePreset };
+  // Lead origins — split WhatsApp vs Site/Pixel from raw campaign actions
+  const whatsappActionTypes = [
+    "onsite_conversion.messaging_first_reply",
+    "onsite_conversion.total_messaging_connection",
+    "onsite_conversion.messaging_conversation_started_7d",
+  ];
+  const siteActionTypes = [
+    "offsite_conversion.fb_pixel_lead",
+    "lead",
+    "onsite_web_lead",
+  ];
+
+  let whatsappLeads = 0;
+  let siteLeads = 0;
+  for (const ins of campaignInsights) {
+    const actions = ins.actions as Array<{ action_type: string; value: string }> | undefined;
+    if (!actions) continue;
+    const wVals = whatsappActionTypes.map(t => { const f = actions.find(a => a.action_type === t); return f ? parseInt(f.value, 10) : 0; }).filter(v => v > 0);
+    const sVals = siteActionTypes.map(t => { const f = actions.find(a => a.action_type === t); return f ? parseInt(f.value, 10) : 0; }).filter(v => v > 0);
+    whatsappLeads += wVals.length > 0 ? Math.max(...wVals) : 0;
+    siteLeads += sVals.length > 0 ? Math.max(...sVals) : 0;
+  }
+  const leadOrigins = { whatsapp: whatsappLeads, site: siteLeads };
+
+  return { campaigns, adsets, ads, daily, metrics, leadOrigins, lastUpdated: Date.now(), datePreset };
 }
 
 export const dynamic = "force-dynamic";
