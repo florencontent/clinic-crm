@@ -47,11 +47,12 @@ function groupByAudience(adsets: MetaAdSet[]) {
       ex.clicks += a.clicks;
       ex.reach += a.reach;
       ex.count++;
-      if (!ex.campaigns.includes(a.campaignName)) ex.campaigns.push(a.campaignName);
+      const cName = a.campaignName || "";
+      if (!ex.campaigns.includes(cName)) ex.campaigns.push(cName);
     } else {
       map.set(key, {
         audience: a.audience,
-        campaigns: [a.campaignName],
+        campaigns: [a.campaignName || ""],
         spend: a.spend,
         leads: a.leads,
         impressions: a.impressions,
@@ -187,7 +188,7 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {g.campaigns.slice(0, 2).map((c, ci) => (
+                      {g.campaigns.filter(Boolean).slice(0, 2).map((c, ci) => (
                         <span key={ci} className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full truncate max-w-[120px]" title={c}>
                           {c.length > 15 ? c.slice(0, 15) + "…" : c}
                         </span>
