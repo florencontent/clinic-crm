@@ -9,8 +9,8 @@ interface AudiencesTabProps {
   adsets: MetaAdSet[];
 }
 
-function fmt(val: number) {
-  return val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function fmt(val: number | undefined | null) {
+  return (val ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function cplBadge(cpl: number) {

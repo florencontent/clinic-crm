@@ -31,8 +31,8 @@ export function EvolutionTab({ daily }: EvolutionTabProps) {
 
   const cfg = metricConfig[metric];
 
-  function fmt(val: number) {
-    return val.toLocaleString("pt-BR", { minimumFractionDigits: metric !== "leads" ? 2 : 0, maximumFractionDigits: metric !== "leads" ? 2 : 0 });
+  function fmt(val: number | undefined | null) {
+    return (val ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: metric !== "leads" ? 2 : 0, maximumFractionDigits: metric !== "leads" ? 2 : 0 });
   }
 
   const totalLeads = daily.reduce((s, d) => s + d.leads, 0);
