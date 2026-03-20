@@ -5,9 +5,7 @@ import { Calendar, Loader2, RefreshCw } from "lucide-react";
 import { MetricsCards } from "@/components/dashboard/metrics-cards";
 import { FunnelChart } from "@/components/dashboard/funnel-chart";
 import { SourcePieChart } from "@/components/dashboard/source-pie-chart";
-import { SpendLeadsChart } from "@/components/meta-ads/spend-leads-chart";
 import { ConversionBarChart } from "@/components/dashboard/conversion-bar-chart";
-import { metaDailyMetrics } from "@/data/mock-data";
 import { useDashboardData } from "@/hooks/use-supabase-data";
 import { cn } from "@/lib/utils";
 
@@ -123,8 +121,6 @@ export default function DashboardPage() {
         {/* Row 3 — Conversion rates */}
         <ConversionBarChart data={conversion} />
 
-        {/* Row 4 — Meta Ads spend vs leads */}
-        <SpendLeadsChart data={metaDailyMetrics} />
       </div>
     </div>
   );
