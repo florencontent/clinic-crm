@@ -3,14 +3,17 @@
 import { useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ScatterChart, Scatter, ZAxis, Label,
+  LineChart, Line, Legend, PieChart, Pie, Cell,
 } from "recharts";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
-import type { MetaCampaign, MetaAdSet } from "@/data/mock-data";
+import type { MetaCampaign, MetaAdSet, MetaDailyMetric } from "@/data/mock-data";
 
 interface CampaignsTabProps {
   campaigns: MetaCampaign[];
   adsets: MetaAdSet[];
+  daily: MetaDailyMetric[];
+  leadOrigins?: { whatsapp: number; site: number };
+  datePreset?: string;
 }
 
 function fmt(val: number) {
@@ -27,10 +30,11 @@ function cplBadge(cpl: number) {
 type SortKey = "name" | "spend" | "leads" | "cpl" | "ctr" | "cpc" | "reach" | "cpm";
 type SortDir = "asc" | "desc";
 
-export function CampaignsTab({ campaigns, adsets }: CampaignsTabProps) {
+export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset }: CampaignsTabProps) {
   const [sortKey, setSortKey] = useState<SortKey>("leads");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [onlyActive, setOnlyActive] = useState(false);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -41,20 +45,55 @@ export function CampaignsTab({ campaigns, adsets }: CampaignsTabProps) {
     }
   }
 
-  const sorted = [...campaigns].sort((a, b) => {
-    const va = a[sortKey] as number | string;
-    const vb = b[sortKey] as number | string;
-    if (typeof va === "string") return sortDir === "asc" ? va.localeCompare(vb as string) : (vb as string).localeCompare(va);
-    return sortDir === "asc" ? (va as number) - (vb as number) : (vb as number) - (va as number);
-  });
+  const sorted = [...campaigns]
+    .filter(c => !onlyActive || c.status === "ACTIVE")
+    .sort((a, b) => {
+      const va = a[sortKey] as number | string;
+      const vb = b[sortKey] as number | string;
+      if (typeof va === "string") return sortDir === "asc" ? va.localeCompare(vb as string) : (vb as string).localeCompare(va);
+      return sortDir === "asc" ? (va as number) - (vb as number) : (vb as number) - (va as number);
+    });
 
   const barData = [...campaigns]
     .sort((a, b) => b.leads - a.leads)
-    .map(c => ({ name: c.name.length > 20 ? c.name.slice(0, 20) + "…" : c.name, leads: c.leads, spend: c.spend }));
+    .slice(0, 5)
+    .map(c => ({ name: c.name, leads: c.leads, spend: c.spend }));
 
-  const scatterData = campaigns
-    .filter(c => c.spend > 0)
-    .map(c => ({ x: c.spend, y: c.leads, z: c.cpl > 0 ? c.cpl : 1, name: c.name }));
+  function WrapTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
+    const name = (payload?.value || "");
+    // Split on " | " to use natural breaks, then re-join into max 2 lines of ~30 chars
+    const parts = name.split(" | ");
+    const lines: string[] = [];
+    let current = "";
+    for (const part of parts) {
+      const candidate = current ? `${current} | ${part}` : part;
+      if (candidate.length > 30 && current) {
+        lines.push(current);
+        current = part;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current) lines.push(current);
+    const lineH = 13;
+    const totalH = lines.length * lineH;
+    return (
+      <g transform={`translate(${x},${y})`}>
+        {lines.map((l, i) => (
+          <text
+            key={i}
+            x={-4}
+            y={-(totalH / 2) + i * lineH + lineH * 0.75}
+            textAnchor="end"
+            fill="#6b7280"
+            fontSize={10}
+          >
+            {l}
+          </text>
+        ))}
+      </g>
+    );
+  }
 
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <ChevronsUpDown className="w-3 h-3 text-gray-300" />;
@@ -72,18 +111,24 @@ export function CampaignsTab({ campaigns, adsets }: CampaignsTabProps) {
     </th>
   );
 
+  const originsTotal = (leadOrigins?.whatsapp ?? 0) + (leadOrigins?.site ?? 0);
+  const originsData = [
+    { name: "WhatsApp", value: leadOrigins?.whatsapp ?? 0, color: "#22c55e" },
+    { name: "Site / LP", value: leadOrigins?.site ?? 0, color: "#3b82f6" },
+  ].filter(d => d.value > 0);
+
   return (
     <div className="space-y-6">
-      {/* Charts */}
+      {/* Linha 1: Top campanhas + Origem dos leads */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Leads por campanha */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Leads por Campanha</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={barData} layout="vertical" margin={{ left: 8, right: 24 }}>
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Campanhas com maior volume de leads</h3>
+          <ResponsiveContainer width="100%" height={Math.max(220, barData.length * 52)}>
+            <BarChart data={barData} layout="vertical" margin={{ left: 8, right: 24 }} barSize={18}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
               <XAxis type="number" tick={{ fontSize: 11 }} stroke="#e2e8f0" />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={130} stroke="#e2e8f0" />
+              <YAxis type="category" dataKey="name" tick={<WrapTick />} width={180} stroke="#e2e8f0" />
               <Tooltip
                 formatter={(v) => [v, "Leads"]}
                 contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
@@ -93,50 +138,118 @@ export function CampaignsTab({ campaigns, adsets }: CampaignsTabProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* Investimento vs Leads */}
+        {/* Origem dos leads */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-1">Investimento vs Leads</h3>
-          <p className="text-xs text-gray-400 mb-4">Tamanho do ponto = CPL (maior = mais caro)</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <ScatterChart margin={{ left: 8, right: 16, bottom: 16 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="x" type="number" tick={{ fontSize: 11 }} stroke="#e2e8f0" name="Investimento">
-                <Label value="Investimento (R$)" offset={-4} position="insideBottom" style={{ fontSize: 10, fill: "#94a3b8" }} />
-              </XAxis>
-              <YAxis dataKey="y" type="number" tick={{ fontSize: 11 }} stroke="#e2e8f0" name="Leads">
-                <Label value="Leads" angle={-90} position="insideLeft" style={{ fontSize: 10, fill: "#94a3b8" }} />
-              </YAxis>
-              <ZAxis dataKey="z" range={[40, 300]} />
-              <Tooltip
-                cursor={{ strokeDasharray: "3 3" }}
-                content={({ payload }) => {
-                  if (!payload?.length) return null;
-                  const d = payload[0].payload;
-                  return (
-                    <div className="bg-white border border-gray-200 rounded-lg p-3 shadow text-xs">
-                      <p className="font-semibold text-gray-800 mb-1">{d.name}</p>
-                      <p>Investimento: R$ {fmt(d.x)}</p>
-                      <p>Leads: {d.y}</p>
-                      <p>CPL: R$ {fmt(d.z)}</p>
+          <h3 className="text-sm font-semibold text-gray-700">Origem dos Leads</h3>
+          <p className="text-xs text-gray-400 mb-4">Canais de captação</p>
+          {originsTotal === 0 ? (
+            <div className="flex items-center justify-center h-[220px] text-sm text-gray-400">Sem dados de origem</div>
+          ) : (
+            <div className="flex items-center gap-6">
+              <ResponsiveContainer width={180} height={180}>
+                <PieChart>
+                  <Pie
+                    data={originsData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={80}
+                    dataKey="value"
+                    strokeWidth={2}
+                  >
+                    {originsData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v) => [v, "Leads"]}
+                    contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-col gap-4 flex-1">
+                {originsData.map((d) => (
+                  <div key={d.name}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="flex items-center gap-1.5 text-sm text-gray-600">
+                        <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: d.color }} />
+                        {d.name}
+                      </span>
+                      <span className="text-sm font-bold text-gray-800">{d.value}</span>
                     </div>
-                  );
-                }}
-              />
-              <Scatter data={scatterData} fill="#3b82f6" fillOpacity={0.7} />
-            </ScatterChart>
-          </ResponsiveContainer>
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${Math.round((d.value / originsTotal) * 100)}%`, backgroundColor: d.color }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-400 mt-0.5 block">
+                      {Math.round((d.value / originsTotal) * 100)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Linha 2: Investimento vs Leads */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h3 className="text-sm font-semibold text-gray-700 mb-1">Investimento vs Leads</h3>
+        <p className="text-xs text-gray-400 mb-4">
+            {datePreset === "maximum" ? "Evolução diária — últimos 30 dias" : "Evolução diária no período selecionado"}
+          </p>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={daily} margin={{ left: 4, right: 16, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="#e2e8f0" interval="preserveStartEnd" />
+            <YAxis yAxisId="spend" orientation="left" tick={{ fontSize: 10 }} stroke="#e2e8f0" tickFormatter={v => `R$${v}`} width={52} />
+            <YAxis yAxisId="leads" orientation="right" tick={{ fontSize: 10 }} stroke="#e2e8f0" width={30} />
+            <Tooltip
+              contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
+              formatter={(value, name) =>
+                name === "Investimento" ? [`R$ ${fmt(value as number)}`, name] : [value, name]
+              }
+            />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+            <Line yAxisId="spend" type="monotone" dataKey="spend" name="Investimento" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line yAxisId="leads" type="monotone" dataKey="leads" name="Leads" stroke="#22c55e" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Tabela de campanhas */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">Todas as Campanhas</h3>
-          <span className="text-xs text-gray-400">{campaigns.length} campanhas</span>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+          <h3 className="text-sm font-semibold text-gray-700">Campanhas</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">{sorted.length} campanhas</span>
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setOnlyActive(false)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  !onlyActive ? "bg-white text-gray-700 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                }`}
+              >
+                Todas
+              </button>
+              <button
+                onClick={() => setOnlyActive(true)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  onlyActive
+                    ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm"
+                    : "text-emerald-600 hover:text-emerald-700"
+                }`}
+              >
+                ● Ativas
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[420px]">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
               <tr>
                 <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-left w-8"></th>
                 <Th k="name" label="Campanha" />

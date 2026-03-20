@@ -1,6 +1,6 @@
 "use client";
 
-import { DollarSign, Users, TrendingDown, MousePointer, Eye, Zap } from "lucide-react";
+import { DollarSign, Users, TrendingDown, MousePointer, Eye, BarChart2 } from "lucide-react";
 
 interface OverviewCardsProps {
   metrics: {
@@ -12,8 +12,6 @@ interface OverviewCardsProps {
     reach: number;
     cpm?: number;
   };
-  bestCpl: number;
-  bestCampaignName: string;
   activeCampaigns: number;
 }
 
@@ -28,7 +26,8 @@ function cplColor(cpl: number) {
   return "text-red-500";
 }
 
-export function OverviewCards({ metrics, bestCpl, bestCampaignName, activeCampaigns }: OverviewCardsProps) {
+export function OverviewCards({ metrics, activeCampaigns }: OverviewCardsProps) {
+  const cpm = metrics.reach > 0 ? (metrics.totalSpend / metrics.reach) * 1000 : 0;
   return (
     <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       {/* Investimento */}
@@ -69,26 +68,10 @@ export function OverviewCards({ metrics, bestCpl, bestCampaignName, activeCampai
         <p className="text-xs text-gray-400 mt-1">custo por lead</p>
       </div>
 
-      {/* Melhor CPL */}
-      <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-sm p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-emerald-100 uppercase tracking-wide">Melhor CPL</span>
-          <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
-        </div>
-        <p className="text-2xl font-bold text-white">
-          {bestCpl > 0 ? `R$ ${fmt(bestCpl)}` : "—"}
-        </p>
-        <p className="text-xs text-emerald-100 mt-1 truncate" title={bestCampaignName}>
-          {bestCampaignName || "—"}
-        </p>
-      </div>
-
-      {/* Alcance */}
+      {/* Impressões */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Alcance</span>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Impressões</span>
           <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center">
             <Eye className="w-4 h-4 text-sky-500" />
           </div>
@@ -96,7 +79,21 @@ export function OverviewCards({ metrics, bestCpl, bestCampaignName, activeCampai
         <p className="text-2xl font-bold text-gray-900">
           {metrics.reach >= 1000 ? `${(metrics.reach / 1000).toFixed(1)}k` : metrics.reach}
         </p>
-        <p className="text-xs text-gray-400 mt-1">pessoas alcançadas</p>
+        <p className="text-xs text-gray-400 mt-1">total no período</p>
+      </div>
+
+      {/* CPM */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">CPM</span>
+          <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
+            <BarChart2 className="w-4 h-4 text-violet-500" />
+          </div>
+        </div>
+        <p className="text-2xl font-bold text-gray-900">
+          {cpm > 0 ? `R$ ${fmt(cpm)}` : "—"}
+        </p>
+        <p className="text-xs text-gray-400 mt-1">custo por mil impressões</p>
       </div>
 
       {/* CPC */}

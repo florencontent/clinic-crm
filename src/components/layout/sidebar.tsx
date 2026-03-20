@@ -59,7 +59,6 @@ export function Sidebar() {
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900">Dr. Alfredo</p>
-            <p className="text-xs text-gray-500">Floren Odonto</p>
           </div>
         </div>
       </div>
