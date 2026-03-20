@@ -165,11 +165,11 @@ export default function MetaAdsPage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Campanhas</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Campanhas</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Performance da conta de anúncios
             {data.stale && (
-              <span className="ml-2 text-xs text-amber-500 font-medium">· dados do cache (API indisponível)</span>
+              <span className="ml-2 text-xs text-amber-500 dark:text-amber-400 font-medium">· dados do cache (API indisponível)</span>
             )}
           </p>
         </div>
@@ -181,13 +181,13 @@ export default function MetaAdsPage() {
 
           {/* Period selector */}
           <div className="relative" ref={datePickerRef}>
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
               {(["last_7d", "last_14d", "last_30d", "maximum"] as Period[]).map(p => (
                 <button
                   key={p}
                   onClick={() => handlePeriodClick(p)}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                    period === p ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                    period === p ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                   }`}
                 >
                   {periodLabels[p]}
@@ -196,7 +196,7 @@ export default function MetaAdsPage() {
               <button
                 onClick={() => handlePeriodClick("custom")}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  period === "custom" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  period === "custom" ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 }`}
               >
                 <CalendarDays className="w-3.5 h-3.5" />
@@ -206,26 +206,26 @@ export default function MetaAdsPage() {
 
             {/* Date picker dropdown */}
             {showDatePicker && (
-              <div className="absolute right-0 top-full mt-2 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-4 min-w-[280px]">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Período personalizado</p>
+              <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4 min-w-[280px]">
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Período personalizado</p>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-gray-500 mb-1 block">Data inicial</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Data inicial</label>
                     <input
                       type="date"
                       value={since}
                       onChange={e => setSince(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1 block">Data final</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Data final</label>
                     <input
                       type="date"
                       value={until}
                       onChange={e => setUntil(e.target.value)}
                       max={new Date().toISOString().split("T")[0]}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                     />
                   </div>
                   <div className="flex gap-2 pt-1">
@@ -251,7 +251,7 @@ export default function MetaAdsPage() {
           <button
             onClick={() => fetchData(period, since, until, true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             Atualizar
@@ -266,7 +266,7 @@ export default function MetaAdsPage() {
       />
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex gap-1">
           {(["campanhas", "publicos", "anuncios", "evolucao"] as Tab[]).map(tab => (
             <button
@@ -274,8 +274,8 @@ export default function MetaAdsPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all ${
                 activeTab === tab
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600"
               }`}
             >
               {tabLabels[tab]}

@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import type { MetaCampaign, MetaAdSet, MetaDailyMetric } from "@/data/mock-data";
+import { useTheme } from "@/lib/theme-context";
 
 interface CampaignsTabProps {
   campaigns: MetaCampaign[];
@@ -31,10 +32,20 @@ type SortKey = "name" | "spend" | "leads" | "cpl" | "ctr" | "cpc" | "reach" | "c
 type SortDir = "asc" | "desc";
 
 export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset }: CampaignsTabProps) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [sortKey, setSortKey] = useState<SortKey>("leads");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [onlyActive, setOnlyActive] = useState(false);
+
+  const tooltipStyle = {
+    borderRadius: 8,
+    border: isDark ? "1px solid #374151" : "1px solid #e2e8f0",
+    fontSize: 12,
+    backgroundColor: isDark ? "#1f2937" : "#ffffff",
+    color: isDark ? "#f1f5f9" : "#111827",
+  };
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -102,7 +113,7 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
 
   const Th = ({ k, label, align = "left" }: { k: SortKey; label: string; align?: string }) => (
     <th
-      className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:bg-gray-100 select-none text-${align}`}
+      className={`px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none text-${align}`}
       onClick={() => handleSort(k)}
     >
       <span className="inline-flex items-center gap-1">
@@ -122,8 +133,8 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
       {/* Linha 1: Top campanhas + Origem dos leads */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Leads por campanha */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Campanhas com maior volume de leads</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Campanhas com maior volume de leads</h3>
           <ResponsiveContainer width="100%" height={Math.max(220, barData.length * 52)}>
             <BarChart data={barData} layout="vertical" margin={{ left: 8, right: 24 }} barSize={18}>
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
@@ -131,7 +142,7 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
               <YAxis type="category" dataKey="name" tick={<WrapTick />} width={180} stroke="#e2e8f0" />
               <Tooltip
                 formatter={(v) => [v, "Leads"]}
-                contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
+                contentStyle={tooltipStyle}
               />
               <Bar dataKey="leads" fill="#3b82f6" radius={[0, 4, 4, 0]} />
             </BarChart>
@@ -139,11 +150,11 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
         </div>
 
         {/* Origem dos leads */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-gray-700">Origem dos Leads</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Origem dos Leads</h3>
           <p className="text-xs text-gray-400 mb-4">Canais de captação</p>
           {originsTotal === 0 ? (
-            <div className="flex items-center justify-center h-[220px] text-sm text-gray-400">Sem dados de origem</div>
+            <div className="flex items-center justify-center h-[220px] text-sm text-gray-400 dark:text-gray-500">Sem dados de origem</div>
           ) : (
             <div className="flex items-center gap-6">
               <ResponsiveContainer width={180} height={180}>
@@ -163,7 +174,7 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
                   </Pie>
                   <Tooltip
                     formatter={(v) => [v, "Leads"]}
-                    contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
+                    contentStyle={tooltipStyle}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -171,11 +182,11 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
                 {originsData.map((d) => (
                   <div key={d.name}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="flex items-center gap-1.5 text-sm text-gray-600">
+                      <span className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
                         <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: d.color }} />
                         {d.name}
                       </span>
-                      <span className="text-sm font-bold text-gray-800">{d.value}</span>
+                      <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{d.value}</span>
                     </div>
                     <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
@@ -183,7 +194,7 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
                         style={{ width: `${Math.round((d.value / originsTotal) * 100)}%`, backgroundColor: d.color }}
                       />
                     </div>
-                    <span className="text-xs text-gray-400 mt-0.5 block">
+                    <span className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 block">
                       {Math.round((d.value / originsTotal) * 100)}%
                     </span>
                   </div>
@@ -195,8 +206,8 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
       </div>
 
       {/* Linha 2: Investimento vs Leads */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">Investimento vs Leads</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Investimento vs Leads</h3>
         <p className="text-xs text-gray-400 mb-4">
             {datePreset === "maximum" ? "Evolução diária — últimos 30 dias" : "Evolução diária no período selecionado"}
           </p>
@@ -207,7 +218,7 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
             <YAxis yAxisId="spend" orientation="left" tick={{ fontSize: 10 }} stroke="#e2e8f0" tickFormatter={v => `R$${v}`} width={52} />
             <YAxis yAxisId="leads" orientation="right" tick={{ fontSize: 10 }} stroke="#e2e8f0" width={30} />
             <Tooltip
-              contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
+              contentStyle={tooltipStyle}
               formatter={(value, name) =>
                 name === "Investimento" ? [`R$ ${fmt(value as number)}`, name] : [value, name]
               }
@@ -220,16 +231,16 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
       </div>
 
       {/* Tabela de campanhas */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
-          <h3 className="text-sm font-semibold text-gray-700">Campanhas</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Campanhas</h3>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">{sorted.length} campanhas</span>
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
               <button
                 onClick={() => setOnlyActive(false)}
                 className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                  !onlyActive ? "bg-white text-gray-700 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                  !onlyActive ? "bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-100 shadow-sm" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 }`}
               >
                 Todas
@@ -249,9 +260,9 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
         </div>
         <div className="overflow-x-auto overflow-y-auto max-h-[420px]">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-left w-8"></th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-left w-8"></th>
                 <Th k="name" label="Campanha" />
                 <Th k="spend" label="Invest." align="right" />
                 <Th k="leads" label="Leads" align="right" />
@@ -262,7 +273,7 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
                 <Th k="cpm" label="CPM" align="right" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {sorted.map(c => {
                 const isOpen = expanded === c.id;
                 const children = adsets.filter(a => a.campaignId === c.id);
@@ -270,7 +281,7 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
                   <>
                     <tr
                       key={c.id}
-                      className="hover:bg-blue-50/30 cursor-pointer transition-colors"
+                      className="hover:bg-blue-50/30 dark:hover:bg-blue-900/20 cursor-pointer transition-colors"
                       onClick={() => setExpanded(isOpen ? null : c.id)}
                     >
                       <td className="px-4 py-3 text-gray-300">
@@ -283,39 +294,39 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
                           <span
                             className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${c.status === "ACTIVE" ? "bg-emerald-400" : "bg-gray-300"}`}
                           />
-                          <span className="text-sm font-medium text-gray-800">{c.name}</span>
+                          <span className="text-sm font-medium text-gray-800 dark:text-gray-100">{c.name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">R$ {fmt(c.spend)}</td>
-                      <td className="px-4 py-3 text-right text-sm font-bold text-gray-900">{c.leads}</td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">R$ {fmt(c.spend)}</td>
+                      <td className="px-4 py-3 text-right text-sm font-bold text-gray-900 dark:text-gray-100">{c.leads}</td>
                       <td className="px-4 py-3 text-right">
                         <span className={`text-xs font-bold px-2 py-1 rounded-full ${cplBadge(c.cpl)}`}>
                           {c.cpl > 0 ? `R$ ${fmt(c.cpl)}` : "—"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-600">{c.ctr.toFixed(2)}%</td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-600">R$ {fmt(c.cpc)}</td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-600">
+                      <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-400">{c.ctr.toFixed(2)}%</td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-400">R$ {fmt(c.cpc)}</td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-400">
                         {c.reach >= 1000 ? `${(c.reach / 1000).toFixed(1)}k` : c.reach}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-600">R$ {fmt(c.cpm)}</td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-400">R$ {fmt(c.cpm)}</td>
                     </tr>
                     {isOpen && children.map(a => (
-                      <tr key={a.id} className="bg-blue-50/20">
+                      <tr key={a.id} className="bg-blue-50/20 dark:bg-blue-900/10">
                         <td className="px-4 py-2"></td>
                         <td className="px-4 py-2 pl-10">
-                          <span className="text-xs text-gray-500">↳ {a.name}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">↳ {a.name}</span>
                         </td>
-                        <td className="px-4 py-2 text-right text-xs text-gray-500">R$ {fmt(a.spend)}</td>
-                        <td className="px-4 py-2 text-right text-xs text-gray-600 font-semibold">{a.leads}</td>
+                        <td className="px-4 py-2 text-right text-xs text-gray-500 dark:text-gray-400">R$ {fmt(a.spend)}</td>
+                        <td className="px-4 py-2 text-right text-xs text-gray-600 dark:text-gray-300 font-semibold">{a.leads}</td>
                         <td className="px-4 py-2 text-right">
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cplBadge(a.cpl)}`}>
                             {a.cpl > 0 ? `R$ ${fmt(a.cpl)}` : "—"}
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-right text-xs text-gray-500">{a.ctr.toFixed(2)}%</td>
-                        <td className="px-4 py-2 text-right text-xs text-gray-500">R$ {fmt(a.cpc)}</td>
-                        <td className="px-4 py-2 text-right text-xs text-gray-500">
+                        <td className="px-4 py-2 text-right text-xs text-gray-500 dark:text-gray-400">{a.ctr.toFixed(2)}%</td>
+                        <td className="px-4 py-2 text-right text-xs text-gray-500 dark:text-gray-400">R$ {fmt(a.cpc)}</td>
+                        <td className="px-4 py-2 text-right text-xs text-gray-500 dark:text-gray-400">
                           {a.reach >= 1000 ? `${(a.reach / 1000).toFixed(1)}k` : a.reach}
                         </td>
                         <td className="px-4 py-2"></td>

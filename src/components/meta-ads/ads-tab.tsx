@@ -130,15 +130,15 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
             placeholder="Buscar anúncio..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           {(["leads", "cpl", "spend"] as const).map(s => (
             <button
               key={s}
               onClick={() => setSortBy(s)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${sortBy === s ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${sortBy === s ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
             >
               {s === "leads" ? "Mais Leads" : s === "cpl" ? "Menor CPL" : "Maior Invest."}
             </button>
@@ -158,10 +158,10 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
           return (
             <div
               key={ad.name}
-              className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-all ${colors.bg} border-gray-100`}
+              className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden transition-all hover:shadow-md"
             >
               {/* Thumbnail */}
-              <div className="relative h-40 bg-gray-100 overflow-hidden">
+              <div className="relative h-40 bg-gray-100 dark:bg-gray-700 overflow-hidden">
                 {ad.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -201,45 +201,45 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
 
               {/* Content */}
               <div className="p-4">
-                <p className="text-sm font-semibold text-gray-800 mb-3 line-clamp-2 leading-snug" title={ad.name}>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-3 line-clamp-2 leading-snug" title={ad.name}>
                   {ad.name}
                 </p>
 
                 {/* Metrics grid */}
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div className="bg-gray-50 rounded-lg p-2.5">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
                     <p className="text-xs text-gray-400 mb-0.5">Leads</p>
-                    <p className="text-lg font-bold text-gray-900">{ad.leads}</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{ad.leads}</p>
                   </div>
-                  <div className={`rounded-lg p-2.5 ${colors.bg}`}>
+                  <div className={`rounded-lg p-2.5 ${colors.bg} dark:bg-gray-700/50`}>
                     <p className="text-xs text-gray-400 mb-0.5">CPL</p>
                     <p className={`text-lg font-bold ${colors.text}`}>
                       {ad.cpl > 0 ? `R$${ad.cpl.toFixed(0)}` : "—"}
                     </p>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-2.5">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
                     <p className="text-xs text-gray-400 mb-0.5">Investimento</p>
-                    <p className="text-sm font-semibold text-gray-700">R$ {fmt(ad.spend)}</p>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">R$ {fmt(ad.spend)}</p>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-2.5">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2.5">
                     <p className="text-xs text-gray-400 mb-0.5">CTR</p>
-                    <p className="text-sm font-semibold text-gray-700">{ad.ctr.toFixed(2)}%</p>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{ad.ctr.toFixed(2)}%</p>
                   </div>
                 </div>
 
                 {/* Expand button */}
                 <button
                   onClick={() => setExpandedAd(isExpanded ? null : ad.name)}
-                  className="w-full flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
+                  className="w-full flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors py-1"
                 >
                   {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   {isExpanded ? "Ocultar conjuntos" : `Ver ${ad.adsetNames.length} conjunto${ad.adsetNames.length > 1 ? "s" : ""}`}
                 </button>
 
                 {isExpanded && (
-                  <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
+                  <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 space-y-1">
                     {ad.adsetNames.map((n, i) => (
-                      <p key={i} className="text-xs text-gray-500 flex items-center gap-1">
+                      <p key={i} className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
                         {n}
                       </p>

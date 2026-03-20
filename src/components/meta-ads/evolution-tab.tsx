@@ -5,6 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from "recharts";
 import type { MetaDailyMetric } from "@/data/mock-data";
+import { useTheme } from "@/lib/theme-context";
 
 interface EvolutionTabProps {
   daily: MetaDailyMetric[];
@@ -19,6 +20,8 @@ const metricConfig: Record<Metric, { label: string; color: string; prefix: strin
 };
 
 export function EvolutionTab({ daily }: EvolutionTabProps) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [metric, setMetric] = useState<Metric>("leads");
 
   const data = daily.map(d => ({
@@ -44,45 +47,45 @@ export function EvolutionTab({ daily }: EvolutionTabProps) {
     <div className="space-y-6">
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total de leads</p>
-          <p className="text-2xl font-bold text-gray-900">{totalLeads}</p>
-          <p className="text-xs text-gray-400 mt-1">no período</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total investido</p>
-          <p className="text-2xl font-bold text-gray-900">R$ {totalSpend.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</p>
-          <p className="text-xs text-gray-400 mt-1">no período</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        {[
+          { label: "Total de leads", value: String(totalLeads), sub: "no período" },
+          { label: "Total investido", value: `R$ ${totalSpend.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`, sub: "no período" },
+        ].map(card => (
+          <div key={card.label} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{card.label}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{card.value}</p>
+            <p className="text-xs text-gray-400 mt-1">{card.sub}</p>
+          </div>
+        ))}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">CPL médio</p>
           <p className={`text-2xl font-bold ${avgCpl < 30 ? "text-emerald-600" : avgCpl < 50 ? "text-amber-500" : "text-red-500"}`}>
             {avgCpl > 0 ? `R$ ${avgCpl.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
           </p>
           <p className="text-xs text-gray-400 mt-1">custo por lead</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4">
           <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Melhor dia</p>
-          <p className="text-2xl font-bold text-gray-900">{bestDay?.leads ?? 0} leads</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{bestDay?.leads ?? 0} leads</p>
           <p className="text-xs text-gray-400 mt-1">{bestDay?.date ?? "—"}</p>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="text-sm font-semibold text-gray-700">{cfg.label}</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{cfg.label}</h3>
             <p className="text-xs text-gray-400 mt-0.5">
               Média do período: {cfg.prefix}{fmt(avg)}{cfg.suffix}
             </p>
           </div>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
             {(["leads", "spend", "cpl"] as Metric[]).map(m => (
               <button
                 key={m}
                 onClick={() => setMetric(m)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${metric === m ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${metric === m ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
               >
                 {m === "leads" ? "Leads" : m === "spend" ? "Investimento" : "CPL"}
               </button>
@@ -92,19 +95,19 @@ export function EvolutionTab({ daily }: EvolutionTabProps) {
 
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={data} margin={{ left: 8, right: 16, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#374151" : "#f1f5f9"} />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
-              stroke="#e2e8f0"
+              tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#94a3b8" }}
+              stroke={isDark ? "#374151" : "#e2e8f0"}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "#94a3b8" }}
-              stroke="#e2e8f0"
+              tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#94a3b8" }}
+              stroke={isDark ? "#374151" : "#e2e8f0"}
               tickFormatter={v => metric === "leads" ? String(v) : `R$${v}`}
             />
             <Tooltip
-              contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
+              contentStyle={{ borderRadius: 8, border: isDark ? "1px solid #374151" : "1px solid #e2e8f0", fontSize: 12, backgroundColor: isDark ? "#1f2937" : "#ffffff", color: isDark ? "#f1f5f9" : "#111827" }}
               formatter={(v) => [`${cfg.prefix}${fmt(Number(v))}${cfg.suffix}`, cfg.label]}
             />
             {avg > 0 && (
@@ -129,39 +132,39 @@ export function EvolutionTab({ daily }: EvolutionTabProps) {
       </div>
 
       {/* Daily table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700">Detalhamento Diário</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Detalhamento Diário</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
               <tr>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-left">Data</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Investimento</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Leads</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">CPL</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Impressões</th>
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Cliques</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-left">Data</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-right">Investimento</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-right">Leads</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-right">CPL</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-right">Impressões</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-right">Cliques</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {[...data].reverse().map((d, i) => {
                 const cpl = d.leads > 0 ? d.spend / d.leads : 0;
                 return (
-                  <tr key={i} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-700">{d.date}</td>
-                    <td className="px-4 py-3 text-right text-sm text-gray-700">R$ {d.spend.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="px-4 py-3 text-right text-sm font-bold text-gray-900">{d.leads}</td>
+                  <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">{d.date}</td>
+                    <td className="px-4 py-3 text-right text-sm text-gray-700 dark:text-gray-300">R$ {d.spend.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 text-right text-sm font-bold text-gray-900 dark:text-gray-100">{d.leads}</td>
                     <td className="px-4 py-3 text-right">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cpl === 0 ? "bg-gray-100 text-gray-400" : cpl < 30 ? "bg-emerald-100 text-emerald-700" : cpl < 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cpl === 0 ? "bg-gray-100 dark:bg-gray-700 text-gray-400" : cpl < 30 ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : cpl < 50 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"}`}>
                         {cpl > 0 ? `R$ ${cpl.toFixed(2)}` : "—"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-sm text-gray-500">
+                    <td className="px-4 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
                       {d.impressions >= 1000 ? `${(d.impressions / 1000).toFixed(1)}k` : d.impressions}
                     </td>
-                    <td className="px-4 py-3 text-right text-sm text-gray-500">{d.clicks}</td>
+                    <td className="px-4 py-3 text-right text-sm text-gray-500 dark:text-gray-400">{d.clicks}</td>
                   </tr>
                 );
               })}

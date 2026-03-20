@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { AlertTriangle, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import type { MetaAdSet } from "@/data/mock-data";
+import { useTheme } from "@/lib/theme-context";
 
 interface AudiencesTabProps {
   adsets: MetaAdSet[];
@@ -70,6 +71,15 @@ function groupByAudience(adsets: MetaAdSet[]) {
 }
 
 export function AudiencesTab({ adsets }: AudiencesTabProps) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const tooltipStyle = {
+    borderRadius: 8,
+    border: isDark ? "1px solid #374151" : "1px solid #e2e8f0",
+    fontSize: 12,
+    backgroundColor: isDark ? "#1f2937" : "#ffffff",
+    color: isDark ? "#f1f5f9" : "#111827",
+  };
   const [sortKey, setSortKey] = useState<SortKey>("leads");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -103,7 +113,7 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
 
   const Th = ({ k, label, align = "left" }: { k: SortKey; label: string; align?: string }) => (
     <th
-      className={`px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer hover:bg-gray-100 select-none text-${align}`}
+      className={`px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none text-${align}`}
       onClick={() => handleSort(k)}
     >
       <span className="inline-flex items-center gap-1">{label} <SortIcon k={k} /></span>
@@ -115,13 +125,13 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
   return (
     <div className="space-y-6">
       {saturated.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 rounded-xl p-4 flex gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-800">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
               {saturated.length} público{saturated.length > 1 ? "s" : ""} com sinal de saturação (frequência &gt; 3)
             </p>
-            <p className="text-xs text-amber-700 mt-0.5">
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
               {saturated.map(g => g.audience).join(", ")} — considere trocar o criativo ou expandir o público.
             </p>
           </div>
@@ -129,35 +139,35 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
       )}
 
       {/* CPL por público */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">CPL por Público</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">CPL por Público</h3>
         <p className="text-xs text-gray-400 mb-4">Menores CPLs — públicos mais eficientes</p>
         <ResponsiveContainer width="100%" height={Math.max(200, barData.length * 36)}>
           <BarChart data={barData} layout="vertical" margin={{ left: 8, right: 48 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-            <XAxis type="number" tick={{ fontSize: 11 }} stroke="#e2e8f0" tickFormatter={v => `R$${v}`} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={160} stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={isDark ? "#374151" : "#f1f5f9"} />
+            <XAxis type="number" tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#64748b" }} stroke={isDark ? "#374151" : "#e2e8f0"} tickFormatter={v => `R$${v}`} />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#64748b" }} width={160} stroke={isDark ? "#374151" : "#e2e8f0"} />
             <Tooltip
               formatter={(v) => [`R$ ${Number(v).toFixed(2)}`, "CPL"]}
-              contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
+              contentStyle={tooltipStyle}
             />
-            <Bar dataKey="cpl" fill="#8b5cf6" radius={[0, 4, 4, 0]} label={{ position: "right", fontSize: 10, fill: "#64748b", formatter: (v: unknown) => `R$${Number(v).toFixed(0)}` }} />
+            <Bar dataKey="cpl" fill="#8b5cf6" radius={[0, 4, 4, 0]} label={{ position: "right", fontSize: 10, fill: isDark ? "#9ca3af" : "#64748b", formatter: (v: unknown) => `R$${Number(v).toFixed(0)}` }} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Tabela */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">Todos os Públicos</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Todos os Públicos</h3>
           <span className="text-xs text-gray-400">{grouped.length} públicos únicos</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
               <tr>
                 <Th k="audience" label="Público" />
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-left">Campanhas</th>
+                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-left">Campanhas</th>
                 <Th k="spend" label="Invest." align="right" />
                 <Th k="leads" label="Leads" align="right" />
                 <Th k="cpl" label="CPL" align="right" />
@@ -166,40 +176,40 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
                 <Th k="frequency" label="Freq." align="right" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {sorted.map((g, i) => (
-                <tr key={i} className="hover:bg-gray-50 transition-colors">
+                <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {g.frequency > 3 && <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
-                      <span className="text-sm text-gray-800">{g.audience}</span>
+                      <span className="text-sm text-gray-800 dark:text-gray-100">{g.audience}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {g.campaigns.slice(0, 2).map((c, ci) => (
-                        <span key={ci} className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full truncate max-w-[120px]" title={c}>
+                        <span key={ci} className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full truncate max-w-[120px]" title={c}>
                           {c.length > 15 ? c.slice(0, 15) + "…" : c}
                         </span>
                       ))}
                       {g.campaigns.length > 2 && (
-                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">+{g.campaigns.length - 2}</span>
+                        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">+{g.campaigns.length - 2}</span>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700">R$ {fmt(g.spend)}</td>
-                  <td className="px-4 py-3 text-right text-sm font-bold text-gray-900">{g.leads}</td>
+                  <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">R$ {fmt(g.spend)}</td>
+                  <td className="px-4 py-3 text-right text-sm font-bold text-gray-900 dark:text-gray-100">{g.leads}</td>
                   <td className="px-4 py-3 text-right">
                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${cplBadge(g.cpl)}`}>
                       {g.cpl > 0 ? `R$ ${fmt(g.cpl)}` : "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-600">{g.ctr.toFixed(2)}%</td>
-                  <td className="px-4 py-3 text-right text-sm text-gray-600">
+                  <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-400">{g.ctr.toFixed(2)}%</td>
+                  <td className="px-4 py-3 text-right text-sm text-gray-600 dark:text-gray-400">
                     {g.reach >= 1000 ? `${(g.reach / 1000).toFixed(1)}k` : g.reach}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${g.frequency > 3 ? "bg-amber-100 text-amber-700" : "bg-gray-100 text-gray-600"}`}>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${g.frequency > 3 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"}`}>
                       {g.frequency.toFixed(1)}x
                     </span>
                   </td>
