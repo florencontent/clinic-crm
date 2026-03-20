@@ -55,17 +55,17 @@ export default function AgendaPage() {
     <div className="p-8">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Agenda</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Agenda</h2>
           <p className="text-sm text-gray-400 mt-1">Consultas e procedimentos agendados</p>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
+          <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 shadow-sm">
             <button
               onClick={() => setViewMode("month")}
               className={cn(
                 "px-4 py-1.5 text-xs font-medium rounded-lg transition-all",
-                viewMode === "month" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
+                viewMode === "month" ? "bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
               )}
             >
               Mensal
@@ -74,7 +74,7 @@ export default function AgendaPage() {
               onClick={() => setViewMode("week")}
               className={cn(
                 "px-4 py-1.5 text-xs font-medium rounded-lg transition-all",
-                viewMode === "week" ? "bg-gray-900 text-white shadow-sm" : "text-gray-500 hover:text-gray-800"
+                viewMode === "week" ? "bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
               )}
             >
               Semanal
@@ -83,19 +83,19 @@ export default function AgendaPage() {
 
           <button
             onClick={goToToday}
-            className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 shadow-sm transition-colors"
+            className="px-3 py-2 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors"
           >
             Hoje
           </button>
 
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl shadow-sm px-1">
-            <button onClick={() => navigate("prev")} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm px-1">
+            <button onClick={() => navigate("prev")} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-semibold text-gray-900 min-w-[150px] text-center capitalize px-1">
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 min-w-[150px] text-center capitalize px-1">
               {format(currentDate, viewMode === "month" ? "MMMM yyyy" : "'Semana de' d MMM", { locale: ptBR })}
             </span>
-            <button onClick={() => navigate("next")} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+            <button onClick={() => navigate("next")} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -103,30 +103,30 @@ export default function AgendaPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-3">
-          <div className="bg-blue-50 text-blue-600 p-2.5 rounded-xl">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
+          <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
             <CalendarDays className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{todayApts.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{todayApts.length}</p>
             <p className="text-xs text-gray-400">Consultas hoje</p>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-3">
-          <div className="bg-violet-50 text-violet-600 p-2.5 rounded-xl">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
+          <div className="bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 p-2.5 rounded-xl">
             <CalendarCheck className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{weekApts.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{weekApts.length}</p>
             <p className="text-xs text-gray-400">Esta semana</p>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center gap-3">
-          <div className="bg-emerald-50 text-emerald-600 p-2.5 rounded-xl">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
+          <div className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-xl">
             <Clock className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{appointments.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{appointments.length}</p>
             <p className="text-xs text-gray-400">Total agendado</p>
           </div>
         </div>

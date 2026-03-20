@@ -91,8 +91,62 @@ export async function updatePatientStatus(
 
 // ── Fetch Conversations ──
 
+function mapConvRow(conv: {
+  id: string;
+  patient_id: string;
+  last_message_at: string | null;
+  patients: unknown;
+  messages: unknown;
+}): Conversation {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const patient = conv.patients as any as { id: string; name: string | null; status: string; phone: string | null } | null;
+  const msgs = (conv.messages as Array<{
+    id: string;
+    content: string | null;
+    direction: string;
+    sender: string;
+    sent_at: string;
+  }>) || [];
+
+  const sortedMsgs = [...msgs].sort(
+    (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
+  );
+
+  const mappedMessages: Message[] = sortedMsgs.map((m) => ({
+    id: m.id,
+    text: m.content || "",
+    sender: m.sender === "patient" ? "lead" : "clinic",
+    timestamp: m.sent_at
+      ? new Date(m.sent_at).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "",
+  }));
+
+  const lastMsg = sortedMsgs[sortedMsgs.length - 1];
+  const unreadCount = sortedMsgs.filter(
+    (m) => m.direction === "inbound" && m.sender === "patient"
+  ).length;
+
+  const patientStatus = patient?.status as DbPatientStatus | undefined;
+
+  return {
+    leadId: patient?.id || conv.patient_id,
+    conversationId: conv.id,
+    phone: patient?.phone || "",
+    leadName: patient?.name || "Sem nome",
+    lastMessage: lastMsg?.content || "",
+    lastTime: lastMsg?.sent_at ? formatRelativeTime(lastMsg.sent_at) : "",
+    unread: unreadCount,
+    status: statusToKanban[patientStatus || "novo"],
+    messages: mappedMessages,
+  };
+}
+
 export async function fetchConversations(): Promise<Conversation[]> {
-  const { data, error } = await supabase
+  // Fetch conversations with messages
+  const { data: convData, error } = await supabase
     .from("conversations")
     .select(`
       id,
@@ -105,58 +159,32 @@ export async function fetchConversations(): Promise<Conversation[]> {
 
   if (error) {
     console.error("Error fetching conversations:", error);
-    return [];
   }
 
-  return (data || []).map((conv) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const patient = conv.patients as any as { id: string; name: string | null; status: string; phone: string | null } | null;
-    const msgs = (conv.messages as Array<{
-      id: string;
-      content: string | null;
-      direction: string;
-      sender: string;
-      sent_at: string;
-    }>) || [];
+  const convResults: Conversation[] = (convData || []).map(mapConvRow);
+  const patientIdsWithConv = new Set(convResults.map((c) => c.leadId));
 
-    // Sort messages by sent_at
-    const sortedMsgs = [...msgs].sort(
-      (a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
-    );
+  // Fetch all patients to include those without conversations yet
+  const { data: allPatients } = await supabase
+    .from("patients")
+    .select("id, name, status, phone")
+    .order("created_at", { ascending: false });
 
-    const mappedMessages: Message[] = sortedMsgs.map((m) => ({
-      id: m.id,
-      text: m.content || "",
-      sender: m.sender === "patient" ? "lead" : "clinic",
-      timestamp: m.sent_at
-        ? new Date(m.sent_at).toLocaleTimeString("pt-BR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "",
+  const emptyConvs: Conversation[] = (allPatients || [])
+    .filter((p) => !patientIdsWithConv.has(p.id))
+    .map((p) => ({
+      leadId: p.id,
+      conversationId: "",
+      phone: p.phone || "",
+      leadName: p.name || "Sem nome",
+      lastMessage: "",
+      lastTime: "",
+      unread: 0,
+      status: statusToKanban[(p.status as DbPatientStatus) || "novo"],
+      messages: [],
     }));
 
-    const lastMsg = sortedMsgs[sortedMsgs.length - 1];
-    const unreadCount = sortedMsgs.filter(
-      (m) => m.direction === "inbound" && m.sender === "patient"
-    ).length;
-
-    const patientStatus = patient?.status as DbPatientStatus | undefined;
-
-    return {
-      leadId: patient?.id || conv.patient_id,
-      conversationId: conv.id,
-      phone: patient?.phone || "",
-      leadName: patient?.name || "Sem nome",
-      lastMessage: lastMsg?.content || "",
-      lastTime: lastMsg?.sent_at
-        ? formatRelativeTime(lastMsg.sent_at)
-        : "",
-      unread: unreadCount,
-      status: statusToKanban[patientStatus || "novo"],
-      messages: mappedMessages,
-    };
-  });
+  return [...convResults, ...emptyConvs];
 }
 
 function formatRelativeTime(dateStr: string): string {

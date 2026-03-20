@@ -24,7 +24,7 @@ function formatEndTime(time: string, duration: number) {
 }
 
 const inputClass =
-  "w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all";
+  "w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-500";
 
 export function AppointmentModal({ appointment, onClose, onSave }: AppointmentModalProps) {
   const [procedure, setProcedure] = useState(appointment.procedure);
@@ -46,9 +46,9 @@ export function AppointmentModal({ appointment, onClose, onSave }: AppointmentMo
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-transparent dark:border-gray-700"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -69,36 +69,36 @@ export function AppointmentModal({ appointment, onClose, onSave }: AppointmentMo
 
         {/* Content */}
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* Paciente - somente leitura (vem do Google) */}
+          {/* Paciente */}
           <div className="flex items-center gap-3">
-            <div className="bg-blue-50 text-blue-600 p-2 rounded-lg flex-shrink-0">
+            <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2 rounded-lg flex-shrink-0">
               <User className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Paciente</p>
-              <p className="text-sm font-semibold text-gray-900">{appointment.leadName}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Paciente</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{appointment.leadName}</p>
             </div>
           </div>
 
-          {/* Data - somente leitura (vem do Google) */}
+          {/* Data */}
           <div className="flex items-center gap-3">
-            <div className="bg-green-50 text-green-600 p-2 rounded-lg flex-shrink-0">
+            <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-2 rounded-lg flex-shrink-0">
               <CalendarDays className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Data</p>
-              <p className="text-sm font-semibold text-gray-900 capitalize">{formatDate(appointment.date)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Data</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">{formatDate(appointment.date)}</p>
             </div>
           </div>
 
-          {/* Horário - somente leitura (vem do Google) */}
+          {/* Horário */}
           <div className="flex items-center gap-3">
-            <div className="bg-amber-50 text-amber-600 p-2 rounded-lg flex-shrink-0">
+            <div className="bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-lg flex-shrink-0">
               <Clock className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Horário</p>
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Horário</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 {appointment.time} — {endTime} ({appointment.duration} min)
               </p>
             </div>
@@ -106,11 +106,11 @@ export function AppointmentModal({ appointment, onClose, onSave }: AppointmentMo
 
           {/* Procedimento - editável */}
           <div className="flex items-start gap-3">
-            <div className="bg-purple-50 text-purple-600 p-2 rounded-lg flex-shrink-0 mt-1">
+            <div className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-lg flex-shrink-0 mt-1">
               <Stethoscope className="h-4 w-4" />
             </div>
             <div className="flex-1">
-              <p className="text-xs text-gray-500 mb-1.5">Especialidade / Procedimento</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Especialidade / Procedimento</p>
               <input
                 type="text"
                 value={procedure}
@@ -123,11 +123,11 @@ export function AppointmentModal({ appointment, onClose, onSave }: AppointmentMo
 
           {/* Doutor - editável */}
           <div className="flex items-start gap-3">
-            <div className="bg-indigo-50 text-indigo-600 p-2 rounded-lg flex-shrink-0 mt-1">
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 p-2 rounded-lg flex-shrink-0 mt-1">
               <UserCog className="h-4 w-4" />
             </div>
             <div className="flex-1">
-              <p className="text-xs text-gray-500 mb-1.5">Doutor(a) Responsável</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Doutor(a) Responsável</p>
               <input
                 type="text"
                 value={doctor}
@@ -140,11 +140,11 @@ export function AppointmentModal({ appointment, onClose, onSave }: AppointmentMo
 
           {/* Notas - editável */}
           <div className="flex items-start gap-3">
-            <div className="bg-red-50 text-red-500 p-2 rounded-lg flex-shrink-0 mt-1">
+            <div className="bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 p-2 rounded-lg flex-shrink-0 mt-1">
               <FileText className="h-4 w-4" />
             </div>
             <div className="flex-1">
-              <p className="text-xs text-gray-500 mb-1.5">Informações do Paciente</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Informações do Paciente</p>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -157,13 +157,13 @@ export function AppointmentModal({ appointment, onClose, onSave }: AppointmentMo
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end bg-white dark:bg-gray-900">
           <button
             onClick={handleSave}
             className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-all ${
               saved
                 ? "bg-green-500"
-                : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md shadow-blue-200"
+                : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md shadow-blue-200 dark:shadow-blue-900/50"
             }`}
           >
             {saved ? (

@@ -15,11 +15,11 @@ interface CalendarViewProps {
 }
 
 const APT_COLORS = [
-  "bg-blue-100 text-blue-700 hover:bg-blue-200",
-  "bg-violet-100 text-violet-700 hover:bg-violet-200",
-  "bg-emerald-100 text-emerald-700 hover:bg-emerald-200",
-  "bg-amber-100 text-amber-700 hover:bg-amber-200",
-  "bg-rose-100 text-rose-700 hover:bg-rose-200",
+  "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900/70",
+  "bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/50 dark:text-violet-300 dark:hover:bg-violet-900/70",
+  "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:hover:bg-emerald-900/70",
+  "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/50 dark:text-amber-300 dark:hover:bg-amber-900/70",
+  "bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/50 dark:text-rose-300 dark:hover:bg-rose-900/70",
 ];
 
 export function CalendarView({ currentDate, appointments, onSelectAppointment }: CalendarViewProps) {
@@ -35,15 +35,17 @@ export function CalendarView({ currentDate, appointments, onSelectAppointment }:
     appointments.filter((a) => isSameDay(new Date(a.date + "T00:00:00"), day));
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
       {/* Week day headers */}
-      <div className="grid grid-cols-7 border-b border-gray-100">
+      <div className="grid grid-cols-7 border-b border-gray-100 dark:border-gray-800">
         {weekDays.map((day, i) => (
           <div
             key={day}
             className={cn(
               "py-3 text-center text-xs font-semibold",
-              i === 0 || i === 6 ? "text-gray-300" : "text-gray-400"
+              i === 0 || i === 6
+                ? "text-gray-300 dark:text-gray-600"
+                : "text-gray-400 dark:text-gray-500"
             )}
           >
             {day}
@@ -63,18 +65,18 @@ export function CalendarView({ currentDate, appointments, onSelectAppointment }:
             <div
               key={i}
               className={cn(
-                "min-h-[110px] p-2.5 border-b border-r border-gray-50 transition-colors",
-                !inMonth && "bg-gray-50/40",
-                weekend && inMonth && "bg-gray-50/60",
-                today && "bg-blue-50/40"
+                "min-h-[110px] p-2.5 border-b border-r border-gray-50 dark:border-gray-800 transition-colors",
+                !inMonth && "bg-gray-50/40 dark:bg-gray-800/30",
+                weekend && inMonth && "bg-gray-50/60 dark:bg-gray-800/20",
+                today && "bg-blue-50/40 dark:bg-blue-900/15"
               )}
             >
               <span
                 className={cn(
                   "text-xs font-semibold inline-flex items-center justify-center w-7 h-7 rounded-full mb-1",
-                  !inMonth && "text-gray-300",
-                  inMonth && !today && "text-gray-600",
-                  today && "bg-blue-500 text-white shadow-sm shadow-blue-200"
+                  !inMonth && "text-gray-300 dark:text-gray-700",
+                  inMonth && !today && "text-gray-600 dark:text-gray-400",
+                  today && "bg-blue-500 text-white shadow-sm shadow-blue-200 dark:shadow-blue-900"
                 )}
               >
                 {format(day, "d")}
@@ -94,7 +96,7 @@ export function CalendarView({ currentDate, appointments, onSelectAppointment }:
                   </button>
                 ))}
                 {dayApts.length > 3 && (
-                  <span className="text-[10px] text-gray-400 pl-1">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 pl-1">
                     +{dayApts.length - 3} mais
                   </span>
                 )}

@@ -12,11 +12,11 @@ interface KanbanColumnProps {
 
 export function KanbanColumn({ status, leads, onOpenChat }: KanbanColumnProps) {
   return (
-    <div className={`flex-1 min-w-[280px] bg-gray-50 rounded-xl border-t-4 ${columnColors[status]}`}>
+    <div className={`flex-1 min-w-[280px] bg-gray-50 dark:bg-gray-900 rounded-xl border-t-4 ${columnColors[status]}`}>
       <div className="p-4 pb-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm text-gray-700">{statusLabels[status]}</h3>
-          <span className="bg-white text-gray-600 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm">
+          <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">{statusLabels[status]}</h3>
+          <span className="bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm">
             {leads.length}
           </span>
         </div>
@@ -28,7 +28,7 @@ export function KanbanColumn({ status, leads, onOpenChat }: KanbanColumnProps) {
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={`p-3 pt-1 space-y-3 min-h-[200px] transition-colors rounded-b-xl ${
-              snapshot.isDraggingOver ? "bg-blue-50/50" : ""
+              snapshot.isDraggingOver ? "bg-blue-50/50 dark:bg-blue-900/20" : ""
             }`}
           >
             {leads.map((lead, index) => (

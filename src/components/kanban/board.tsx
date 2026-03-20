@@ -15,6 +15,7 @@ import {
 import { usePatients, useConversations } from "@/hooks/use-supabase-data";
 import { updatePatientStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme-context";
 
 const columns: LeadStatus[] = ["em_contato", "agendado", "compareceu", "fechado"];
 
@@ -27,6 +28,7 @@ const SOURCE_FILTERS: { value: LeadSource | "all"; label: string }[] = [
 export function KanbanBoard() {
   const { patients: leads, loading, setPatients: setLeads } = usePatients();
   const { conversations } = useConversations();
+  const { theme } = useTheme();
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
 
@@ -47,14 +49,27 @@ export function KanbanBoard() {
     if (!destination) return;
 
     const newStatus = destination.droppableId as LeadStatus;
+    const lead = leads.find((l) => l.id === draggableId);
 
     setLeads((prev) =>
-      prev.map((lead) =>
-        lead.id === draggableId ? { ...lead, status: newStatus } : lead
-      )
+      prev.map((l) => l.id === draggableId ? { ...l, status: newStatus } : l)
     );
 
     updatePatientStatus(draggableId, newStatus);
+
+    if (newStatus === "compareceu" && lead) {
+      const conv = conversations.find((c) => c.leadId === draggableId);
+      fetch("https://florenmarketing.app.n8n.cloud/webhook/pos-consulta", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: lead.id,
+          leadName: lead.name,
+          phone: conv?.phone || "",
+          procedure: lead.procedure || "",
+        }),
+      }).catch(() => {});
+    }
   };
 
   const getLeadsByStatus = (status: LeadStatus) =>
@@ -71,14 +86,15 @@ export function KanbanBoard() {
   };
 
   const handleSend = () => {
-    if (!input.trim() || !openLeadId || !openConversation) return;
+    if (!input.trim() || !openLeadId) return;
     fetch("/api/messages/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        conversationId: openConversation.conversationId,
+        conversationId: openConversation?.conversationId || "",
         content: input.trim(),
-        phone: openConversation.phone,
+        phone: openConversation?.phone || openLead?.phone || "",
+        patientId: openLeadId,
       }),
     });
     setInput("");
@@ -131,7 +147,7 @@ export function KanbanBoard() {
             placeholder="Buscar lead..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg outline-none focus:border-blue-400 transition-colors w-52"
+            className="pl-8 pr-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:border-blue-400 transition-colors w-52 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
           />
         </div>
 
@@ -144,8 +160,8 @@ export function KanbanBoard() {
               className={cn(
                 "text-xs px-3 py-2 rounded-lg border font-medium transition-colors",
                 sourceFilter === f.value
-                  ? "bg-gray-800 text-white border-gray-800"
-                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                  ? "bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-800 dark:border-gray-200"
+                  : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
               )}
             >
               {f.label}
@@ -187,16 +203,16 @@ export function KanbanBoard() {
       {openLeadId && openLead && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={handleClose}>
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg h-[600px] flex flex-col overflow-hidden"
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg h-[600px] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold">
                 {openLead.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">{openLead.name}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{openLead.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[openLead.status])}>
                     {statusLabels[openLead.status]}
@@ -206,14 +222,14 @@ export function KanbanBoard() {
               </div>
               <button
                 onClick={handleClose}
-                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1" style={{ background: "#EFEAE2" }}>
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1" style={{ background: theme === "dark" ? "#111827" : "#EFEAE2" }}>
               {openConversation && openConversation.messages.length > 0 ? (
                 <>
                   {openConversation.messages.map((msg, idx) => {
@@ -229,8 +245,8 @@ export function KanbanBoard() {
                           className={cn(
                             "relative max-w-[75%] px-3 py-2 text-sm shadow-sm",
                             isClinic
-                              ? "bg-[#D9FDD3] text-gray-900 rounded-tl-2xl rounded-bl-2xl rounded-tr-2xl"
-                              : "bg-white text-gray-900 rounded-tr-2xl rounded-br-2xl rounded-tl-2xl",
+                              ? "bg-[#D9FDD3] dark:bg-[#005C4B] text-gray-900 dark:text-gray-100 rounded-tl-2xl rounded-bl-2xl rounded-tr-2xl"
+                              : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tr-2xl rounded-br-2xl rounded-tl-2xl",
                             !isGrouped && isClinic && "rounded-tr-md",
                             !isGrouped && !isClinic && "rounded-tl-md"
                           )}
@@ -251,8 +267,8 @@ export function KanbanBoard() {
             </div>
 
             {/* Input */}
-            <div className="bg-[#F0F2F5] px-3 py-3 border-t border-gray-100 flex items-end gap-2">
-              <div className="flex-1 bg-white rounded-2xl border border-gray-200 shadow-sm px-4 py-2">
+            <div className="bg-[#F0F2F5] dark:bg-gray-800 px-3 py-3 border-t border-gray-100 dark:border-gray-700 flex items-end gap-2">
+              <div className="flex-1 bg-white dark:bg-gray-700 rounded-2xl border border-gray-200 dark:border-gray-600 shadow-sm px-4 py-2">
                 <textarea
                   ref={textareaRef}
                   value={input}
@@ -261,7 +277,7 @@ export function KanbanBoard() {
                   placeholder="Digite uma mensagem..."
                   rows={1}
                   autoFocus
-                  className="w-full text-sm outline-none resize-none bg-transparent text-gray-900 placeholder-gray-400 leading-relaxed"
+                  className="w-full text-sm outline-none resize-none bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed"
                   style={{ height: "40px", maxHeight: "120px" }}
                 />
               </div>
@@ -273,7 +289,7 @@ export function KanbanBoard() {
                 <Send className="h-5 w-5" />
               </button>
             </div>
-            <p className="text-[10px] text-gray-400 text-center pb-2 bg-[#F0F2F5] select-none">
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center pb-2 bg-[#F0F2F5] dark:bg-gray-800 select-none">
               Enter para enviar · Shift+Enter para nova linha
             </p>
           </div>

@@ -71,10 +71,10 @@ export function MetricsCards({ totalLeads, agendados, compareceram, totalSales }
         return (
           <div
             key={card.key}
-            className={`bg-white rounded-2xl p-5 border ${card.border} shadow-sm hover:shadow-md transition-shadow`}
+            className={`group bg-white dark:bg-gray-800 rounded-2xl p-5 border ${card.border} dark:border-gray-700 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default`}
           >
             <div className="flex items-start justify-between mb-4">
-              <div className={`${card.bg} ${card.text} p-2.5 rounded-xl`}>
+              <div className={`${card.bg} ${card.text} p-2.5 rounded-xl dark:bg-opacity-20 group-hover:scale-110 transition-transform duration-200`}>
                 <card.icon className="h-5 w-5" />
               </div>
               {convRate !== null && (
@@ -83,8 +83,8 @@ export function MetricsCards({ totalLeads, agendados, compareceram, totalSales }
                 </span>
               )}
             </div>
-            <p className="text-3xl font-bold text-gray-900 mb-1">{value}</p>
-            <p className="text-sm font-medium text-gray-700">{card.title}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">{value}</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{card.title}</p>
             <p className="text-xs text-gray-400 mt-0.5">{card.subtitle}</p>
           </div>
         );

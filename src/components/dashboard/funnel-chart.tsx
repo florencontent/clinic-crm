@@ -31,9 +31,9 @@ export function FunnelChart({ data }: FunnelChartProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg transition-shadow duration-200">
       <div className="mb-6">
-        <h3 className="text-base font-semibold text-gray-900">Funil de Vendas</h3>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Funil de Vendas</h3>
         <p className="text-xs text-gray-400 mt-0.5">Jornada do lead até o fechamento</p>
       </div>
 
@@ -123,13 +123,13 @@ export function FunnelChart({ data }: FunnelChartProps) {
         {/* Legend */}
         <div className="flex-1 space-y-4">
           {data.map((item, i) => (
-            <div key={item.stage} className="flex items-center gap-2.5">
+            <div key={item.stage} className="group flex items-center gap-2.5 px-2 py-1.5 -mx-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 cursor-default">
               <div
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0 group-hover:scale-125 transition-transform duration-150"
                 style={{ backgroundColor: item.fill }}
               />
-              <span className="text-xs font-medium text-gray-600 flex-1">{item.stage}</span>
-              <span className="text-sm font-bold text-gray-900 tabular-nums">{item.value}</span>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400 flex-1 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors duration-150">{item.stage}</span>
+              <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tabular-nums">{item.value}</span>
             </div>
           ))}
         </div>

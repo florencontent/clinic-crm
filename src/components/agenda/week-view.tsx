@@ -33,9 +33,9 @@ export function WeekView({ currentDate, appointments, onSelectAppointment }: Wee
     });
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-gray-100">
+      <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-gray-100 dark:border-gray-800">
         <div className="p-3" />
         {weekDays.map((day, i) => {
           const today = isToday(day);
@@ -43,16 +43,19 @@ export function WeekView({ currentDate, appointments, onSelectAppointment }: Wee
             <div
               key={i}
               className={cn(
-                "p-3 text-center border-l border-gray-100",
-                today && "bg-blue-50"
+                "p-3 text-center border-l border-gray-100 dark:border-gray-800",
+                today && "bg-blue-50 dark:bg-blue-900/20"
               )}
             >
-              <p className={cn("text-[11px] font-medium uppercase tracking-wide", today ? "text-blue-500" : "text-gray-400")}>
+              <p className={cn(
+                "text-[11px] font-medium uppercase tracking-wide",
+                today ? "text-blue-500 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"
+              )}>
                 {format(day, "EEE", { locale: ptBR })}
               </p>
               <p className={cn(
                 "text-xl font-bold mt-0.5",
-                today ? "text-blue-600" : "text-gray-800"
+                today ? "text-blue-600 dark:text-blue-400" : "text-gray-800 dark:text-gray-300"
               )}>
                 {format(day, "d")}
               </p>
@@ -66,7 +69,7 @@ export function WeekView({ currentDate, appointments, onSelectAppointment }: Wee
         {hours.map((hour) => (
           <div key={hour} className="grid grid-cols-[56px_repeat(7,1fr)] min-h-[68px]">
             <div className="flex items-start justify-end pr-3 pt-2">
-              <span className="text-[11px] text-gray-300 font-medium">{`${hour}h`}</span>
+              <span className="text-[11px] text-gray-300 dark:text-gray-600 font-medium">{`${hour}h`}</span>
             </div>
             {weekDays.map((day, dayIdx) => {
               const apts = getAppointmentsForDayHour(day, hour);
@@ -75,8 +78,8 @@ export function WeekView({ currentDate, appointments, onSelectAppointment }: Wee
                 <div
                   key={dayIdx}
                   className={cn(
-                    "border-l border-t border-gray-50 p-1.5",
-                    today && "bg-blue-50/20"
+                    "border-l border-t border-gray-50 dark:border-gray-800 p-1.5",
+                    today && "bg-blue-50/20 dark:bg-blue-900/10"
                   )}
                 >
                   {apts.map((apt, aptIdx) => (

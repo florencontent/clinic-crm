@@ -41,12 +41,12 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h2>
           <p className="text-sm text-gray-400 mt-1">Visão geral do desempenho da clínica</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
+          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 shadow-sm">
             {(Object.keys(filterLabels) as DateFilter[]).map((filter) => (
               <button
                 key={filter}
@@ -54,8 +54,8 @@ export default function DashboardPage() {
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
                   activeFilter === filter
-                    ? "bg-gray-900 text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+                    ? "bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 shadow-sm"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                 )}
               >
                 {filter === "custom" ? (
@@ -72,7 +72,7 @@ export default function DashboardPage() {
 
           <button
             onClick={refresh}
-            className="p-2 rounded-xl border border-gray-200 bg-white text-gray-400 hover:text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+            className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors"
             title="Atualizar"
           >
             <RefreshCw className="h-4 w-4" />

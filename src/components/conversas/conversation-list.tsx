@@ -36,11 +36,11 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
   const unreadTotal = conversations.reduce((acc, c) => acc + c.unread, 0);
 
   return (
-    <div className="w-[400px] border-r border-gray-200 bg-white flex flex-col h-full">
+    <div className="w-[400px] border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-900">Conversas</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Conversas</h3>
           <div className="flex items-center gap-2">
             {unreadTotal > 0 && (
               <span className="bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
@@ -59,7 +59,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
             placeholder="Buscar por nome..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg outline-none focus:border-blue-400 focus:bg-white transition-colors"
+            className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:border-blue-400 focus:bg-white dark:focus:bg-gray-700 transition-colors text-gray-900 dark:text-gray-100 placeholder-gray-400"
           />
         </div>
 
@@ -69,8 +69,8 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
           className={cn(
             "flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors mb-3",
             onlyUnread
-              ? "bg-blue-50 border-blue-300 text-blue-700 font-medium"
-              : "border-gray-200 text-gray-500 hover:bg-gray-50"
+              ? "bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 font-medium"
+              : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
           )}
         >
           <MessageCircle className="h-3 w-3" />
@@ -78,7 +78,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
           {unreadTotal > 0 && (
             <span className={cn(
               "text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center",
-              onlyUnread ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-600"
+              onlyUnread ? "bg-blue-500 text-white" : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
             )}>
               {unreadTotal}
             </span>
@@ -94,8 +94,8 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
               className={cn(
                 "text-[11px] px-2 py-0.5 rounded-full border transition-colors",
                 statusFilter === f.value
-                  ? "bg-gray-800 text-white border-gray-800"
-                  : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                  ? "bg-gray-800 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-800 dark:border-gray-200"
+                  : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
               )}
             >
               {f.label}
@@ -116,8 +116,8 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
               key={conv.leadId}
               onClick={() => onSelect(conv.leadId)}
               className={cn(
-                "w-full text-left p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors",
-                selectedId === conv.leadId && "bg-blue-50 hover:bg-blue-50"
+                "w-full text-left p-4 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
+                selectedId === conv.leadId && "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/20"
               )}
             >
               <div className="flex items-start gap-3">
@@ -135,7 +135,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
                   <div className="flex items-center justify-between mb-0.5">
                     <p className={cn(
                       "text-sm truncate",
-                      conv.unread > 0 ? "font-semibold text-gray-900" : "font-medium text-gray-900"
+                      conv.unread > 0 ? "font-semibold text-gray-900 dark:text-gray-100" : "font-medium text-gray-900 dark:text-gray-100"
                     )}>
                       {conv.leadName}
                     </p>
@@ -143,9 +143,9 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
                   </div>
                   <p className={cn(
                     "text-xs truncate mb-1.5",
-                    conv.unread > 0 ? "text-gray-700" : "text-gray-500"
+                    conv.unread > 0 ? "text-gray-700 dark:text-gray-300" : "text-gray-500 dark:text-gray-500"
                   )}>
-                    {conv.lastMessage}
+                    {conv.lastMessage || "Sem mensagens"}
                   </p>
                   <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[conv.status])}>
                     {statusLabels[conv.status]}
