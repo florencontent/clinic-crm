@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTagOptions } from "@/hooks/use-tag-options";
 import { X, Plus } from "lucide-react";
 import { Lead, LeadStatus, LeadSource, Tag, TagType, statusLabels } from "@/data/mock-data";
 import { updatePatient } from "@/lib/api";
@@ -11,9 +12,6 @@ interface EditLeadModalProps {
   onClose: () => void;
   onSave: (lead: Lead) => void;
 }
-
-const ESPECIALIDADES = ["Implante", "Clareamento", "Lente de Contato", "Botox", "Harmonização", "Preenchimento"];
-const DOUTORES = ["Dr. Alfredo", "Dr. Outro"];
 
 const tagTypeLabels: Record<TagType, string> = {
   especialidade: "Especialidade",
@@ -28,6 +26,7 @@ const tagTypeColors: Record<TagType, string> = {
 };
 
 export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
+  const { especialidades: ESPECIALIDADES, doutores: DOUTORES } = useTagOptions();
   const [name, setName] = useState(lead.name);
   const [phone, setPhone] = useState(lead.phone);
   const [email, setEmail] = useState(lead.email || "");
