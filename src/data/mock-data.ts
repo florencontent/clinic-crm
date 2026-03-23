@@ -1,14 +1,22 @@
 export type LeadStatus = "em_contato" | "agendado" | "compareceu" | "fechado";
-export type LeadSource = "Site" | "Meta Ads";
+export type LeadSource = "Site" | "Meta Ads" | "Orgânico" | "Indicação";
+
+export type TagType = "especialidade" | "doutor" | "observacao";
+export interface Tag {
+  type: TagType;
+  value: string;
+}
 
 export interface Lead {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   procedure: string;
   source: LeadSource;
   status: LeadStatus;
   date: string;
+  tags?: Tag[];
   avatar?: string;
 }
 
@@ -41,6 +49,7 @@ export interface Appointment {
   duration: number; // minutes
   doctor: string;
   notes: string;
+  status?: string;
 }
 
 export const statusLabels: Record<LeadStatus, string> = {

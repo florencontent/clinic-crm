@@ -1,24 +1,22 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { X, Send, Loader2, Search, UserPlus, Download } from "lucide-react";
+import { X, Loader2, Search, UserPlus, Download, Upload } from "lucide-react";
 import { KanbanColumn } from "./column";
 import { NewLeadModal } from "./new-lead-modal";
 import { ScheduleModal } from "./schedule-modal";
 import { PatientModal } from "./patient-modal";
+import { ImportLeadsModal } from "./import-leads-modal";
 import {
   Lead,
   LeadStatus,
   LeadSource,
-  Conversation,
   statusLabels,
-  statusColors,
 } from "@/data/mock-data";
 import { usePatients, useConversations, useAppointments } from "@/hooks/use-supabase-data";
 import { updatePatientStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/lib/theme-context";
 
 const columns: LeadStatus[] = ["em_contato", "agendado", "compareceu", "fechado"];
 
@@ -26,6 +24,8 @@ const SOURCE_FILTERS: { value: LeadSource | "all"; label: string }[] = [
   { value: "all", label: "Todas as origens" },
   { value: "Meta Ads", label: "Meta Ads" },
   { value: "Site", label: "Site" },
+  { value: "Orgânico", label: "Orgânico" },
+  { value: "Indicação", label: "Indicação" },
 ];
 
 function exportLeadsCSV(leads: Lead[]) {
@@ -44,15 +44,12 @@ function exportLeadsCSV(leads: Lead[]) {
 }
 
 export function KanbanBoard() {
-  const { patients: leads, loading, setPatients: setLeads } = usePatients();
-  const { conversations } = useConversations();
+  const { patients: leads, loading, setPatients: setLeads, refresh: refreshLeads } = usePatients();
+  const { conversations, setConversations } = useConversations();
   const { appointments } = useAppointments();
-  const { theme } = useTheme();
-
-  const [openLeadId, setOpenLeadId] = useState<string | null>(null);
-  const [input, setInput] = useState("");
 
   const [showNewLead, setShowNewLead] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [scheduleFor, setScheduleFor] = useState<Lead | null>(null);
   const [profileLeadId, setProfileLeadId] = useState<string | null>(null);
 
@@ -95,7 +92,6 @@ export function KanbanBoard() {
       }).catch(() => {});
     }
 
-    // Ao mover para agendado, abrir modal de agendamento
     if (newStatus === "agendado" && lead) {
       setScheduleFor(lead);
     }
@@ -104,58 +100,41 @@ export function KanbanBoard() {
   const getLeadsByStatus = (status: LeadStatus) =>
     filteredLeads.filter((lead) => lead.status === status);
 
-  const handleOpenChat = (leadId: string) => {
-    setOpenLeadId(leadId);
-    setInput("");
-  };
+  const profileLead = leads.find((l) => l.id === profileLeadId) || null;
 
-  const handleClose = () => {
-    setOpenLeadId(null);
-    setInput("");
-  };
+  const hasActiveFilter = search !== "" || sourceFilter !== "all";
+  const totalFiltered = filteredLeads.length;
 
-  const handleSend = () => {
-    if (!input.trim() || !openLeadId) return;
+  const handleSendMessage = (leadId: string, text: string) => {
+    const conv = conversations.find((c) => c.leadId === leadId);
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.leadId !== leadId) return c;
+        const newMsg = {
+          id: `m-${Date.now()}`,
+          text,
+          sender: "clinic" as const,
+          timestamp: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        };
+        return {
+          ...c,
+          messages: [...c.messages, newMsg],
+          lastMessage: text,
+          lastTime: "Agora",
+        };
+      })
+    );
     fetch("/api/messages/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        conversationId: openConversation?.conversationId || "",
-        content: input.trim(),
-        phone: openConversation?.phone || openLead?.phone || "",
-        patientId: openLeadId,
+        conversationId: conv?.conversationId || "",
+        content: text,
+        phone: conv?.phone || "",
+        patientId: leadId,
       }),
-    });
-    setInput("");
-    if (textareaRef.current) textareaRef.current.style.height = "40px";
+    }).catch(() => {});
   };
-
-  const handleChatKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleChatInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    const ta = e.target;
-    ta.style.height = "40px";
-    ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
-  };
-
-  const openConversation = conversations.find((c) => c.leadId === openLeadId) || null;
-  const openLead = leads.find((l) => l.id === openLeadId) || null;
-  const profileLead = leads.find((l) => l.id === profileLeadId) || null;
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [openConversation?.messages]);
-
-  const hasActiveFilter = search !== "" || sourceFilter !== "all";
-  const totalFiltered = filteredLeads.length;
 
   if (loading) {
     return (
@@ -182,7 +161,7 @@ export function KanbanBoard() {
         </div>
 
         {/* Source filter */}
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 flex-wrap">
           {SOURCE_FILTERS.map((f) => (
             <button
               key={f.value}
@@ -228,6 +207,15 @@ export function KanbanBoard() {
           Exportar
         </button>
 
+        {/* Import CSV */}
+        <button
+          onClick={() => setShowImport(true)}
+          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          Importar CSV
+        </button>
+
         {/* Novo Lead */}
         <button
           onClick={() => setShowNewLead(true)}
@@ -245,115 +233,29 @@ export function KanbanBoard() {
               key={status}
               status={status}
               leads={getLeadsByStatus(status)}
-              onOpenChat={handleOpenChat}
+              onOpenChat={(id) => setProfileLeadId(id)}
               onOpenProfile={(id) => setProfileLeadId(id)}
             />
           ))}
         </div>
       </DragDropContext>
 
-      {/* Chat Modal */}
-      {openLeadId && openLead && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={handleClose}>
-          <div
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg h-[600px] flex flex-col overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold">
-                {openLead.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{openLead.name}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[openLead.status])}>
-                    {statusLabels[openLead.status]}
-                  </span>
-                  <span className="text-xs text-gray-400">{openLead.procedure}</span>
-                </div>
-              </div>
-              <button
-                onClick={handleClose}
-                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1" style={{ background: theme === "dark" ? "#111827" : "#EFEAE2" }}>
-              {openConversation && openConversation.messages.length > 0 ? (
-                <>
-                  {openConversation.messages.map((msg, idx) => {
-                    const isClinic = msg.sender === "clinic";
-                    const prev = idx > 0 ? openConversation.messages[idx - 1] : null;
-                    const isGrouped = prev?.sender === msg.sender;
-                    return (
-                      <div
-                        key={msg.id}
-                        className={cn("flex", isClinic ? "justify-end" : "justify-start", isGrouped ? "mt-0.5" : "mt-3")}
-                      >
-                        <div
-                          className={cn(
-                            "relative max-w-[75%] px-3 py-2 text-sm shadow-sm",
-                            isClinic
-                              ? "bg-[#D9FDD3] dark:bg-[#005C4B] text-gray-900 dark:text-gray-100 rounded-tl-2xl rounded-bl-2xl rounded-tr-2xl"
-                              : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-tr-2xl rounded-br-2xl rounded-tl-2xl",
-                            !isGrouped && isClinic && "rounded-tr-md",
-                            !isGrouped && !isClinic && "rounded-tl-md"
-                          )}
-                        >
-                          <p className="whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
-                          <p className="text-[10px] text-gray-400 text-right mt-1 select-none">{msg.timestamp}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </>
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-xs text-gray-400 bg-white/60 px-3 py-1.5 rounded-full">Nenhuma mensagem ainda</p>
-                </div>
-              )}
-            </div>
-
-            {/* Input */}
-            <div className="bg-[#F0F2F5] dark:bg-gray-800 px-3 py-3 border-t border-gray-100 dark:border-gray-700 flex items-end gap-2">
-              <div className="flex-1 bg-white dark:bg-gray-700 rounded-2xl border border-gray-200 dark:border-gray-600 shadow-sm px-4 py-2">
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={handleChatInput}
-                  onKeyDown={handleChatKeyDown}
-                  placeholder="Digite uma mensagem..."
-                  rows={1}
-                  autoFocus
-                  className="w-full text-sm outline-none resize-none bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed"
-                  style={{ height: "40px", maxHeight: "120px" }}
-                />
-              </div>
-              <button
-                onClick={handleSend}
-                disabled={!input.trim()}
-                className="bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white p-2.5 rounded-full transition-colors flex-shrink-0"
-              >
-                <Send className="h-5 w-5" />
-              </button>
-            </div>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center pb-2 bg-[#F0F2F5] dark:bg-gray-800 select-none">
-              Enter para enviar · Shift+Enter para nova linha
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* New Lead Modal */}
       {showNewLead && (
         <NewLeadModal
           onClose={() => setShowNewLead(false)}
           onCreated={(lead) => setLeads((prev) => [lead, ...prev])}
+        />
+      )}
+
+      {/* Import CSV Modal */}
+      {showImport && (
+        <ImportLeadsModal
+          onClose={() => setShowImport(false)}
+          onImported={(count) => {
+            setShowImport(false);
+            if (count > 0) refreshLeads();
+          }}
         />
       )}
 
@@ -372,7 +274,9 @@ export function KanbanBoard() {
           conversations={conversations}
           appointments={appointments}
           onClose={() => setProfileLeadId(null)}
-          onOpenChat={(id) => { setProfileLeadId(null); handleOpenChat(id); }}
+          onOpenChat={(id) => setProfileLeadId(id)}
+          onSave={(updated) => setLeads((prev) => prev.map((l) => l.id === updated.id ? updated : l))}
+          onSendMessage={handleSendMessage}
         />
       )}
     </>

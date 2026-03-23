@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Lead, LeadStatus, Conversation, Message, Appointment } from "@/data/mock-data";
+import type { Lead, LeadStatus, LeadSource, Conversation, Message, Appointment, Tag } from "@/data/mock-data";
 
 // ── Status mapping: DB (8 statuses) → Kanban (4 columns) ──
 
@@ -42,10 +42,19 @@ const kanbanToDefaultDb: Record<LeadStatus, DbPatientStatus> = {
 
 // ── Source mapping ──
 
-function mapSource(source: string | null): "Site" | "Meta Ads" {
+function mapSource(source: string | null): LeadSource {
   if (!source) return "Site";
   if (source === "meta_ads") return "Meta Ads";
+  if (source === "organico") return "Orgânico";
+  if (source === "indicacao") return "Indicação";
   return "Site";
+}
+
+function sourceToDb(source: LeadSource): string {
+  if (source === "Meta Ads") return "meta_ads";
+  if (source === "Orgânico") return "organico";
+  if (source === "Indicação") return "indicacao";
+  return "site";
 }
 
 // ── Fetch Patients ──
@@ -65,10 +74,12 @@ export async function fetchPatients(): Promise<Lead[]> {
     id: p.id,
     name: p.name || "Sem nome",
     phone: p.phone,
+    email: p.email || undefined,
     procedure: p.procedure_interest || "",
     source: mapSource(p.source),
     status: statusToKanban[(p.status as DbPatientStatus) || "novo"],
     date: p.created_at ? p.created_at.split("T")[0] : "",
+    tags: Array.isArray(p.tags) ? (p.tags as Tag[]) : undefined,
   }));
 }
 
@@ -210,15 +221,21 @@ export async function createPatient(data: {
   phone: string;
   procedure: string;
   source: "site" | "meta_ads" | "indicacao" | "organico";
+  email?: string;
+  notes?: string;
+  tags?: Tag[];
 }): Promise<Lead | null> {
   const { data: result, error } = await supabase
     .from("patients")
     .insert({
       name: data.name,
       phone: data.phone,
+      email: data.email || null,
       procedure_interest: data.procedure,
       source: data.source,
       status: "em_contato",
+      notes: data.notes || null,
+      tags: data.tags || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -234,11 +251,99 @@ export async function createPatient(data: {
     id: result.id,
     name: result.name || "Sem nome",
     phone: result.phone || "",
+    email: result.email || undefined,
     procedure: result.procedure_interest || "",
     source: mapSource(result.source),
     status: "em_contato",
     date: result.created_at?.split("T")[0] || "",
+    tags: Array.isArray(result.tags) ? (result.tags as Tag[]) : undefined,
   };
+}
+
+// ── Update Patient ──
+
+export async function updatePatient(
+  patientId: string,
+  data: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    source?: LeadSource;
+    status?: LeadStatus;
+    tags?: Tag[];
+    notes?: string;
+  }
+): Promise<Lead | null> {
+  const updatePayload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (data.name !== undefined) updatePayload.name = data.name;
+  if (data.phone !== undefined) updatePayload.phone = data.phone;
+  if (data.email !== undefined) updatePayload.email = data.email || null;
+  if (data.source !== undefined) updatePayload.source = sourceToDb(data.source);
+  if (data.status !== undefined) updatePayload.status = kanbanToDefaultDb[data.status];
+  if (data.tags !== undefined) updatePayload.tags = data.tags;
+  if (data.notes !== undefined) updatePayload.notes = data.notes;
+
+  const { data: result, error } = await supabase
+    .from("patients")
+    .update(updatePayload)
+    .eq("id", patientId)
+    .select()
+    .single();
+
+  if (error || !result) {
+    console.error("Error updating patient:", error);
+    return null;
+  }
+
+  return {
+    id: result.id,
+    name: result.name || "Sem nome",
+    phone: result.phone || "",
+    email: result.email || undefined,
+    procedure: result.procedure_interest || "",
+    source: mapSource(result.source),
+    status: statusToKanban[(result.status as DbPatientStatus) || "novo"],
+    date: result.created_at?.split("T")[0] || "",
+    tags: Array.isArray(result.tags) ? (result.tags as Tag[]) : undefined,
+  };
+}
+
+// ── Import Patients (batch) ──
+
+export async function importPatients(
+  leads: Array<{
+    name: string;
+    phone: string;
+    email?: string;
+    procedure?: string;
+    source?: string;
+    notes?: string;
+  }>
+): Promise<number> {
+  const rows = leads.map((l) => ({
+    name: l.name,
+    phone: l.phone,
+    email: l.email || null,
+    procedure_interest: l.procedure || "",
+    source: l.source || "site",
+    notes: l.notes || null,
+    status: "em_contato",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }));
+
+  const { data, error } = await supabase
+    .from("patients")
+    .insert(rows)
+    .select("id");
+
+  if (error) {
+    console.error("Error importing patients:", error);
+    return 0;
+  }
+  return (data || []).length;
 }
 
 // ── Search Patients ──
@@ -254,6 +359,31 @@ export async function searchPatients(
     .limit(6);
   if (error) return [];
   return (data || []).map((p) => ({ id: p.id, name: p.name || "", phone: p.phone || "" }));
+}
+
+// ── Google Calendar Sync ──
+
+async function triggerGoogleCalendarSync(data: {
+  leadName: string;
+  phone: string;
+  email?: string;
+  procedure?: string;
+  date: string;
+  time: string;
+  doctor?: string;
+  notes?: string;
+}): Promise<void> {
+  const webhookUrl = process.env.NEXT_PUBLIC_N8N_CALENDAR_WEBHOOK;
+  if (!webhookUrl) return;
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  } catch {
+    // silently skip
+  }
 }
 
 // ── Create Appointment ──
@@ -334,6 +464,27 @@ export async function createAppointment(data: {
     console.error("Error creating appointment:", error);
     return null;
   }
+
+  // Fetch patient info for calendar sync
+  if (result?.id) {
+    const { data: patient } = await supabase
+      .from("patients")
+      .select("name, phone, email")
+      .eq("id", data.patientId)
+      .maybeSingle();
+
+    triggerGoogleCalendarSync({
+      leadName: patient?.name || "",
+      phone: patient?.phone || "",
+      email: patient?.email || undefined,
+      procedure: data.procedure,
+      date: data.date,
+      time: data.startTime,
+      doctor: data.doctor,
+      notes: data.notes,
+    });
+  }
+
   return result?.id || null;
 }
 
@@ -411,6 +562,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
       duration,
       doctor: doctor?.name || "",
       notes: apt.notes || "",
+      status: apt.status || undefined,
     };
   });
 }
