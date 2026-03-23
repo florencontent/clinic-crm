@@ -8,9 +8,10 @@ interface KanbanColumnProps {
   status: LeadStatus;
   leads: Lead[];
   onOpenChat: (leadId: string) => void;
+  onOpenProfile?: (leadId: string) => void;
 }
 
-export function KanbanColumn({ status, leads, onOpenChat }: KanbanColumnProps) {
+export function KanbanColumn({ status, leads, onOpenChat, onOpenProfile }: KanbanColumnProps) {
   return (
     <div className={`flex-1 min-w-[280px] bg-gray-50 dark:bg-gray-900 rounded-xl border-t-4 ${columnColors[status]}`}>
       <div className="p-4 pb-2">
@@ -32,7 +33,7 @@ export function KanbanColumn({ status, leads, onOpenChat }: KanbanColumnProps) {
             }`}
           >
             {leads.map((lead, index) => (
-              <KanbanCard key={lead.id} lead={lead} index={index} onOpenChat={onOpenChat} />
+              <KanbanCard key={lead.id} lead={lead} index={index} onOpenChat={onOpenChat} onOpenProfile={onOpenProfile} />
             ))}
             {provided.placeholder}
           </div>

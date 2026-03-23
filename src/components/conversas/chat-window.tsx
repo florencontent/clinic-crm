@@ -1,10 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, MessageSquare } from "lucide-react";
+import { Send, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
 import { Conversation, statusLabels, statusColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
+
+const MESSAGE_TEMPLATES = [
+  { label: "Confirmação", text: "Olá! Confirmamos sua consulta. Caso precise remarcar, é só nos avisar 😊" },
+  { label: "Lembrete", text: "Oi! Passando para lembrar da sua consulta amanhã. Estamos te esperando na Floren Odonto 🦷" },
+  { label: "Avaliação Gratuita", text: "Olá! A Floren Odonto oferece avaliação gratuita com o Dr. Alfredo. Gostaria de agendar?" },
+  { label: "Localização", text: "Aqui está nossa localização para facilitar: [endereço da clínica]. Qualquer dúvida, é só chamar!" },
+  { label: "Boas-vindas", text: "Seja bem-vindo(a) à Floren Odonto! Sou da equipe de atendimento. Como posso te ajudar hoje?" },
+];
 
 interface ChatWindowProps {
   conversation: Conversation | null;
@@ -14,6 +22,7 @@ interface ChatWindowProps {
 export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
   const { theme } = useTheme();
   const [input, setInput] = useState("");
+  const [showTemplates, setShowTemplates] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -55,6 +64,12 @@ export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
     const ta = e.target;
     ta.style.height = "40px";
     ta.style.height = Math.min(ta.scrollHeight, 120) + "px";
+  };
+
+  const applyTemplate = (text: string) => {
+    setInput(text);
+    setShowTemplates(false);
+    textareaRef.current?.focus();
   };
 
   return (
@@ -120,8 +135,30 @@ export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Templates */}
+      {showTemplates && (
+        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-3 py-2 flex flex-wrap gap-2">
+          {MESSAGE_TEMPLATES.map((tpl) => (
+            <button
+              key={tpl.label}
+              onClick={() => applyTemplate(tpl.text)}
+              className="text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-700 transition-all font-medium"
+            >
+              {tpl.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Input */}
       <div className="bg-[#F0F2F5] dark:bg-gray-800 px-3 py-3 border-t border-gray-200 dark:border-gray-700 flex items-end gap-2">
+        <button
+          onClick={() => setShowTemplates((v) => !v)}
+          title="Respostas rápidas"
+          className="p-2 rounded-full text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex-shrink-0 mb-0.5"
+        >
+          {showTemplates ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
+        </button>
         <div className="flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 px-4 py-2">
           <textarea
             ref={textareaRef}

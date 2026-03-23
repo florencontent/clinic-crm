@@ -2,8 +2,11 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { X, Send, Loader2, Search } from "lucide-react";
+import { X, Send, Loader2, Search, UserPlus, Download } from "lucide-react";
 import { KanbanColumn } from "./column";
+import { NewLeadModal } from "./new-lead-modal";
+import { ScheduleModal } from "./schedule-modal";
+import { PatientModal } from "./patient-modal";
 import {
   Lead,
   LeadStatus,
@@ -12,7 +15,7 @@ import {
   statusLabels,
   statusColors,
 } from "@/data/mock-data";
-import { usePatients, useConversations } from "@/hooks/use-supabase-data";
+import { usePatients, useConversations, useAppointments } from "@/hooks/use-supabase-data";
 import { updatePatientStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
@@ -25,12 +28,33 @@ const SOURCE_FILTERS: { value: LeadSource | "all"; label: string }[] = [
   { value: "Site", label: "Site" },
 ];
 
+function exportLeadsCSV(leads: Lead[]) {
+  const header = ["Nome", "Telefone", "Procedimento", "Origem", "Status", "Data"].join(";");
+  const rows = leads.map((l) =>
+    [l.name, l.phone, l.procedure, l.source, statusLabels[l.status], l.date].join(";")
+  );
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `leads_${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function KanbanBoard() {
   const { patients: leads, loading, setPatients: setLeads } = usePatients();
   const { conversations } = useConversations();
+  const { appointments } = useAppointments();
   const { theme } = useTheme();
+
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
   const [input, setInput] = useState("");
+
+  const [showNewLead, setShowNewLead] = useState(false);
+  const [scheduleFor, setScheduleFor] = useState<Lead | null>(null);
+  const [profileLeadId, setProfileLeadId] = useState<string | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -69,6 +93,11 @@ export function KanbanBoard() {
           procedure: lead.procedure || "",
         }),
       }).catch(() => {});
+    }
+
+    // Ao mover para agendado, abrir modal de agendamento
+    if (newStatus === "agendado" && lead) {
+      setScheduleFor(lead);
     }
   };
 
@@ -117,6 +146,7 @@ export function KanbanBoard() {
 
   const openConversation = conversations.find((c) => c.leadId === openLeadId) || null;
   const openLead = leads.find((l) => l.id === openLeadId) || null;
+  const profileLead = leads.find((l) => l.id === profileLeadId) || null;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -184,6 +214,28 @@ export function KanbanBoard() {
             </span>
           </>
         )}
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Export CSV */}
+        <button
+          onClick={() => exportLeadsCSV(filteredLeads)}
+          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
+          title="Exportar CSV"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Exportar
+        </button>
+
+        {/* Novo Lead */}
+        <button
+          onClick={() => setShowNewLead(true)}
+          className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors font-medium shadow-sm shadow-blue-200 dark:shadow-blue-900/50"
+        >
+          <UserPlus className="h-3.5 w-3.5" />
+          Novo Lead
+        </button>
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -194,6 +246,7 @@ export function KanbanBoard() {
               status={status}
               leads={getLeadsByStatus(status)}
               onOpenChat={handleOpenChat}
+              onOpenProfile={(id) => setProfileLeadId(id)}
             />
           ))}
         </div>
@@ -294,6 +347,33 @@ export function KanbanBoard() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* New Lead Modal */}
+      {showNewLead && (
+        <NewLeadModal
+          onClose={() => setShowNewLead(false)}
+          onCreated={(lead) => setLeads((prev) => [lead, ...prev])}
+        />
+      )}
+
+      {/* Schedule Modal */}
+      {scheduleFor && (
+        <ScheduleModal
+          lead={scheduleFor}
+          onClose={() => setScheduleFor(null)}
+        />
+      )}
+
+      {/* Patient Profile Modal */}
+      {profileLeadId && profileLead && (
+        <PatientModal
+          lead={profileLead}
+          conversations={conversations}
+          appointments={appointments}
+          onClose={() => setProfileLeadId(null)}
+          onOpenChat={(id) => { setProfileLeadId(null); handleOpenChat(id); }}
+        />
       )}
     </>
   );

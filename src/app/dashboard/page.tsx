@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Loader2, RefreshCw } from "lucide-react";
+import { Calendar, Loader2, RefreshCw, Download } from "lucide-react";
 import { MetricsCards } from "@/components/dashboard/metrics-cards";
 import { FunnelChart } from "@/components/dashboard/funnel-chart";
 import { SourcePieChart } from "@/components/dashboard/source-pie-chart";
@@ -19,11 +19,37 @@ const filterLabels: Record<DateFilter, string> = {
   custom: "Personalizado",
 };
 
+function exportDashboardCSV(
+  metrics: { totalLeads: number; totalSales: number },
+  funnel: Array<{ stage: string; value: number }>,
+  source: Array<{ name: string; value: number }>
+) {
+  const lines = [
+    "MÉTRICAS GERAIS",
+    `Total de Leads;${metrics.totalLeads}`,
+    `Vendas Fechadas;${metrics.totalSales}`,
+    "",
+    "FUNIL DE CONVERSÃO",
+    ...funnel.map((f) => `${f.stage};${f.value}`),
+    "",
+    "ORIGEM DOS LEADS",
+    ...source.map((s) => `${s.name};${s.value}`),
+  ];
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `dashboard_${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function DashboardPage() {
   const [activeFilter, setActiveFilter] = useState<DateFilter>("30d");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const { metrics, funnel, source, conversion, loading, refresh } = useDashboardData();
+  const { metrics, funnel, source, conversion, currPeriod, prevPeriod, loading, refresh } =
+    useDashboardData(activeFilter);
 
   if (loading) {
     return (
@@ -71,6 +97,14 @@ export default function DashboardPage() {
           </div>
 
           <button
+            onClick={() => exportDashboardCSV(metrics, funnel, source)}
+            className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors"
+            title="Exportar CSV"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+
+          <button
             onClick={refresh}
             className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors"
             title="Atualizar"
@@ -81,46 +115,44 @@ export default function DashboardPage() {
       </div>
 
       {activeFilter === "custom" && (
-        <div className="mb-6 flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100 w-fit">
+        <div className="mb-6 flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 w-fit">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500 font-medium">De</label>
+            <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">De</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-500 font-medium">Até</label>
+            <label className="text-sm text-gray-500 dark:text-gray-400 font-medium">Até</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       )}
 
       <div className="space-y-6">
-        {/* Row 1 — 4 metric cards */}
         <MetricsCards
           totalLeads={metrics.totalLeads}
           agendados={agendados}
           compareceram={compareceram}
           totalSales={metrics.totalSales}
+          currPeriod={currPeriod}
+          prevPeriod={prevPeriod}
         />
 
-        {/* Row 2 — Funnel + Source */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FunnelChart data={funnel} />
           <SourcePieChart data={source} />
         </div>
 
-        {/* Row 3 — Conversion rates */}
         <ConversionBarChart data={conversion} />
-
       </div>
     </div>
   );

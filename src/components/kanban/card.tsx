@@ -2,16 +2,17 @@
 
 import { useRef } from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { Phone, Globe, Instagram, MessageCircle } from "lucide-react";
+import { Phone, Globe, Instagram, MessageCircle, Info } from "lucide-react";
 import { Lead } from "@/data/mock-data";
 
 interface KanbanCardProps {
   lead: Lead;
   index: number;
   onOpenChat: (leadId: string) => void;
+  onOpenProfile?: (leadId: string) => void;
 }
 
-export function KanbanCard({ lead, index, onOpenChat }: KanbanCardProps) {
+export function KanbanCard({ lead, index, onOpenChat, onOpenProfile }: KanbanCardProps) {
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -65,10 +66,17 @@ export function KanbanCard({ lead, index, onOpenChat }: KanbanCardProps) {
               <Phone className="h-3 w-3" />
               {lead.phone}
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                {new Date(lead.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-              </span>
+            <div className="flex items-center gap-1.5">
+              {onOpenProfile && (
+                <button
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); onOpenProfile(lead.id); }}
+                  className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  title="Ver ficha"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              )}
               <MessageCircle className="h-3.5 w-3.5 text-blue-400" />
             </div>
           </div>

@@ -12,6 +12,7 @@ interface CalendarViewProps {
   currentDate: Date;
   appointments: Appointment[];
   onSelectAppointment: (appointment: Appointment) => void;
+  onNewAppointment?: (date: string) => void;
 }
 
 const APT_COLORS = [
@@ -22,7 +23,7 @@ const APT_COLORS = [
   "bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/50 dark:text-rose-300 dark:hover:bg-rose-900/70",
 ];
 
-export function CalendarView({ currentDate, appointments, onSelectAppointment }: CalendarViewProps) {
+export function CalendarView({ currentDate, appointments, onSelectAppointment, onNewAppointment }: CalendarViewProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calStart = startOfWeek(monthStart, { locale: ptBR });
@@ -64,11 +65,13 @@ export function CalendarView({ currentDate, appointments, onSelectAppointment }:
           return (
             <div
               key={i}
+              onClick={() => inMonth && onNewAppointment?.(format(day, "yyyy-MM-dd"))}
               className={cn(
                 "min-h-[110px] p-2.5 border-b border-r border-gray-50 dark:border-gray-800 transition-colors",
                 !inMonth && "bg-gray-50/40 dark:bg-gray-800/30",
                 weekend && inMonth && "bg-gray-50/60 dark:bg-gray-800/20",
-                today && "bg-blue-50/40 dark:bg-blue-900/15"
+                today && "bg-blue-50/40 dark:bg-blue-900/15",
+                inMonth && onNewAppointment && "cursor-pointer hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
               )}
             >
               <span
@@ -86,7 +89,7 @@ export function CalendarView({ currentDate, appointments, onSelectAppointment }:
                 {dayApts.slice(0, 3).map((apt, aptIdx) => (
                   <button
                     key={apt.id}
-                    onClick={() => onSelectAppointment(apt)}
+                    onClick={(e) => { e.stopPropagation(); onSelectAppointment(apt); }}
                     className={cn(
                       "w-full text-left text-[10px] font-medium px-1.5 py-1 rounded-lg truncate transition-colors",
                       APT_COLORS[aptIdx % APT_COLORS.length]

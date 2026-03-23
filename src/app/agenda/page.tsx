@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Loader2, CalendarDays, Clock, CalendarCheck 
 import { CalendarView } from "@/components/agenda/calendar-view";
 import { WeekView } from "@/components/agenda/week-view";
 import { AppointmentModal } from "@/components/agenda/appointment-modal";
+import { NewAppointmentModal } from "@/components/agenda/new-appointment-modal";
 import { Appointment } from "@/data/mock-data";
 import { useAppointments } from "@/hooks/use-supabase-data";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export default function AgendaPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const { appointments, loading, setAppointments } = useAppointments();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [newAptDate, setNewAptDate] = useState<string | null>(null);
 
   const navigate = (direction: "prev" | "next") => {
     if (viewMode === "month") {
@@ -137,6 +139,7 @@ export default function AgendaPage() {
           currentDate={currentDate}
           appointments={appointments}
           onSelectAppointment={setSelectedAppointment}
+          onNewAppointment={(date) => setNewAptDate(date)}
         />
       ) : (
         <WeekView
@@ -151,6 +154,17 @@ export default function AgendaPage() {
           appointment={selectedAppointment}
           onClose={() => setSelectedAppointment(null)}
           onSave={handleSave}
+        />
+      )}
+
+      {newAptDate && (
+        <NewAppointmentModal
+          initialDate={newAptDate}
+          onClose={() => setNewAptDate(null)}
+          onCreated={(apt) => {
+            setAppointments((prev) => [...prev, apt]);
+            setNewAptDate(null);
+          }}
         />
       )}
     </div>

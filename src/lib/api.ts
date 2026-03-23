@@ -203,6 +203,163 @@ function formatRelativeTime(dateStr: string): string {
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
+// ── Create Patient ──
+
+export async function createPatient(data: {
+  name: string;
+  phone: string;
+  procedure: string;
+  source: "site" | "meta_ads" | "indicacao" | "organico";
+}): Promise<Lead | null> {
+  const { data: result, error } = await supabase
+    .from("patients")
+    .insert({
+      name: data.name,
+      phone: data.phone,
+      procedure_interest: data.procedure,
+      source: data.source,
+      status: "em_contato",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error || !result) {
+    console.error("Error creating patient:", error);
+    return null;
+  }
+
+  return {
+    id: result.id,
+    name: result.name || "Sem nome",
+    phone: result.phone || "",
+    procedure: result.procedure_interest || "",
+    source: mapSource(result.source),
+    status: "em_contato",
+    date: result.created_at?.split("T")[0] || "",
+  };
+}
+
+// ── Search Patients ──
+
+export async function searchPatients(
+  query: string
+): Promise<Array<{ id: string; name: string; phone: string }>> {
+  if (!query || query.length < 2) return [];
+  const { data, error } = await supabase
+    .from("patients")
+    .select("id, name, phone")
+    .ilike("name", `%${query}%`)
+    .limit(6);
+  if (error) return [];
+  return (data || []).map((p) => ({ id: p.id, name: p.name || "", phone: p.phone || "" }));
+}
+
+// ── Create Appointment ──
+
+async function upsertProcedure(name: string): Promise<string | null> {
+  if (!name.trim()) return null;
+  const { data: existing } = await supabase
+    .from("procedures")
+    .select("id")
+    .ilike("name", name.trim())
+    .limit(1)
+    .maybeSingle();
+  if (existing) return existing.id;
+  const { data: created } = await supabase
+    .from("procedures")
+    .insert({ name: name.trim() })
+    .select("id")
+    .single();
+  return created?.id || null;
+}
+
+async function upsertDoctor(name: string): Promise<string | null> {
+  if (!name.trim()) return null;
+  const { data: existing } = await supabase
+    .from("doctors")
+    .select("id")
+    .ilike("name", name.trim())
+    .limit(1)
+    .maybeSingle();
+  if (existing) return existing.id;
+  const { data: created } = await supabase
+    .from("doctors")
+    .insert({ name: name.trim() })
+    .select("id")
+    .single();
+  return created?.id || null;
+}
+
+export async function createAppointment(data: {
+  patientId: string;
+  date: string;
+  startTime: string;
+  duration: number;
+  procedure?: string;
+  doctor?: string;
+  notes?: string;
+}): Promise<string | null> {
+  const [h, m] = data.startTime.split(":").map(Number);
+  const totalMinutes = h * 60 + m + data.duration;
+  const endTime = `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+
+  const [procedureId, doctorId] = await Promise.all([
+    data.procedure ? upsertProcedure(data.procedure) : Promise.resolve(null),
+    data.doctor ? upsertDoctor(data.doctor) : Promise.resolve(null),
+  ]);
+
+  const insertData: Record<string, unknown> = {
+    patient_id: data.patientId,
+    date: data.date,
+    start_time: data.startTime,
+    end_time: endTime,
+    status: "agendado",
+    notes: data.notes || "",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  if (procedureId) insertData.procedure_id = procedureId;
+  if (doctorId) insertData.doctor_id = doctorId;
+
+  const { data: result, error } = await supabase
+    .from("appointments")
+    .insert(insertData)
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("Error creating appointment:", error);
+    return null;
+  }
+  return result?.id || null;
+}
+
+// ── Dashboard Metrics by Date Range ──
+
+export async function fetchDashboardMetricsByRange(from: string, to: string): Promise<{
+  totalLeads: number;
+  agendados: number;
+  compareceram: number;
+  totalSales: number;
+}> {
+  const { data } = await supabase
+    .from("patients")
+    .select("status")
+    .gte("created_at", from)
+    .lte("created_at", to);
+
+  const all = data || [];
+  return {
+    totalLeads: all.length,
+    agendados: all.filter((p) => ["agendado", "confirmado"].includes(p.status)).length,
+    compareceram: all.filter((p) => p.status === "compareceu").length,
+    totalSales: all.filter((p) => p.status === "fechado").length,
+  };
+}
+
 // ── Fetch Appointments ──
 
 export async function fetchAppointments(): Promise<Appointment[]> {
@@ -210,6 +367,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
     .from("appointments")
     .select(`
       id,
+      patient_id,
       date,
       start_time,
       end_time,
@@ -245,6 +403,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
 
     return {
       id: apt.id,
+      patientId: apt.patient_id || undefined,
       leadName: patient?.name || "Sem nome",
       procedure: procedure?.name || "",
       date: apt.date,

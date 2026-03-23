@@ -33,6 +33,7 @@ export interface Conversation {
 
 export interface Appointment {
   id: string;
+  patientId?: string;
   leadName: string;
   procedure: string;
   date: string;
