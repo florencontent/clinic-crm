@@ -20,6 +20,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
+  const isDark = theme === "dark";
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -103,19 +104,22 @@ export function Sidebar() {
 
         {/* User info */}
         <div className="flex items-center gap-3 px-4 py-2">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
+            isDark
+              ? "overflow-hidden border border-gray-700"
+              : "bg-gradient-to-br from-blue-400 to-blue-600 shadow-md shadow-blue-200"
+          }`}>
             <Image
-              src={theme === "dark" ? "/little-logo-white.png" : "/little-logo.png"}
+              src={isDark ? "/little-logo-white.png" : "/little-logo-white.png"}
               alt="Floren"
-              width={32}
-              height={32}
-              className="w-full h-full object-cover"
+              width={isDark ? 32 : 20}
+              height={isDark ? 32 : 20}
+              className="object-contain"
               unoptimized
             />
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Dr. Alfredo</p>
-            <p className="text-xs text-gray-500 dark:text-gray-500">Floren Odonto</p>
           </div>
         </div>
       </div>
