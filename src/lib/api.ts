@@ -370,6 +370,7 @@ async function triggerGoogleCalendarSync(data: {
   procedure?: string;
   date: string;
   time: string;
+  duration?: number;
   doctor?: string;
   notes?: string;
 }): Promise<void> {
@@ -480,6 +481,7 @@ export async function createAppointment(data: {
       procedure: data.procedure,
       date: data.date,
       time: data.startTime,
+      duration: data.duration,
       doctor: data.doctor,
       notes: data.notes,
     });
