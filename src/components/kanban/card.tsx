@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { Phone, Globe, Instagram, MessageCircle, Info } from "lucide-react";
+import { Phone, Globe, Instagram } from "lucide-react";
 import { Lead } from "@/data/mock-data";
 
 interface KanbanCardProps {
@@ -12,7 +12,7 @@ interface KanbanCardProps {
   onOpenProfile?: (leadId: string) => void;
 }
 
-export function KanbanCard({ lead, index, onOpenChat, onOpenProfile }: KanbanCardProps) {
+export function KanbanCard({ lead, index, onOpenProfile }: KanbanCardProps) {
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -24,7 +24,7 @@ export function KanbanCard({ lead, index, onOpenChat, onOpenProfile }: KanbanCar
     const dx = Math.abs(e.clientX - mouseDownPos.current.x);
     const dy = Math.abs(e.clientY - mouseDownPos.current.y);
     if (dx < 5 && dy < 5) {
-      onOpenChat(lead.id);
+      onOpenProfile?.(lead.id);
     }
     mouseDownPos.current = null;
   };
@@ -51,6 +51,16 @@ export function KanbanCard({ lead, index, onOpenChat, onOpenProfile }: KanbanCar
                 <Instagram className="h-3 w-3" />
                 Meta
               </span>
+            ) : lead.source === "Orgânico" ? (
+              <span className="flex items-center gap-1 text-xs bg-green-50 dark:bg-green-900/40 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
+                <Globe className="h-3 w-3" />
+                Orgânico
+              </span>
+            ) : lead.source === "Indicação" ? (
+              <span className="flex items-center gap-1 text-xs bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
+                <Globe className="h-3 w-3" />
+                Indicação
+              </span>
             ) : (
               <span className="flex items-center gap-1 text-xs bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">
                 <Globe className="h-3 w-3" />
@@ -66,19 +76,6 @@ export function KanbanCard({ lead, index, onOpenChat, onOpenProfile }: KanbanCar
               <Phone className="h-3 w-3" />
               {lead.phone}
             </span>
-            <div className="flex items-center gap-1.5">
-              {onOpenProfile && (
-                <button
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => { e.stopPropagation(); onOpenProfile(lead.id); }}
-                  className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  title="Ver ficha"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <MessageCircle className="h-3.5 w-3.5 text-blue-400" />
-            </div>
           </div>
         </div>
       )}

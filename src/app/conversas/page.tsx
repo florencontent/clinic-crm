@@ -4,13 +4,17 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { ConversationList } from "@/components/conversas/conversation-list";
 import { ChatWindow } from "@/components/conversas/chat-window";
-import { useConversations } from "@/hooks/use-supabase-data";
+import { LeadSidebar } from "@/components/conversas/lead-sidebar";
+import { useConversations, usePatients, useAppointments } from "@/hooks/use-supabase-data";
 
 export default function ConversasPage() {
   const { conversations, loading, setConversations } = useConversations();
+  const { patients } = usePatients();
+  const { appointments } = useAppointments();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selectedConversation = conversations.find((c) => c.leadId === selectedId) || null;
+  const selectedLead = selectedId ? (patients.find((p) => p.id === selectedId) || null) : null;
 
   const handleSendMessage = (leadId: string, text: string) => {
     const conv = conversations.find((c) => c.leadId === leadId);
@@ -61,6 +65,10 @@ export default function ConversasPage() {
       <ChatWindow
         conversation={selectedConversation}
         onSendMessage={handleSendMessage}
+      />
+      <LeadSidebar
+        lead={selectedLead}
+        appointments={appointments}
       />
     </div>
   );

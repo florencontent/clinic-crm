@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { format, addMonths, subMonths, addWeeks, subWeeks, isSameDay } from "date-fns";
+import { useState, useMemo } from "react";
+import { format, addMonths, subMonths, addWeeks, subWeeks, isSameDay, isWithinInterval, startOfWeek, endOfWeek, startOfYear, endOfYear, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, CalendarDays, Clock, CalendarCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, CalendarDays, Clock, CalendarCheck, UserCheck } from "lucide-react";
 import { CalendarView } from "@/components/agenda/calendar-view";
 import { WeekView } from "@/components/agenda/week-view";
 import { AppointmentModal } from "@/components/agenda/appointment-modal";
@@ -13,6 +13,7 @@ import { useAppointments } from "@/hooks/use-supabase-data";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "month" | "week";
+type PeriodFilter = "anual" | "mensal" | "semanal" | "personalizado";
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -20,6 +21,10 @@ export default function AgendaPage() {
   const { appointments, loading, setAppointments } = useAppointments();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [newAptDate, setNewAptDate] = useState<string | null>(null);
+
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("mensal");
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
 
   const navigate = (direction: "prev" | "next") => {
     if (viewMode === "month") {
@@ -37,13 +42,46 @@ export default function AgendaPage() {
   };
 
   const today = new Date();
+
+  // Period-filtered appointments
+  const periodFilteredAppointments = useMemo(() => {
+    let start: Date, end: Date;
+    if (periodFilter === "anual") {
+      start = startOfYear(today);
+      end = endOfYear(today);
+    } else if (periodFilter === "semanal") {
+      start = startOfWeek(today, { weekStartsOn: 0 });
+      end = endOfWeek(today, { weekStartsOn: 0 });
+    } else if (periodFilter === "personalizado") {
+      if (!customFrom || !customTo) return appointments;
+      start = new Date(customFrom + "T00:00:00");
+      end = new Date(customTo + "T23:59:59");
+    } else {
+      // mensal (default)
+      start = startOfMonth(today);
+      end = endOfMonth(today);
+    }
+    return appointments.filter((a) => {
+      const d = new Date(a.date + "T00:00:00");
+      return isWithinInterval(d, { start, end });
+    });
+  }, [appointments, periodFilter, customFrom, customTo]);
+
   const todayApts = appointments.filter((a) => isSameDay(new Date(a.date + "T00:00:00"), today));
   const weekApts = appointments.filter((a) => {
     const d = new Date(a.date + "T00:00:00");
-    const start = new Date(today); start.setDate(today.getDate() - today.getDay());
-    const end = new Date(start); end.setDate(start.getDate() + 6);
+    const start = startOfWeek(today, { weekStartsOn: 0 });
+    const end = endOfWeek(today, { weekStartsOn: 0 });
     return d >= start && d <= end;
   });
+  const compareceuCount = appointments.filter((a) => a.status === "compareceu").length;
+
+  const PERIOD_FILTERS: { value: PeriodFilter; label: string }[] = [
+    { value: "anual", label: "Anual" },
+    { value: "mensal", label: "Mensal" },
+    { value: "semanal", label: "Semanal" },
+    { value: "personalizado", label: "Personalizado" },
+  ];
 
   if (loading) {
     return (
@@ -104,7 +142,8 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Metric cards */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
           <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
             <CalendarDays className="h-4 w-4" />
@@ -132,19 +171,73 @@ export default function AgendaPage() {
             <p className="text-xs text-gray-400">Total agendado</p>
           </div>
         </div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
+          <div className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2.5 rounded-xl">
+            <UserCheck className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{compareceuCount}</p>
+            <p className="text-xs text-gray-400">Compareceram</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Period filter tabs */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 shadow-sm">
+          {PERIOD_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setPeriodFilter(f.value)}
+              className={cn(
+                "px-4 py-1.5 text-xs font-medium rounded-lg transition-all",
+                periodFilter === f.value
+                  ? "bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        {periodFilter === "personalizado" && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500 dark:text-gray-400">De</label>
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
+            />
+            <label className="text-xs text-gray-500 dark:text-gray-400">Até</label>
+            <input
+              type="date"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
+            />
+          </div>
+        )}
+
+        {periodFilter !== "mensal" && (
+          <span className="text-xs text-gray-400">
+            {periodFilteredAppointments.length} consulta{periodFilteredAppointments.length !== 1 ? "s" : ""} no período
+          </span>
+        )}
       </div>
 
       {viewMode === "month" ? (
         <CalendarView
           currentDate={currentDate}
-          appointments={appointments}
+          appointments={periodFilteredAppointments}
           onSelectAppointment={setSelectedAppointment}
           onNewAppointment={(date) => setNewAptDate(date)}
         />
       ) : (
         <WeekView
           currentDate={currentDate}
-          appointments={appointments}
+          appointments={periodFilteredAppointments}
           onSelectAppointment={setSelectedAppointment}
         />
       )}
