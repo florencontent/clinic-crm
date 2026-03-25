@@ -92,7 +92,8 @@ export async function updatePatientStatus(
 ): Promise<void> {
   const dbStatus = kanbanToDefaultDb[kanbanStatus];
   const updatePayload: Record<string, unknown> = { status: dbStatus, updated_at: new Date().toISOString() };
-  if (kanbanStatus !== "agendado") updatePayload.reminder_status = null;
+  if (kanbanStatus === "agendado") updatePayload.reminder_status = "aguardando";
+  else updatePayload.reminder_status = null;
   const { error } = await supabase
     .from("patients")
     .update(updatePayload)
