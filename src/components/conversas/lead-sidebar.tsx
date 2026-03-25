@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle, Stethoscope } from "lucide-react";
 import { Lead, Appointment, statusLabels, statusColors, reminderLabels, reminderColors, TagType } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -112,6 +112,12 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
                   <Tag className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                   <span className="text-xs text-gray-700 dark:text-gray-300">{lead.source}</span>
                 </div>
+                {lead.procedure && (
+                  <div className="flex items-center gap-2.5">
+                    <Stethoscope className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-xs text-gray-700 dark:text-gray-300">{lead.procedure}</span>
+                  </div>
+                )}
               </div>
 
               {/* Tags */}

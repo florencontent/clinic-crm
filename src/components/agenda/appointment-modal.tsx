@@ -30,7 +30,7 @@ const inputClass =
   "w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-500";
 
 export function AppointmentModal({ appointment, onClose, onSave, onDelete }: AppointmentModalProps) {
-  const [procedure, setProcedure] = useState(appointment.procedure);
+  const procedure = appointment.procedure;
   const [doctor, setDoctor] = useState(appointment.doctor);
   const [notes, setNotes] = useState(appointment.notes);
   const [saved, setSaved] = useState(false);
@@ -140,20 +140,14 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
             </div>
           </div>
 
-          {/* Procedimento - editável */}
-          <div className="flex items-start gap-3">
-            <div className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-lg flex-shrink-0 mt-1">
+          {/* Procedimento - somente leitura */}
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2 rounded-lg flex-shrink-0">
               <Stethoscope className="h-4 w-4" />
             </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Especialidade / Procedimento</p>
-              <input
-                type="text"
-                value={procedure}
-                onChange={(e) => setProcedure(e.target.value)}
-                placeholder="Ex: Invisalign, Implante, Botox..."
-                className={inputClass}
-              />
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Especialidade / Procedimento</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{procedure || "—"}</p>
             </div>
           </div>
 
