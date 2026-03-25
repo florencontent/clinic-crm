@@ -578,7 +578,33 @@ export interface DashboardData {
   };
   funnel: Array<{ stage: string; value: number; fill: string }>;
   source: Array<{ name: string; value: number; fill: string }>;
+  sourceAgendamentos: Array<{ name: string; value: number; fill: string }>;
+  sourceVendas: Array<{ name: string; value: number; fill: string }>;
   conversion: Array<{ name: string; value: number }>;
+  dailyFechados: Array<{ date: string; count: number }>;
+}
+
+// ── Fetch daily fechados by date range ──
+
+export async function fetchDailyFechados(from: string, to: string): Promise<Array<{ date: string; count: number }>> {
+  const { data, error } = await supabase
+    .from("patients")
+    .select("updated_at")
+    .eq("status", "fechado")
+    .gte("updated_at", from)
+    .lte("updated_at", to);
+
+  if (error || !data) return [];
+
+  const map = new Map<string, number>();
+  for (const p of data) {
+    const date = (p.updated_at as string)?.split("T")[0];
+    if (date) map.set(date, (map.get(date) || 0) + 1);
+  }
+
+  return Array.from(map.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, count]) => ({ date, count }));
 }
 
 export async function fetchDashboardMetrics(): Promise<DashboardData> {
@@ -599,12 +625,28 @@ export async function fetchDashboardMetrics(): Promise<DashboardData> {
   const compareceram = all.filter((p) => p.status === "compareceu").length;
   const fechados = all.filter((p) => p.status === "fechado").length;
 
-  // Source counts
+  // Source counts — leads
   const metaAds = all.filter((p) => p.source === "meta_ads").length;
   const site = all.filter((p) => p.source === "site").length;
   const indicacao = all.filter((p) => p.source === "indicacao").length;
   const organico = all.filter((p) => p.source === "organico").length;
   const outros = total - metaAds - site - indicacao - organico;
+
+  // Source counts — agendamentos
+  const agendadosAll = all.filter((p) => ["agendado", "confirmado", "compareceu", "fechado"].includes(p.status));
+  const agMetaAds = agendadosAll.filter((p) => p.source === "meta_ads").length;
+  const agSite = agendadosAll.filter((p) => p.source === "site").length;
+  const agIndicacao = agendadosAll.filter((p) => p.source === "indicacao").length;
+  const agOrganico = agendadosAll.filter((p) => p.source === "organico").length;
+  const agOutros = agendadosAll.length - agMetaAds - agSite - agIndicacao - agOrganico;
+
+  // Source counts — vendas
+  const vendasAll = all.filter((p) => p.status === "fechado");
+  const vMetaAds = vendasAll.filter((p) => p.source === "meta_ads").length;
+  const vSite = vendasAll.filter((p) => p.source === "site").length;
+  const vIndicacao = vendasAll.filter((p) => p.source === "indicacao").length;
+  const vOrganico = vendasAll.filter((p) => p.source === "organico").length;
+  const vOutros = vendasAll.length - vMetaAds - vSite - vIndicacao - vOrganico;
 
   // Conversion rates
   const agendamentoRate = total > 0 ? (agendados + compareceram + fechados) / total * 100 : 0;
@@ -617,9 +659,9 @@ export async function fetchDashboardMetrics(): Promise<DashboardData> {
       totalSales: fechados,
     },
     funnel: [
-      { stage: "Leads", value: total, fill: "#3B82F6" },
-      { stage: "Agendados", value: agendados + compareceram + fechados, fill: "#6366F1" },
-      { stage: "Compareceram", value: compareceram + fechados, fill: "#8B5CF6" },
+      { stage: "Leads", value: total, fill: "#1D4ED8" },
+      { stage: "Agendados", value: agendados + compareceram + fechados, fill: "#3B82F6" },
+      { stage: "Compareceram", value: compareceram + fechados, fill: "#6D28D9" },
       { stage: "Fechados", value: fechados, fill: "#22C55E" },
     ],
     source: [
@@ -629,11 +671,26 @@ export async function fetchDashboardMetrics(): Promise<DashboardData> {
       ...(organico > 0 ? [{ name: "Organico", value: organico, fill: "#22C55E" }] : []),
       ...(outros > 0 ? [{ name: "Outros", value: outros, fill: "#F59E0B" }] : []),
     ],
+    sourceAgendamentos: [
+      ...(agMetaAds > 0 ? [{ name: "Meta Ads", value: agMetaAds, fill: "#3B82F6" }] : []),
+      ...(agSite > 0 ? [{ name: "Site", value: agSite, fill: "#6366F1" }] : []),
+      ...(agIndicacao > 0 ? [{ name: "Indicacao", value: agIndicacao, fill: "#8B5CF6" }] : []),
+      ...(agOrganico > 0 ? [{ name: "Organico", value: agOrganico, fill: "#22C55E" }] : []),
+      ...(agOutros > 0 ? [{ name: "Outros", value: agOutros, fill: "#F59E0B" }] : []),
+    ],
+    sourceVendas: [
+      ...(vMetaAds > 0 ? [{ name: "Meta Ads", value: vMetaAds, fill: "#3B82F6" }] : []),
+      ...(vSite > 0 ? [{ name: "Site", value: vSite, fill: "#6366F1" }] : []),
+      ...(vIndicacao > 0 ? [{ name: "Indicacao", value: vIndicacao, fill: "#8B5CF6" }] : []),
+      ...(vOrganico > 0 ? [{ name: "Organico", value: vOrganico, fill: "#22C55E" }] : []),
+      ...(vOutros > 0 ? [{ name: "Outros", value: vOutros, fill: "#F59E0B" }] : []),
+    ],
     conversion: [
       { name: "Agendamento", value: Number(agendamentoRate.toFixed(1)) },
       { name: "Comparecimento", value: Number(comparecimentoRate.toFixed(1)) },
       { name: "Venda", value: Number(vendaRate.toFixed(1)) },
     ],
+    dailyFechados: [],
   };
 }
 
@@ -641,16 +698,19 @@ function emptyDashboard(): DashboardData {
   return {
     metrics: { totalLeads: 0, totalSales: 0 },
     funnel: [
-      { stage: "Leads", value: 0, fill: "#3B82F6" },
-      { stage: "Agendados", value: 0, fill: "#6366F1" },
-      { stage: "Compareceram", value: 0, fill: "#8B5CF6" },
+      { stage: "Leads", value: 0, fill: "#1D4ED8" },
+      { stage: "Agendados", value: 0, fill: "#3B82F6" },
+      { stage: "Compareceram", value: 0, fill: "#6D28D9" },
       { stage: "Fechados", value: 0, fill: "#22C55E" },
     ],
     source: [],
+    sourceAgendamentos: [],
+    sourceVendas: [],
     conversion: [
       { name: "Agendamento", value: 0 },
       { name: "Comparecimento", value: 0 },
       { name: "Venda", value: 0 },
     ],
+    dailyFechados: [],
   };
 }

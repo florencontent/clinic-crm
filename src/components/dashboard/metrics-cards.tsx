@@ -1,7 +1,16 @@
 "use client";
 
-import { Users, CalendarCheck, UserCheck, Trophy, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Users, CalendarCheck, UserCheck, Trophy,
+  TrendingUp, TrendingDown, Minus,
+  DollarSign, BarChart2, Zap, Tag,
+} from "lucide-react";
 import { PeriodComparison } from "@/hooks/use-supabase-data";
+
+const AVG_TICKET = 3500;
+
+type DateFilter = "hoje" | "7d" | "15d" | "30d" | "custom";
 
 interface MetricsCardsProps {
   totalLeads: number;
@@ -10,132 +19,163 @@ interface MetricsCardsProps {
   totalSales: number;
   currPeriod?: PeriodComparison | null;
   prevPeriod?: PeriodComparison | null;
+  activeFilter?: DateFilter;
+  customStart?: string;
+  customEnd?: string;
 }
-
-const cards = [
-  {
-    key: "leads",
-    title: "Total de Leads",
-    subtitle: "Captados no período",
-    icon: Users,
-    gradient: "from-blue-500 to-blue-600",
-    bg: "bg-blue-50",
-    darkBg: "dark:bg-blue-900/20",
-    text: "text-blue-600",
-    darkText: "dark:text-blue-400",
-    border: "border-blue-100",
-  },
-  {
-    key: "agendados",
-    title: "Agendamentos",
-    subtitle: "Consultas marcadas",
-    icon: CalendarCheck,
-    gradient: "from-violet-500 to-violet-600",
-    bg: "bg-violet-50",
-    darkBg: "dark:bg-violet-900/20",
-    text: "text-violet-600",
-    darkText: "dark:text-violet-400",
-    border: "border-violet-100",
-  },
-  {
-    key: "compareceram",
-    title: "Comparecimentos",
-    subtitle: "Leads presentes",
-    icon: UserCheck,
-    gradient: "from-amber-500 to-orange-500",
-    bg: "bg-amber-50",
-    darkBg: "dark:bg-amber-900/20",
-    text: "text-amber-600",
-    darkText: "dark:text-amber-400",
-    border: "border-amber-100",
-  },
-  {
-    key: "vendas",
-    title: "Vendas Fechadas",
-    subtitle: "Conversões finais",
-    icon: Trophy,
-    gradient: "from-emerald-500 to-green-500",
-    bg: "bg-emerald-50",
-    darkBg: "dark:bg-emerald-900/20",
-    text: "text-emerald-600",
-    darkText: "dark:text-emerald-400",
-    border: "border-emerald-100",
-  },
-];
 
 function calcChange(curr: number, prev: number): number | null {
   if (prev === 0) return curr > 0 ? 100 : null;
   return Math.round(((curr - prev) / prev) * 100);
 }
 
-export function MetricsCards({ totalLeads, agendados, compareceram, totalSales, currPeriod, prevPeriod }: MetricsCardsProps) {
-  const values: Record<string, number> = {
-    leads: totalLeads,
-    agendados,
-    compareceram,
-    vendas: totalSales,
-  };
+function fmtBRL(v: number) {
+  if (v >= 1000) return `R$ ${(v / 1000).toFixed(1).replace(".", ",")}k`;
+  return `R$ ${v.toFixed(0)}`;
+}
 
-  const currValues: Record<string, number> = {
-    leads: currPeriod?.totalLeads ?? 0,
-    agendados: currPeriod?.agendados ?? 0,
-    compareceram: currPeriod?.compareceram ?? 0,
-    vendas: currPeriod?.totalSales ?? 0,
-  };
+function buildMetaUrl(filter: DateFilter, customStart?: string, customEnd?: string) {
+  if (filter === "custom" && customStart && customEnd) {
+    return `/api/meta-ads?date_preset=last_14d&since=${customStart}&until=${customEnd}`;
+  }
+  const preset =
+    filter === "7d" || filter === "hoje" ? "last_7d" :
+    filter === "15d" ? "last_14d" :
+    "last_30d";
+  return `/api/meta-ads?date_preset=${preset}`;
+}
 
-  const prevValues: Record<string, number> = {
-    leads: prevPeriod?.totalLeads ?? 0,
-    agendados: prevPeriod?.agendados ?? 0,
-    compareceram: prevPeriod?.compareceram ?? 0,
-    vendas: prevPeriod?.totalSales ?? 0,
-  };
+// Faturamento desativado por enquanto — não puxa dado do Meta
+
+export function MetricsCards({
+  totalLeads, agendados, compareceram, totalSales,
+  currPeriod, prevPeriod, activeFilter = "30d", customStart, customEnd,
+}: MetricsCardsProps) {
+  const investimento: number | null = null;
+
+  const faturamento = totalSales * AVG_TICKET;
+  const roas = investimento && investimento > 0 ? faturamento / investimento : null;
+  const ticketMedio = totalSales > 0 ? faturamento / totalSales : AVG_TICKET;
+
+  // ── Row 1: funil ──
+  const funnelCards = [
+    {
+      key: "leads", title: "Total de Leads", subtitle: "Captados no período",
+      icon: Users, value: totalLeads, display: String(totalLeads),
+      color: { bg: "bg-blue-50", darkBg: "dark:bg-blue-900/20", text: "text-blue-600", darkText: "dark:text-blue-400", border: "border-blue-100" },
+      convRate: null as number | null,
+      change: (currPeriod && prevPeriod) ? calcChange(currPeriod.totalLeads, prevPeriod.totalLeads) : null,
+    },
+    {
+      key: "agendados", title: "Agendamentos", subtitle: "Consultas marcadas",
+      icon: CalendarCheck, value: agendados, display: String(agendados),
+      color: { bg: "bg-violet-50", darkBg: "dark:bg-violet-900/20", text: "text-violet-600", darkText: "dark:text-violet-400", border: "border-violet-100" },
+      convRate: totalLeads > 0 ? Math.round((agendados / totalLeads) * 100) : null,
+      change: (currPeriod && prevPeriod) ? calcChange(currPeriod.agendados, prevPeriod.agendados) : null,
+    },
+    {
+      key: "compareceram", title: "Comparecimentos", subtitle: "Leads presentes",
+      icon: UserCheck, value: compareceram, display: String(compareceram),
+      color: { bg: "bg-amber-50", darkBg: "dark:bg-amber-900/20", text: "text-amber-600", darkText: "dark:text-amber-400", border: "border-amber-100" },
+      convRate: totalLeads > 0 ? Math.round((compareceram / totalLeads) * 100) : null,
+      change: (currPeriod && prevPeriod) ? calcChange(currPeriod.compareceram, prevPeriod.compareceram) : null,
+    },
+    {
+      key: "vendas", title: "Vendas Fechadas", subtitle: "Conversões finais",
+      icon: Trophy, value: totalSales, display: String(totalSales),
+      color: { bg: "bg-emerald-50", darkBg: "dark:bg-emerald-900/20", text: "text-emerald-600", darkText: "dark:text-emerald-400", border: "border-emerald-100" },
+      convRate: totalLeads > 0 ? Math.round((totalSales / totalLeads) * 100) : null,
+      change: (currPeriod && prevPeriod) ? calcChange(currPeriod.totalSales, prevPeriod.totalSales) : null,
+    },
+  ];
+
+  // ── Row 2: financeiro ──
+  const finCards = [
+    {
+      key: "faturamento", title: "Faturamento", subtitle: "Receita total",
+      icon: DollarSign, display: fmtBRL(faturamento),
+      color: { bg: "bg-emerald-50", darkBg: "dark:bg-emerald-900/20", text: "text-emerald-600", darkText: "dark:text-emerald-400", border: "border-emerald-100" },
+    },
+    {
+      key: "investimento", title: "Investimento", subtitle: "Gasto em anúncios Meta",
+      icon: BarChart2,
+      display: investimento === null ? "—" : fmtBRL(investimento),
+      color: { bg: "bg-blue-50", darkBg: "dark:bg-blue-900/20", text: "text-blue-600", darkText: "dark:text-blue-400", border: "border-blue-100" },
+    },
+    {
+      key: "roas", title: "ROAS", subtitle: "Retorno sobre anúncio",
+      icon: Zap,
+      display: roas === null ? "—" : `${roas.toFixed(1)}x`,
+      color: {
+        bg: roas !== null && roas >= 3 ? "bg-emerald-50" : "bg-amber-50",
+        darkBg: roas !== null && roas >= 3 ? "dark:bg-emerald-900/20" : "dark:bg-amber-900/20",
+        text: roas !== null && roas >= 3 ? "text-emerald-600" : "text-amber-600",
+        darkText: roas !== null && roas >= 3 ? "dark:text-emerald-400" : "dark:text-amber-400",
+        border: roas !== null && roas >= 3 ? "border-emerald-100" : "border-amber-100",
+      },
+    },
+    {
+      key: "ticket", title: "Ticket Médio", subtitle: "Por venda fechada",
+      icon: Tag, display: fmtBRL(ticketMedio),
+      color: { bg: "bg-violet-50", darkBg: "dark:bg-violet-900/20", text: "text-violet-600", darkText: "dark:text-violet-400", border: "border-violet-100" },
+    },
+  ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((card) => {
-        const value = values[card.key];
-        const convRate = card.key !== "leads" && totalLeads > 0
-          ? Math.round((value / totalLeads) * 100)
-          : null;
-
-        const change = (currPeriod && prevPeriod)
-          ? calcChange(currValues[card.key], prevValues[card.key])
-          : null;
-
-        return (
+    <div className="space-y-4">
+      {/* Linha 1 — funil */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {funnelCards.map((card) => (
           <div
             key={card.key}
-            className={`group bg-white dark:bg-gray-800 rounded-2xl p-5 border ${card.border} dark:border-gray-700 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-default`}
+            className={`group bg-white dark:bg-gray-800 rounded-xl px-4 py-3 border ${card.color.border} dark:border-gray-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default`}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className={`${card.bg} ${card.text} ${card.darkBg} ${card.darkText} p-2.5 rounded-xl group-hover:scale-110 transition-transform duration-200`}>
-                <card.icon className="h-5 w-5" />
+            <div className="flex items-center justify-between mb-2">
+              <div className={`${card.color.bg} ${card.color.text} ${card.color.darkBg} ${card.color.darkText} p-1.5 rounded-lg group-hover:scale-110 transition-transform duration-200`}>
+                <card.icon className="h-3.5 w-3.5" />
               </div>
-              {convRate !== null && (
-                <span className={`text-xs font-semibold ${card.text} ${card.bg} ${card.darkText} ${card.darkBg} px-2 py-0.5 rounded-full`}>
-                  {convRate}%
+              {card.convRate !== null && (
+                <span className={`text-xs font-semibold ${card.color.text} ${card.color.darkText} px-1.5 py-0.5 rounded-full ${card.color.bg} ${card.color.darkBg}`}>
+                  {card.convRate}%
                 </span>
               )}
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">{value}</p>
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{card.title}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{card.subtitle}</p>
-
-            {change !== null && (
-              <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
-                change > 0 ? "text-emerald-600 dark:text-emerald-400" :
-                change < 0 ? "text-red-500 dark:text-red-400" :
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{card.display}</p>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mt-0.5">{card.title}</p>
+            {card.change !== null && (
+              <div className={`flex items-center gap-1 mt-1.5 text-xs font-medium ${
+                card.change > 0 ? "text-emerald-600 dark:text-emerald-400" :
+                card.change < 0 ? "text-red-500 dark:text-red-400" :
                 "text-gray-400 dark:text-gray-500"
               }`}>
-                {change > 0 ? <TrendingUp className="h-3 w-3" /> :
-                 change < 0 ? <TrendingDown className="h-3 w-3" /> :
+                {card.change > 0 ? <TrendingUp className="h-3 w-3" /> :
+                 card.change < 0 ? <TrendingDown className="h-3 w-3" /> :
                  <Minus className="h-3 w-3" />}
-                {change > 0 ? "+" : ""}{change}% vs período anterior
+                {card.change > 0 ? "+" : ""}{card.change}% vs anterior
               </div>
             )}
           </div>
-        );
-      })}
+        ))}
+      </div>
+
+      {/* Linha 2 — financeiro */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {finCards.map((card) => (
+          <div
+            key={card.key}
+            className={`group bg-white dark:bg-gray-800 rounded-xl px-4 py-3 border ${card.color.border} dark:border-gray-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className={`${card.color.bg} ${card.color.text} ${card.color.darkBg} ${card.color.darkText} p-1.5 rounded-lg group-hover:scale-110 transition-transform duration-200`}>
+                <card.icon className="h-3.5 w-3.5" />
+              </div>
+            </div>
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">{card.display}</p>
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-300 mt-0.5">{card.title}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{card.subtitle}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -5,7 +5,8 @@ import { Calendar, Loader2, RefreshCw, Download } from "lucide-react";
 import { MetricsCards } from "@/components/dashboard/metrics-cards";
 import { FunnelChart } from "@/components/dashboard/funnel-chart";
 import { SourcePieChart } from "@/components/dashboard/source-pie-chart";
-import { ConversionBarChart } from "@/components/dashboard/conversion-bar-chart";
+import { FunnelFlowChart } from "@/components/dashboard/funnel-flow-chart";
+import { RevenueLineChart } from "@/components/dashboard/revenue-line-chart";
 import { useDashboardData } from "@/hooks/use-supabase-data";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +49,7 @@ export default function DashboardPage() {
   const [activeFilter, setActiveFilter] = useState<DateFilter>("30d");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const { metrics, funnel, source, conversion, currPeriod, prevPeriod, loading, refresh } =
+  const { metrics, funnel, source, sourceAgendamentos, sourceVendas, conversion, currPeriod, prevPeriod, loading, refresh } =
     useDashboardData(activeFilter);
 
   if (loading) {
@@ -145,14 +146,23 @@ export default function DashboardPage() {
           totalSales={metrics.totalSales}
           currPeriod={currPeriod}
           prevPeriod={prevPeriod}
+          activeFilter={activeFilter}
+          customStart={startDate || undefined}
+          customEnd={endDate || undefined}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <FunnelChart data={funnel} />
-          <SourcePieChart data={source} />
+          <SourcePieChart data={source} dataAgendamentos={sourceAgendamentos} dataVendas={sourceVendas} />
         </div>
 
-        <ConversionBarChart data={conversion} />
+        <RevenueLineChart
+          activeFilter={activeFilter}
+          customStart={startDate || undefined}
+          customEnd={endDate || undefined}
+        />
+
+        <FunnelFlowChart data={funnel} />
       </div>
     </div>
   );

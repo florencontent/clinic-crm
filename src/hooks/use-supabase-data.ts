@@ -147,6 +147,8 @@ export function useDashboardData(activeFilter?: string) {
     metrics: data?.metrics ?? { totalLeads: 0, totalSales: 0 },
     funnel: data?.funnel ?? [],
     source: data?.source ?? [],
+    sourceAgendamentos: data?.sourceAgendamentos ?? [],
+    sourceVendas: data?.sourceVendas ?? [],
     conversion: data?.conversion ?? [],
     currPeriod,
     prevPeriod,

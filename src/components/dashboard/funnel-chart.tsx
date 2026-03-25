@@ -4,30 +4,16 @@ interface FunnelChartProps {
   data: Array<{ stage: string; value: number; fill: string }>;
 }
 
-// Lighter shade for gradient highlight
-function lighten(hex: string, amount = 40): string {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const r = Math.min(255, (num >> 16) + amount);
-  const g = Math.min(255, ((num >> 8) & 0xff) + amount);
-  const b = Math.min(255, (num & 0xff) + amount);
-  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
-}
-
 export function FunnelChart({ data }: FunnelChartProps) {
-  const maxValue = data.length > 0 ? Math.max(...data.map((d) => d.value)) : 1;
+  if (!data || data.length === 0) return null;
 
-  const svgWidth = 280;
-  const sliceH = 52;
-  const gap = 6;
-  const svgHeight = data.length * sliceH + (data.length - 1) * gap;
-  const maxHalfWidth = svgWidth * 0.46;
-  const minHalfWidth = svgWidth * 0.14;
-  const cx = svgWidth / 2;
-  const r = 8; // corner radius
+  const maxValue = Math.max(...data.map((d) => d.value), 1);
+  const minWidthPct = 35;
+  const maxWidthPct = 85;
 
-  const getHalfWidth = (value: number) => {
-    const ratio = maxValue > 0 ? value / maxValue : 0;
-    return minHalfWidth + (maxHalfWidth - minHalfWidth) * ratio;
+  const getWidth = (value: number) => {
+    const ratio = value / maxValue;
+    return minWidthPct + (maxWidthPct - minWidthPct) * ratio;
   };
 
   return (
@@ -37,103 +23,83 @@ export function FunnelChart({ data }: FunnelChartProps) {
         <p className="text-xs text-gray-400 mt-0.5">Jornada do lead até o fechamento</p>
       </div>
 
-      <div className="flex items-center gap-8">
-        {/* SVG Funnel */}
-        <div className="flex-shrink-0">
-          <svg width={svgWidth} height={svgHeight} viewBox={`0 0 ${svgWidth} ${svgHeight}`}>
-            <defs>
-              {data.map((item, i) => (
-                <linearGradient key={i} id={`fg-${i}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={lighten(item.fill, 30)} stopOpacity="1" />
-                  <stop offset="100%" stopColor={item.fill} stopOpacity="1" />
-                </linearGradient>
-              ))}
-              <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
-                <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.10)" />
-              </filter>
-            </defs>
+      <div className="flex flex-col items-center gap-0">
+        {data.map((item, i) => {
+          const widthPct = getWidth(item.value);
+          const nextValue = data[i + 1]?.value ?? 0;
+          const convPct = item.value > 0 ? Math.round((nextValue / item.value) * 100) : 0;
 
-            {data.map((item, i) => {
-              const hw = getHalfWidth(item.value);
-              const nextHw = i < data.length - 1 ? getHalfWidth(data[i + 1].value) : hw * 0.78;
-              const y = i * (sliceH + gap);
-
-              // Rounded trapezoid via path
-              // Top edge: from (cx-hw, y) to (cx+hw, y) with rounded top corners
-              // Bottom edge: from (cx+nextHw, y+sliceH) to (cx-nextHw, y+sliceH) with rounded bottom corners
-              const tl = { x: cx - hw, y };
-              const tr = { x: cx + hw, y };
-              const br = { x: cx + nextHw, y: y + sliceH };
-              const bl = { x: cx - nextHw, y: y + sliceH };
-
-              // Clamp radius so it doesn't exceed half the side lengths
-              const topW = hw * 2;
-              const botW = nextHw * 2;
-              const rc = Math.min(r, topW / 2, botW / 2, sliceH / 2);
-
-              const path = [
-                `M ${tl.x + rc} ${tl.y}`,
-                `L ${tr.x - rc} ${tr.y}`,
-                `Q ${tr.x} ${tr.y} ${tr.x - (tr.x - br.x) * (rc / sliceH)} ${tr.y + rc}`,
-                `L ${br.x + (tr.x - br.x) * (rc / sliceH)} ${br.y - rc}`,
-                `Q ${br.x} ${br.y} ${br.x - rc} ${br.y}`,
-                `L ${bl.x + rc} ${bl.y}`,
-                `Q ${bl.x} ${bl.y} ${bl.x + (tl.x - bl.x) * (rc / sliceH)} ${bl.y - rc}`,
-                `L ${tl.x - (tl.x - bl.x) * (rc / sliceH)} ${tl.y + rc}`,
-                `Q ${tl.x} ${tl.y} ${tl.x + rc} ${tl.y}`,
-                `Z`,
-              ].join(" ");
-
-              const pct = maxValue > 0 ? Math.round((item.value / maxValue) * 100) : 0;
-              const midY = y + sliceH / 2;
-
-              return (
-                <g key={i} filter="url(#shadow)">
-                  <path d={path} fill={`url(#fg-${i})`} />
-                  <text
-                    x={cx}
-                    y={midY - 7}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="white"
-                    fontSize="14"
-                    fontWeight="700"
-                    style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))" }}
-                  >
-                    {item.value}
-                  </text>
-                  <text
-                    x={cx}
-                    y={midY + 10}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="white"
-                    fontSize="9"
-                    fontWeight="500"
-                    opacity="0.85"
-                  >
-                    {pct}%
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        {/* Legend */}
-        <div className="flex-1 space-y-4">
-          {data.map((item, i) => (
-            <div key={item.stage} className="group flex items-center gap-2.5 px-2 py-1.5 -mx-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150 cursor-default">
+          return (
+            <div key={item.stage} className="w-full flex flex-col items-center">
+              {/* Barra da etapa */}
               <div
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0 group-hover:scale-125 transition-transform duration-150"
-                style={{ backgroundColor: item.fill }}
-              />
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400 flex-1 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors duration-150">{item.stage}</span>
-              <span className="text-sm font-bold text-gray-900 dark:text-gray-100 tabular-nums">{item.value}</span>
+                style={{
+                  width: `${widthPct}%`,
+                  background: `linear-gradient(135deg, ${lighten(item.fill, 35)} 0%, ${item.fill} 100%)`,
+                  borderRadius: 10,
+                  padding: "10px 16px",
+                  textAlign: "center",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                }}
+              >
+                <p style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.8)",
+                  margin: "0 0 4px",
+                }}>
+                  {item.stage}
+                </p>
+                <p style={{
+                  fontSize: 20,
+                  fontWeight: 800,
+                  color: "#ffffff",
+                  margin: 0,
+                  lineHeight: 1,
+                  textShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                }}>
+                  {item.value}
+                </p>
+              </div>
+
+              {/* Conversão entre etapas */}
+              {i < data.length - 1 && (
+                <div className="flex items-center gap-2 py-1">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">↓</span>
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                    {convPct}% avançam
+                  </span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">↓</span>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+          );
+        })}
+
+        {/* Taxa de conversão total */}
+        {data.length >= 2 && (
+          <div className="mt-4 px-4 py-2 rounded-full bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-700">
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+              Taxa de conversão total:{" "}
+              <span className="text-blue-500 dark:text-blue-400">
+                {data[0].value > 0
+                  ? `${((data[data.length - 1].value / data[0].value) * 100).toFixed(1)}%`
+                  : "0%"}
+              </span>
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function lighten(hex: string, amount = 40): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.min(255, (num >> 16) + amount);
+  const g = Math.min(255, ((num >> 8) & 0xff) + amount);
+  const b = Math.min(255, (num & 0xff) + amount);
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
