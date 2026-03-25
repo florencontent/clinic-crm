@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Lead, LeadStatus, LeadSource, Conversation, Message, Appointment, Tag } from "@/data/mock-data";
+import type { Lead, LeadStatus, LeadSource, ReminderStatus, Conversation, Message, Appointment, Tag } from "@/data/mock-data";
 
 // ── Status mapping: DB (8 statuses) → Kanban (4 columns) ──
 
@@ -80,6 +80,7 @@ export async function fetchPatients(): Promise<Lead[]> {
     status: statusToKanban[(p.status as DbPatientStatus) || "novo"],
     date: p.created_at ? p.created_at.split("T")[0] : "",
     tags: Array.isArray(p.tags) ? (p.tags as Tag[]) : undefined,
+    reminderStatus: p.reminder_status as ReminderStatus | undefined,
   }));
 }
 
@@ -90,9 +91,11 @@ export async function updatePatientStatus(
   kanbanStatus: LeadStatus
 ): Promise<void> {
   const dbStatus = kanbanToDefaultDb[kanbanStatus];
+  const updatePayload: Record<string, unknown> = { status: dbStatus, updated_at: new Date().toISOString() };
+  if (kanbanStatus !== "agendado") updatePayload.reminder_status = null;
   const { error } = await supabase
     .from("patients")
-    .update({ status: dbStatus, updated_at: new Date().toISOString() })
+    .update(updatePayload)
     .eq("id", patientId);
 
   if (error) {
@@ -110,7 +113,7 @@ function mapConvRow(conv: {
   messages: unknown;
 }): Conversation {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const patient = conv.patients as any as { id: string; name: string | null; status: string; phone: string | null } | null;
+  const patient = conv.patients as any as { id: string; name: string | null; status: string; phone: string | null; reminder_status?: string | null } | null;
   const msgs = (conv.messages as Array<{
     id: string;
     content: string | null;
@@ -152,6 +155,7 @@ function mapConvRow(conv: {
     unread: unreadCount,
     status: statusToKanban[patientStatus || "novo"],
     messages: mappedMessages,
+    reminderStatus: patient?.reminder_status as ReminderStatus | undefined,
   };
 }
 
@@ -163,7 +167,7 @@ export async function fetchConversations(): Promise<Conversation[]> {
       id,
       patient_id,
       last_message_at,
-      patients ( id, name, status, phone ),
+      patients ( id, name, status, phone, reminder_status ),
       messages ( id, content, direction, sender, sent_at )
     `)
     .order("last_message_at", { ascending: false });

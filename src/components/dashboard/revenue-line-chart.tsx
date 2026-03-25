@@ -113,9 +113,9 @@ export function RevenueLineChart({ activeFilter, customStart, customEnd }: Props
                 backgroundColor: bgColor,
                 color: isDark ? "#f1f5f9" : "#111827",
               }}
-              formatter={(value: number, name: string) => [
-                `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`,
-                name === "faturamento" ? "Faturamento" : "Investimento",
+              formatter={(value: number | undefined, name: string | undefined) => [
+                `R$ ${(value ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`,
+                (name ?? "") === "faturamento" ? "Faturamento" : "Investimento",
               ]}
             />
             <Line

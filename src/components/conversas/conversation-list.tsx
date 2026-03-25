@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, MessageCircle } from "lucide-react";
-import { Conversation, LeadStatus, statusLabels, statusColors } from "@/data/mock-data";
+import { Search, MessageCircle, Bell } from "lucide-react";
+import { Conversation, LeadStatus, statusLabels, statusColors, reminderLabels, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 
 interface ConversationListProps {
@@ -147,9 +147,17 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
                   )}>
                     {conv.lastMessage || "Sem mensagens"}
                   </p>
-                  <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[conv.status])}>
-                    {statusLabels[conv.status]}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[conv.status])}>
+                      {statusLabels[conv.status]}
+                    </span>
+                    {conv.status === "agendado" && conv.reminderStatus && (
+                      <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[conv.reminderStatus])}>
+                        <Bell className="h-2.5 w-2.5" />
+                        {reminderLabels[conv.reminderStatus]}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </button>

@@ -2,8 +2,8 @@
 
 import { useRef } from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { Phone, Globe, Instagram } from "lucide-react";
-import { Lead } from "@/data/mock-data";
+import { Phone, Globe, Instagram, Bell } from "lucide-react";
+import { Lead, reminderLabels, reminderColors } from "@/data/mock-data";
 
 interface KanbanCardProps {
   lead: Lead;
@@ -70,6 +70,13 @@ export function KanbanCard({ lead, index, onOpenProfile }: KanbanCardProps) {
           </div>
 
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{lead.procedure}</p>
+
+          {lead.status === "agendado" && lead.reminderStatus && (
+            <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 ${reminderColors[lead.reminderStatus]}`}>
+              <Bell className="h-2.5 w-2.5" />
+              {reminderLabels[lead.reminderStatus]}
+            </span>
+          )}
 
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">

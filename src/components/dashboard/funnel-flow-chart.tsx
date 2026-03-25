@@ -170,7 +170,7 @@ export function FunnelFlowChart({ data }: FunnelFlowProps) {
                     backgroundColor: bgColor,
                     color: textPrimary,
                   }}
-                  formatter={(v: number) => [v, ""]}
+                  formatter={(v: number | undefined) => [v ?? 0, ""]}
                 />
               </PieChart>
             </ResponsiveContainer>

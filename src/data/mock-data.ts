@@ -1,5 +1,20 @@
 export type LeadStatus = "em_contato" | "agendado" | "compareceu" | "fechado";
 export type LeadSource = "Site" | "Meta Ads" | "Orgânico" | "Indicação";
+export type ReminderStatus = "aguardando" | "d2" | "d1" | "dia";
+
+export const reminderLabels: Record<ReminderStatus, string> = {
+  aguardando: "Aguardando lembrete",
+  d2: "Lembrete D-2",
+  d1: "Lembrete D-1",
+  dia: "Lembrete do dia",
+};
+
+export const reminderColors: Record<ReminderStatus, string> = {
+  aguardando: "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
+  d2: "bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
+  d1: "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400",
+  dia: "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+};
 
 export type TagType = "especialidade" | "doutor" | "observacao";
 export interface Tag {
@@ -18,6 +33,7 @@ export interface Lead {
   date: string;
   tags?: Tag[];
   avatar?: string;
+  reminderStatus?: ReminderStatus;
 }
 
 export interface Message {
@@ -37,6 +53,7 @@ export interface Conversation {
   unread: number;
   status: LeadStatus;
   messages: Message[];
+  reminderStatus?: ReminderStatus;
 }
 
 export interface Appointment {
