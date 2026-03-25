@@ -80,11 +80,11 @@ export const statusLabels: Record<LeadStatus, string> = {
 };
 
 export const statusColors: Record<LeadStatus, string> = {
-  em_contato: "bg-yellow-100 text-yellow-800",
-  agendado: "bg-blue-100 text-blue-800",
-  compareceu: "bg-purple-100 text-purple-800",
-  fechado: "bg-green-100 text-green-800",
-  perdido: "bg-red-100 text-red-700",
+  em_contato: "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300",
+  agendado: "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300",
+  compareceu: "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300",
+  fechado: "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300",
+  perdido: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
 };
 
 export const columnColors: Record<LeadStatus, string> = {
