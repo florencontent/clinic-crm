@@ -1,4 +1,4 @@
-export type LeadStatus = "em_contato" | "agendado" | "compareceu" | "fechado";
+export type LeadStatus = "em_contato" | "agendado" | "compareceu" | "fechado" | "perdido";
 export type LeadSource = "Site" | "Meta Ads" | "Orgânico" | "Indicação";
 export type ReminderStatus = "aguardando" | "d2" | "d1" | "dia";
 
@@ -34,6 +34,8 @@ export interface Lead {
   tags?: Tag[];
   avatar?: string;
   reminderStatus?: ReminderStatus;
+  agentPaused?: boolean;
+  lossReason?: string;
 }
 
 export interface Message {
@@ -74,6 +76,7 @@ export const statusLabels: Record<LeadStatus, string> = {
   agendado: "Agendado",
   compareceu: "Compareceu",
   fechado: "Fechado",
+  perdido: "Perdido",
 };
 
 export const statusColors: Record<LeadStatus, string> = {
@@ -81,6 +84,7 @@ export const statusColors: Record<LeadStatus, string> = {
   agendado: "bg-blue-100 text-blue-800",
   compareceu: "bg-purple-100 text-purple-800",
   fechado: "bg-green-100 text-green-800",
+  perdido: "bg-red-100 text-red-700",
 };
 
 export const columnColors: Record<LeadStatus, string> = {
@@ -88,6 +92,7 @@ export const columnColors: Record<LeadStatus, string> = {
   agendado: "border-t-blue-400",
   compareceu: "border-t-purple-400",
   fechado: "border-t-green-400",
+  perdido: "border-t-red-400",
 };
 
 // Meta Ads types

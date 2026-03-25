@@ -8,6 +8,8 @@ import { NewLeadModal } from "./new-lead-modal";
 import { ScheduleModal } from "./schedule-modal";
 import { PatientModal } from "./patient-modal";
 import { ImportLeadsModal } from "./import-leads-modal";
+import { MarkAsLostModal } from "./mark-as-lost-modal";
+import { markAsLost } from "@/lib/api";
 import {
   Lead,
   LeadStatus,
@@ -18,7 +20,7 @@ import { usePatients, useConversations, useAppointments } from "@/hooks/use-supa
 import { updatePatientStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const columns: LeadStatus[] = ["em_contato", "agendado", "compareceu", "fechado"];
+const columns: LeadStatus[] = ["em_contato", "agendado", "compareceu", "fechado", "perdido"];
 
 const SOURCE_FILTERS: { value: LeadSource | "all"; label: string }[] = [
   { value: "all", label: "Todas as origens" },
@@ -52,6 +54,7 @@ export function KanbanBoard() {
   const [showImport, setShowImport] = useState(false);
   const [scheduleFor, setScheduleFor] = useState<Lead | null>(null);
   const [profileLeadId, setProfileLeadId] = useState<string | null>(null);
+  const [lostDragLead, setLostDragLead] = useState<Lead | null>(null);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -77,6 +80,13 @@ export function KanbanBoard() {
     );
 
     updatePatientStatus(draggableId, newStatus);
+
+    if (newStatus === "perdido" && lead) {
+      // Revert optimistic update — wait for modal confirmation
+      setLeads((prev) => prev.map((l) => l.id === draggableId ? { ...l, status: lead.status } : l));
+      setLostDragLead(lead);
+      return;
+    }
 
     if (newStatus === "compareceu" && lead) {
       const conv = conversations.find((c) => c.leadId === draggableId);
@@ -277,6 +287,21 @@ export function KanbanBoard() {
           onOpenChat={(id) => setProfileLeadId(id)}
           onSave={(updated) => setLeads((prev) => prev.map((l) => l.id === updated.id ? updated : l))}
           onSendMessage={handleSendMessage}
+          onDelete={(id) => { setLeads((prev) => prev.filter((l) => l.id !== id)); setProfileLeadId(null); }}
+          onLeadUpdate={(updated) => setLeads((prev) => prev.map((l) => l.id === updated.id ? updated : l))}
+        />
+      )}
+
+      {/* Mark as Lost Modal (drag) */}
+      {lostDragLead && (
+        <MarkAsLostModal
+          leadName={lostDragLead.name}
+          onConfirm={async (reason) => {
+            await markAsLost(lostDragLead.id, reason);
+            setLeads((prev) => prev.map((l) => l.id === lostDragLead.id ? { ...l, status: "perdido", lossReason: reason } : l));
+            setLostDragLead(null);
+          }}
+          onCancel={() => setLostDragLead(null)}
         />
       )}
     </>

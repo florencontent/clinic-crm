@@ -147,7 +147,7 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
               onChange={(e) => setStatus(e.target.value as LeadStatus)}
               className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
             >
-              {(["em_contato", "agendado", "compareceu", "fechado"] as LeadStatus[]).map((s) => (
+              {(["em_contato", "agendado", "compareceu", "fechado", "perdido"] as LeadStatus[]).map((s) => (
                 <option key={s} value={s}>{statusLabels[s]}</option>
               ))}
             </select>

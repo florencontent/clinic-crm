@@ -21,7 +21,7 @@ const statusToKanban: Record<DbPatientStatus, LeadStatus> = {
   confirmado: "agendado",
   compareceu: "compareceu",
   fechado: "fechado",
-  perdido: "fechado",
+  perdido: "perdido",
 };
 
 // Kanban column → DB statuses (for writing back)
@@ -29,7 +29,8 @@ export const kanbanToDbStatuses: Record<LeadStatus, DbPatientStatus[]> = {
   em_contato: ["novo", "em_contato", "qualificado"],
   agendado: ["agendado", "confirmado"],
   compareceu: ["compareceu"],
-  fechado: ["fechado", "perdido"],
+  fechado: ["fechado"],
+  perdido: ["perdido"],
 };
 
 // When dragging to a column, use the first DB status as default
@@ -38,6 +39,7 @@ const kanbanToDefaultDb: Record<LeadStatus, DbPatientStatus> = {
   agendado: "agendado",
   compareceu: "compareceu",
   fechado: "fechado",
+  perdido: "perdido",
 };
 
 // ── Source mapping ──
@@ -81,6 +83,8 @@ export async function fetchPatients(): Promise<Lead[]> {
     date: p.created_at ? p.created_at.split("T")[0] : "",
     tags: Array.isArray(p.tags) ? (p.tags as Tag[]) : undefined,
     reminderStatus: p.reminder_status as ReminderStatus | undefined,
+    agentPaused: p.agent_paused ?? false,
+    lossReason: p.loss_reason ?? undefined,
   }));
 }
 
@@ -495,6 +499,43 @@ export async function createAppointment(data: {
   return result?.id || null;
 }
 
+// ── Delete Appointment ──
+
+export async function deleteAppointment(id: string): Promise<boolean> {
+  // Delete dependent reminders first
+  await supabase.from("appointment_reminders").delete().eq("appointment_id", id);
+  const { error } = await supabase.from("appointments").delete().eq("id", id);
+  return !error;
+}
+
+async function triggerGoogleCalendarDelete(data: {
+  leadName: string;
+  procedure?: string;
+  date: string;
+  time: string;
+}): Promise<void> {
+  const webhookUrl = process.env.NEXT_PUBLIC_N8N_CALENDAR_DELETE_WEBHOOK;
+  if (!webhookUrl) return;
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  } catch {
+    // silently skip
+  }
+}
+
+export async function deleteAppointmentWithCalendar(
+  id: string,
+  eventData: { leadName: string; procedure?: string; date: string; time: string }
+): Promise<boolean> {
+  const ok = await deleteAppointment(id);
+  if (ok) triggerGoogleCalendarDelete(eventData);
+  return ok;
+}
+
 // ── Dashboard Metrics by Date Range ──
 
 export async function fetchDashboardMetricsByRange(from: string, to: string): Promise<{
@@ -697,6 +738,53 @@ export async function fetchDashboardMetrics(): Promise<DashboardData> {
     ],
     dailyFechados: [],
   };
+}
+
+// ── Delete Patient ──
+
+export async function deletePatient(patientId: string): Promise<boolean> {
+  // Delete in FK order
+  await supabase.from("messages").delete().in("conversation_id",
+    (await supabase.from("conversations").select("id").eq("patient_id", patientId)).data?.map((c: { id: string }) => c.id) || []
+  );
+  await supabase.from("conversations").delete().eq("patient_id", patientId);
+  await supabase.from("appointment_reminders").delete().in("appointment_id",
+    (await supabase.from("appointments").select("id").eq("patient_id", patientId)).data?.map((a: { id: string }) => a.id) || []
+  );
+  await supabase.from("appointments").delete().eq("patient_id", patientId);
+  await supabase.from("lead_status_history").delete().eq("patient_id", patientId);
+  const { error } = await supabase.from("patients").delete().eq("id", patientId);
+  return !error;
+}
+
+// ── Toggle Agent Pause ──
+
+export async function toggleAgentPause(patientId: string, paused: boolean): Promise<boolean> {
+  const { error } = await supabase
+    .from("patients")
+    .update({ agent_paused: paused, updated_at: new Date().toISOString() })
+    .eq("id", patientId);
+  return !error;
+}
+
+// ── Mark as Lost ──
+
+export async function markAsLost(patientId: string, reason: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("patients")
+    .update({ status: "perdido", loss_reason: reason, updated_at: new Date().toISOString() })
+    .eq("id", patientId);
+  return !error;
+}
+
+// ── Reactivate Lead ──
+
+export async function reactivateLead(patientId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("patients")
+    .update({ status: "em_contato", loss_reason: null, updated_at: new Date().toISOString() })
+    .eq("id", patientId);
+  return !error;
 }
 
 function emptyDashboard(): DashboardData {

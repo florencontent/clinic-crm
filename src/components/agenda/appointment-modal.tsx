@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Check } from "lucide-react";
+import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Check, Trash2, AlertTriangle } from "lucide-react";
 import { Appointment } from "@/data/mock-data";
+import { deleteAppointmentWithCalendar } from "@/lib/api";
 
 interface AppointmentModalProps {
   appointment: Appointment;
   onClose: () => void;
   onSave: (updated: Appointment) => void;
+  onDelete?: (id: string) => void;
 }
 
 function formatDate(dateStr: string) {
@@ -26,11 +28,13 @@ function formatEndTime(time: string, duration: number) {
 const inputClass =
   "w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-500";
 
-export function AppointmentModal({ appointment, onClose, onSave }: AppointmentModalProps) {
+export function AppointmentModal({ appointment, onClose, onSave, onDelete }: AppointmentModalProps) {
   const [procedure, setProcedure] = useState(appointment.procedure);
   const [doctor, setDoctor] = useState(appointment.doctor);
   const [notes, setNotes] = useState(appointment.notes);
   const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const endTime = formatEndTime(appointment.time, appointment.duration);
 
@@ -43,6 +47,22 @@ export function AppointmentModal({ appointment, onClose, onSave }: AppointmentMo
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    setDeleting(true);
+    const ok = await deleteAppointmentWithCalendar(appointment.id, {
+      leadName: appointment.leadName,
+      procedure: appointment.procedure,
+      date: appointment.date,
+      time: appointment.time,
+    });
+    setDeleting(false);
+    if (ok) {
+      onDelete(appointment.id);
+      onClose();
+    }
   };
 
   return (
@@ -157,27 +177,61 @@ export function AppointmentModal({ appointment, onClose, onSave }: AppointmentMo
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end bg-white dark:bg-gray-900">
-          <button
-            onClick={handleSave}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-all ${
-              saved
-                ? "bg-green-500"
-                : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md shadow-blue-200 dark:shadow-blue-900/50"
-            }`}
-          >
-            {saved ? (
-              <>
-                <Check className="h-4 w-4" />
-                Salvo!
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                Salvar
-              </>
-            )}
-          </button>
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900">
+          {confirmDelete ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 flex-1">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                Excluir agendamento?
+              </div>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deleting ? "Excluindo..." : "Confirmar"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              {onDelete && (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Excluir
+                </button>
+              )}
+              <button
+                onClick={handleSave}
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-all ${
+                  saved
+                    ? "bg-green-500"
+                    : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md shadow-blue-200 dark:shadow-blue-900/50"
+                }`}
+              >
+                {saved ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Salvo!
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Salvar
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

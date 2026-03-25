@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Phone, CalendarDays, MessageCircle, User, Clock, Mail, Edit2, Send } from "lucide-react";
+import { X, Phone, CalendarDays, MessageCircle, User, Clock, Mail, Edit2, Send, Trash2, PauseCircle, PlayCircle, RotateCcw, AlertTriangle } from "lucide-react";
 import { Lead, Conversation, Appointment, statusLabels, statusColors, TagType } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTheme } from "@/lib/theme-context";
 import { EditLeadModal } from "./edit-lead-modal";
+import { MarkAsLostModal } from "./mark-as-lost-modal";
+import { deletePatient, toggleAgentPause, markAsLost, reactivateLead } from "@/lib/api";
 
 interface PatientModalProps {
   lead: Lead;
@@ -17,6 +19,8 @@ interface PatientModalProps {
   onOpenChat: (leadId: string) => void;
   onSave?: (lead: Lead) => void;
   onSendMessage?: (leadId: string, text: string) => void;
+  onDelete?: (id: string) => void;
+  onLeadUpdate?: (lead: Lead) => void;
 }
 
 type Tab = "resumo" | "conversa" | "agenda";
@@ -35,10 +39,16 @@ export function PatientModal({
   onOpenChat,
   onSave,
   onSendMessage,
+  onDelete,
+  onLeadUpdate,
 }: PatientModalProps) {
   const [tab, setTab] = useState<Tab>("resumo");
   const [lead, setLead] = useState(initialLead);
   const [showEdit, setShowEdit] = useState(false);
+  const [showLostModal, setShowLostModal] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [pauseLoading, setPauseLoading] = useState(false);
   const [input, setInput] = useState("");
   const { theme } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -86,6 +96,44 @@ export function PatientModal({
     setLead(updated);
     setShowEdit(false);
     onSave?.(updated);
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    const ok = await deletePatient(lead.id);
+    setDeleting(false);
+    if (ok) { onDelete?.(lead.id); onClose(); }
+  };
+
+  const handlePauseToggle = async () => {
+    setPauseLoading(true);
+    const newPaused = !lead.agentPaused;
+    const ok = await toggleAgentPause(lead.id, newPaused);
+    setPauseLoading(false);
+    if (ok) {
+      const updated = { ...lead, agentPaused: newPaused };
+      setLead(updated);
+      onLeadUpdate?.(updated);
+    }
+  };
+
+  const handleMarkLost = async (reason: string) => {
+    const ok = await markAsLost(lead.id, reason);
+    if (ok) {
+      const updated = { ...lead, status: "perdido" as const, lossReason: reason };
+      setLead(updated);
+      onLeadUpdate?.(updated);
+      setShowLostModal(false);
+    }
+  };
+
+  const handleReactivate = async () => {
+    const ok = await reactivateLead(lead.id);
+    if (ok) {
+      const updated = { ...lead, status: "em_contato" as const, lossReason: undefined };
+      setLead(updated);
+      onLeadUpdate?.(updated);
+    }
   };
 
   return (
@@ -235,6 +283,76 @@ export function PatientModal({
                     Ver conversa
                   </span>
                 </button>
+
+                {/* Action buttons */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  {/* Pause/Resume agent */}
+                  <button
+                    onClick={handlePauseToggle}
+                    disabled={pauseLoading}
+                    className={cn(
+                      "flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium border transition-colors disabled:opacity-50",
+                      lead.agentPaused
+                        ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800/50 hover:bg-green-100 dark:hover:bg-green-900/40"
+                        : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                    )}
+                  >
+                    {lead.agentPaused
+                      ? <><PlayCircle className="h-3.5 w-3.5" />Retomar Agente</>
+                      : <><PauseCircle className="h-3.5 w-3.5" />Pausar Agente</>
+                    }
+                  </button>
+
+                  {/* Mark as lost / Reactivate */}
+                  {lead.status === "perdido" ? (
+                    <button
+                      onClick={handleReactivate}
+                      className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium border bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      Reativar Lead
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowLostModal(true)}
+                      className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium border bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Marcar Perdido
+                    </button>
+                  )}
+                </div>
+
+                {/* Loss reason display */}
+                {lead.status === "perdido" && lead.lossReason && (
+                  <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 border border-red-100 dark:border-red-800/50">
+                    <p className="text-[10px] text-red-500 dark:text-red-400 font-medium mb-1">Motivo da perda</p>
+                    <p className="text-xs text-gray-700 dark:text-gray-300">{lead.lossReason}</p>
+                  </div>
+                )}
+
+                {/* Delete */}
+                {confirmDelete ? (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800/50">
+                    <p className="text-xs text-red-600 dark:text-red-400 flex-1">Excluir permanentemente?</p>
+                    <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">Não</button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg disabled:opacity-50 transition-colors"
+                    >
+                      {deleting ? "..." : "Excluir"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl border border-dashed border-red-200 dark:border-red-800/50 transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Excluir Lead
+                  </button>
+                )}
               </div>
             )}
 
@@ -350,6 +468,14 @@ export function PatientModal({
           lead={lead}
           onClose={() => setShowEdit(false)}
           onSave={handleSaveLead}
+        />
+      )}
+
+      {showLostModal && (
+        <MarkAsLostModal
+          leadName={lead.name}
+          onConfirm={handleMarkLost}
+          onCancel={() => setShowLostModal(false)}
         />
       )}
     </>

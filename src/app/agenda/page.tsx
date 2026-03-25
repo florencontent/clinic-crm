@@ -247,6 +247,10 @@ export default function AgendaPage() {
           appointment={selectedAppointment}
           onClose={() => setSelectedAppointment(null)}
           onSave={handleSave}
+          onDelete={(id) => {
+            setAppointments((prev) => prev.filter((a) => a.id !== id));
+            setSelectedAppointment(null);
+          }}
         />
       )}
 

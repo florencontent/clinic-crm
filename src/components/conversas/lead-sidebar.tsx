@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle } from "lucide-react";
 import { Lead, Appointment, statusLabels, statusColors, TagType } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toggleAgentPause } from "@/lib/api";
 
 interface LeadSidebarProps {
   lead: Lead | null;
   appointments: Appointment[];
   onClose?: () => void;
+  onLeadUpdate?: (lead: Lead) => void;
 }
 
 const tagTypeColors: Record<TagType, string> = {
@@ -19,8 +21,24 @@ const tagTypeColors: Record<TagType, string> = {
   observacao: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
 };
 
-export function LeadSidebar({ lead, appointments }: LeadSidebarProps) {
+export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarProps) {
   const [open, setOpen] = useState(true);
+  const [pauseLoading, setPauseLoading] = useState(false);
+  const [localPaused, setLocalPaused] = useState<boolean | undefined>(undefined);
+
+  const isPaused = localPaused !== undefined ? localPaused : lead?.agentPaused ?? false;
+
+  const handlePauseToggle = async () => {
+    if (!lead) return;
+    setPauseLoading(true);
+    const newPaused = !isPaused;
+    const ok = await toggleAgentPause(lead.id, newPaused);
+    setPauseLoading(false);
+    if (ok) {
+      setLocalPaused(newPaused);
+      onLeadUpdate?.({ ...lead, agentPaused: newPaused });
+    }
+  };
 
   const leadAppointments = lead
     ? appointments.filter((a) => a.patientId === lead.id)
@@ -41,7 +59,7 @@ export function LeadSidebar({ lead, appointments }: LeadSidebarProps) {
       <button
         onClick={() => setOpen((v) => !v)}
         className="absolute top-3 left-0 -translate-x-1/2 z-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-1 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        style={{ left: open ? "0" : "50%" }}
+        style={{ left: "20px" }}
       >
         {open ? (
           <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
@@ -133,14 +151,30 @@ export function LeadSidebar({ lead, appointments }: LeadSidebarProps) {
                 </>
               )}
 
-              {/* Quick action */}
+              {/* Actions */}
               <hr className="border-gray-100 dark:border-gray-700" />
-              <button
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                title="Ver no Kanban (em breve)"
-              >
-                Ver no Kanban
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={handlePauseToggle}
+                  disabled={pauseLoading}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium rounded-lg border transition-colors disabled:opacity-50",
+                    isPaused
+                      ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800/50 hover:bg-green-100"
+                      : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50 hover:bg-amber-100"
+                  )}
+                >
+                  {isPaused
+                    ? <><PlayCircle className="h-3.5 w-3.5" />Retomar Agente</>
+                    : <><PauseCircle className="h-3.5 w-3.5" />Pausar Agente</>
+                  }
+                </button>
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Ver no Kanban
+                </button>
+              </div>
             </div>
           )}
         </div>
