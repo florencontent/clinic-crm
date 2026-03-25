@@ -449,9 +449,16 @@ export function PatientModal({
                             <span className="text-xs text-gray-500 dark:text-gray-400">{apt.time} · {apt.duration} min</span>
                           </div>
                         </div>
-                        <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-lg font-medium">
-                          Agendado
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-lg font-medium">
+                            Agendado
+                          </span>
+                          {lead.status === "agendado" && lead.reminderStatus && (
+                            <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
+                              {reminderLabels[lead.reminderStatus]}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {apt.procedure && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{apt.procedure}</p>
