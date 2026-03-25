@@ -256,6 +256,14 @@ export function PatientModal({
                   </div>
                 )}
 
+                {/* Observação */}
+                {lead.notes && (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-100 dark:border-amber-800/50">
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium mb-1">Observação</p>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{lead.notes}</p>
+                  </div>
+                )}
+
                 {/* Última mensagem */}
                 {lastMessage && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800/50">

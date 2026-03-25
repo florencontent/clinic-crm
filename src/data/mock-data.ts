@@ -32,6 +32,7 @@ export interface Lead {
   status: LeadStatus;
   date: string;
   tags?: Tag[];
+  notes?: string;
   avatar?: string;
   reminderStatus?: ReminderStatus;
   agentPaused?: boolean;

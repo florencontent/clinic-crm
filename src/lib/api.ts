@@ -82,6 +82,7 @@ export async function fetchPatients(): Promise<Lead[]> {
     status: statusToKanban[(p.status as DbPatientStatus) || "novo"],
     date: p.created_at ? p.created_at.split("T")[0] : "",
     tags: Array.isArray(p.tags) ? (p.tags as Tag[]) : undefined,
+    notes: p.notes || undefined,
     reminderStatus: p.reminder_status as ReminderStatus | undefined,
     agentPaused: p.agent_paused ?? false,
     lossReason: p.loss_reason ?? undefined,
@@ -316,6 +317,7 @@ export async function updatePatient(
     status: statusToKanban[(result.status as DbPatientStatus) || "novo"],
     date: result.created_at?.split("T")[0] || "",
     tags: Array.isArray(result.tags) ? (result.tags as Tag[]) : undefined,
+    notes: result.notes || undefined,
   };
 }
 

@@ -13,12 +13,6 @@ interface EditLeadModalProps {
   onSave: (lead: Lead) => void;
 }
 
-const tagTypeLabels: Record<TagType, string> = {
-  especialidade: "Especialidade",
-  doutor: "Doutor",
-  observacao: "Observação",
-};
-
 const tagTypeColors: Record<TagType, string> = {
   especialidade: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
   doutor: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
@@ -33,13 +27,13 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   const [status, setStatus] = useState<LeadStatus>(lead.status);
   const [source, setSource] = useState<LeadSource>(lead.source);
   const [tags, setTags] = useState<Tag[]>(lead.tags || []);
+  const [notes, setNotes] = useState(lead.notes || "");
   const [saving, setSaving] = useState(false);
 
   // For adding new tags
   const [newEspecialidade, setNewEspecialidade] = useState("");
   const [customEspecialidade, setCustomEspecialidade] = useState("");
   const [newDoutor, setNewDoutor] = useState("");
-  const [newObs, setNewObs] = useState("");
 
   const addTag = (type: TagType, value: string) => {
     const trimmed = value.trim();
@@ -64,11 +58,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
     setNewDoutor("");
   };
 
-  const handleAddObs = () => {
-    addTag("observacao", newObs);
-    setNewObs("");
-  };
-
   const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
@@ -79,13 +68,14 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
       source,
       status,
       tags,
+      notes: notes.trim() || undefined,
     });
     setSaving(false);
     if (updated) {
       onSave(updated);
     } else {
       // Fallback: optimistic update
-      onSave({ ...lead, name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, source, status, tags });
+      onSave({ ...lead, name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, source, status, tags, notes: notes.trim() || undefined });
     }
   };
 
@@ -249,33 +239,13 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
               {/* Observação */}
               <div>
                 <p className="text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Observação</p>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {tags.filter((t) => t.type === "observacao").map((t) => (
-                    <span key={t.value} className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium", tagTypeColors.observacao)}>
-                      {t.value}
-                      <button onClick={() => removeTag("observacao", t.value)} className="hover:opacity-70">
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-1.5">
-                  <input
-                    type="text"
-                    value={newObs}
-                    onChange={(e) => setNewObs(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddObs(); } }}
-                    placeholder="Adicionar observação..."
-                    className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none placeholder-gray-400"
-                  />
-                  <button
-                    onClick={handleAddObs}
-                    disabled={!newObs.trim()}
-                    className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 disabled:opacity-40 transition-colors"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Anote informações relevantes sobre o lead: histórico, preferências, restrições..."
+                  rows={4}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors placeholder-gray-400 resize-none"
+                />
               </div>
             </div>
           </div>
