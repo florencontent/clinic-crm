@@ -69,6 +69,7 @@ export interface Appointment {
   doctor: string;
   notes: string;
   status?: string;
+  reminderStatus?: ReminderStatus;
 }
 
 export const statusLabels: Record<LeadStatus, string> = {

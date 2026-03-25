@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Check, Trash2, AlertTriangle } from "lucide-react";
-import { Appointment } from "@/data/mock-data";
+import { Appointment, reminderLabels, reminderColors } from "@/data/mock-data";
 import { deleteAppointmentWithCalendar } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface AppointmentModalProps {
   appointment: Appointment;
@@ -110,6 +111,21 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
               <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">{formatDate(appointment.date)}</p>
             </div>
           </div>
+
+          {/* Status Lembrete */}
+          {appointment.reminderStatus && (
+            <div className="flex items-center gap-3">
+              <div className="bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 p-2 rounded-lg flex-shrink-0">
+                <CalendarDays className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Status do Lembrete</p>
+                <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-0.5", reminderColors[appointment.reminderStatus])}>
+                  {reminderLabels[appointment.reminderStatus]}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Horário */}
           <div className="flex items-center gap-3">
