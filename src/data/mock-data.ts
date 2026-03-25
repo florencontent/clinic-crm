@@ -3,7 +3,7 @@ export type LeadSource = "Site" | "Meta Ads" | "Orgânico" | "Indicação";
 export type ReminderStatus = "aguardando" | "d2" | "d1" | "dia";
 
 export const reminderLabels: Record<ReminderStatus, string> = {
-  aguardando: "Aguardando lembrete",
+  aguardando: "Aguardando Lembrete",
   d2: "Lembrete D-2",
   d1: "Lembrete D-1",
   dia: "Lembrete do dia",
