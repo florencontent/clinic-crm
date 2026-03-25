@@ -574,7 +574,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
       end_time,
       notes,
       status,
-      patients ( name, reminder_status, procedure_interest ),
+      patients ( name, reminder_status, procedure_interest, notes ),
       procedures ( name ),
       doctors ( name )
     `)
@@ -588,7 +588,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
 
   return (data || []).map((apt) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const patient = apt.patients as any as { name: string | null; reminder_status: string | null; procedure_interest: string | null } | null;
+    const patient = apt.patients as any as { name: string | null; reminder_status: string | null; procedure_interest: string | null; notes: string | null } | null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const procedure = apt.procedures as any as { name: string | null } | null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -614,6 +614,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
       notes: apt.notes || "",
       status: apt.status || undefined,
       reminderStatus: (patient?.reminder_status as ReminderStatus) || undefined,
+      patientNotes: patient?.notes || undefined,
     };
   });
 }

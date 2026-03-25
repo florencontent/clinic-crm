@@ -120,6 +120,17 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
                 )}
               </div>
 
+              {/* Observação */}
+              {lead.notes && (
+                <>
+                  <hr className="border-gray-100 dark:border-gray-700" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Observação</p>
+                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{lead.notes}</p>
+                  </div>
+                </>
+              )}
+
               {/* Tags */}
               {lead.tags && lead.tags.length > 0 && (
                 <>

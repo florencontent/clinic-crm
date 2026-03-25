@@ -168,6 +168,19 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
             </div>
           </div>
 
+          {/* Observação do lead */}
+          {appointment.patientNotes && (
+            <div className="flex items-start gap-3">
+              <div className="bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-lg flex-shrink-0 mt-1">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Observação</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5 whitespace-pre-wrap">{appointment.patientNotes}</p>
+              </div>
+            </div>
+          )}
+
           {/* Notas - editável */}
           <div className="flex items-start gap-3">
             <div className="bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 p-2 rounded-lg flex-shrink-0 mt-1">
