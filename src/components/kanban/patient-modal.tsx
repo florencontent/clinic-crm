@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { X, Phone, CalendarDays, MessageCircle, User, Clock, Mail, Edit2, Send, Trash2, PauseCircle, PlayCircle, RotateCcw, AlertTriangle } from "lucide-react";
-import { Lead, Conversation, Appointment, statusLabels, statusColors, TagType } from "@/data/mock-data";
+import { Lead, Conversation, Appointment, statusLabels, statusColors, reminderLabels, reminderColors, TagType } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -151,10 +151,15 @@ export function PatientModal({
               </div>
               <div>
                 <h3 className="text-base font-bold">{lead.name}</h3>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
                   <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[lead.status])}>
                     {statusLabels[lead.status]}
                   </span>
+                  {lead.status === "agendado" && lead.reminderStatus && (
+                    <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
+                      {reminderLabels[lead.reminderStatus]}
+                    </span>
+                  )}
                   <span className="text-gray-400 text-xs">{lead.source}</span>
                 </div>
               </div>

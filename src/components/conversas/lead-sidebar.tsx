@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle } from "lucide-react";
-import { Lead, Appointment, statusLabels, statusColors, TagType } from "@/data/mock-data";
+import { Lead, Appointment, statusLabels, statusColors, reminderLabels, reminderColors, TagType } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -82,9 +82,16 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
                   {lead.name.split(" ").map((n) => n[0]).slice(0, 2).join("")}
                 </div>
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{lead.name}</h3>
-                <span className={cn("mt-1.5 text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[lead.status])}>
-                  {statusLabels[lead.status]}
-                </span>
+                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap justify-center">
+                  <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[lead.status])}>
+                    {statusLabels[lead.status]}
+                  </span>
+                  {lead.status === "agendado" && lead.reminderStatus && (
+                    <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
+                      {reminderLabels[lead.reminderStatus]}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <hr className="border-gray-100 dark:border-gray-700" />
