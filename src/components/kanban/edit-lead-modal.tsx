@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTagOptions } from "@/hooks/use-tag-options";
 import { X, Plus } from "lucide-react";
-import { Lead, LeadStatus, LeadSource, Tag, TagType, statusLabels } from "@/data/mock-data";
+import { Lead, LeadSource, Tag, TagType } from "@/data/mock-data";
 import { updatePatient } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   const [name, setName] = useState(lead.name);
   const [phone, setPhone] = useState(lead.phone);
   const [email, setEmail] = useState(lead.email || "");
-  const [status, setStatus] = useState<LeadStatus>(lead.status);
   const [source, setSource] = useState<LeadSource>(lead.source);
   const [tags, setTags] = useState<Tag[]>(lead.tags || []);
   const [notes, setNotes] = useState(lead.notes || "");
@@ -57,7 +56,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
       phone: phone.trim(),
       email: email.trim() || undefined,
       source,
-      status,
       tags,
       notes: notes.trim() || undefined,
     });
@@ -66,7 +64,7 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
       onSave(updated);
     } else {
       // Fallback: optimistic update
-      onSave({ ...lead, name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, source, status, tags, notes: notes.trim() || undefined });
+      onSave({ ...lead, name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, source, tags, notes: notes.trim() || undefined });
     }
   };
 
@@ -120,19 +118,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
             />
           </div>
 
-          {/* Status */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as LeadStatus)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
-            >
-              {(["em_contato", "agendado", "compareceu", "fechado", "perdido"] as LeadStatus[]).map((s) => (
-                <option key={s} value={s}>{statusLabels[s]}</option>
-              ))}
-            </select>
-          </div>
 
           {/* Origem */}
           <div>
@@ -150,7 +135,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
 
           {/* Tags */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Tags</label>
             <div className="space-y-3">
 
               {/* Doutor */}
