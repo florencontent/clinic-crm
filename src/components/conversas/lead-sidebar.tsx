@@ -6,7 +6,7 @@ import { Lead, Appointment, statusLabels, statusColors, reminderLabels, reminder
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toggleAgentPause } from "@/lib/api";
+import { toggleAgentPause, updatePatient } from "@/lib/api";
 
 interface LeadSidebarProps {
   lead: Lead | null;
@@ -25,8 +25,19 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
   const [open, setOpen] = useState(true);
   const [pauseLoading, setPauseLoading] = useState(false);
   const [localPaused, setLocalPaused] = useState<boolean | undefined>(undefined);
+  const [localNotes, setLocalNotes] = useState<string | undefined>(undefined);
+  const [notesSaving, setNotesSaving] = useState(false);
 
   const isPaused = localPaused !== undefined ? localPaused : lead?.agentPaused ?? false;
+  const notesValue = localNotes !== undefined ? localNotes : (lead?.notes ?? "");
+
+  const handleNotesSave = async () => {
+    if (!lead || localNotes === undefined) return;
+    setNotesSaving(true);
+    await updatePatient(lead.id, { notes: localNotes });
+    setNotesSaving(false);
+    onLeadUpdate?.({ ...lead, notes: localNotes });
+  };
 
   const handlePauseToggle = async () => {
     if (!lead) return;
@@ -121,15 +132,21 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
               </div>
 
               {/* Observação */}
-              {lead.notes && (
-                <>
-                  <hr className="border-gray-100 dark:border-gray-700" />
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Observação</p>
-                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{lead.notes}</p>
-                  </div>
-                </>
-              )}
+              <>
+                <hr className="border-gray-100 dark:border-gray-700" />
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Observação</p>
+                  <textarea
+                    value={notesValue}
+                    onChange={(e) => setLocalNotes(e.target.value)}
+                    onBlur={handleNotesSave}
+                    placeholder="Anote informações sobre o lead..."
+                    rows={3}
+                    className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none focus:border-blue-400 transition-colors placeholder-gray-400 resize-none"
+                  />
+                  {notesSaving && <p className="text-[10px] text-gray-400 mt-1">Salvando...</p>}
+                </div>
+              </>
 
               {/* Tags */}
               {lead.tags && lead.tags.length > 0 && (

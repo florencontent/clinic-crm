@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Check, Trash2, AlertTriangle } from "lucide-react";
 import { Appointment, reminderLabels, reminderColors } from "@/data/mock-data";
-import { deleteAppointmentWithCalendar } from "@/lib/api";
+import { deleteAppointmentWithCalendar, updatePatient } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface AppointmentModalProps {
@@ -33,19 +33,18 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
   const procedure = appointment.procedure;
   const [doctor, setDoctor] = useState(appointment.doctor);
   const [notes, setNotes] = useState(appointment.notes);
+  const [patientNotes, setPatientNotes] = useState(appointment.patientNotes ?? "");
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const endTime = formatEndTime(appointment.time, appointment.duration);
 
-  const handleSave = () => {
-    onSave({
-      ...appointment,
-      procedure,
-      doctor,
-      notes,
-    });
+  const handleSave = async () => {
+    onSave({ ...appointment, procedure, doctor, notes });
+    if (appointment.patientId && patientNotes !== (appointment.patientNotes ?? "")) {
+      await updatePatient(appointment.patientId, { notes: patientNotes });
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -168,18 +167,22 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
             </div>
           </div>
 
-          {/* Observação do lead */}
-          {appointment.patientNotes && (
-            <div className="flex items-start gap-3">
-              <div className="bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-lg flex-shrink-0 mt-1">
-                <FileText className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Observação</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5 whitespace-pre-wrap">{appointment.patientNotes}</p>
-              </div>
+          {/* Observação do lead - editável */}
+          <div className="flex items-start gap-3">
+            <div className="bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 p-2 rounded-lg flex-shrink-0 mt-1">
+              <FileText className="h-4 w-4" />
             </div>
-          )}
+            <div className="flex-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Observação</p>
+              <textarea
+                value={patientNotes}
+                onChange={(e) => setPatientNotes(e.target.value)}
+                placeholder="Anote informações sobre o paciente..."
+                rows={3}
+                className={inputClass + " resize-none"}
+              />
+            </div>
+          </div>
 
           {/* Notas - editável */}
           <div className="flex items-start gap-3">
