@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useTagOptions } from "@/hooks/use-tag-options";
 import { X, Plus } from "lucide-react";
 import { Lead, LeadStatus, LeadSource, Tag, TagType, statusLabels } from "@/data/mock-data";
 import { updatePatient } from "@/lib/api";
@@ -20,7 +19,7 @@ const tagTypeColors: Record<TagType, string> = {
 };
 
 export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
-  const { especialidades: ESPECIALIDADES, doutores: DOUTORES } = useTagOptions();
+  const { doutores: DOUTORES } = useTagOptions();
   const [name, setName] = useState(lead.name);
   const [phone, setPhone] = useState(lead.phone);
   const [email, setEmail] = useState(lead.email || "");
@@ -31,8 +30,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   const [saving, setSaving] = useState(false);
 
   // For adding new tags
-  const [newEspecialidade, setNewEspecialidade] = useState("");
-  const [customEspecialidade, setCustomEspecialidade] = useState("");
   const [newDoutor, setNewDoutor] = useState("");
 
   const addTag = (type: TagType, value: string) => {
@@ -44,13 +41,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
 
   const removeTag = (type: TagType, value: string) => {
     setTags((prev) => prev.filter((t) => !(t.type === type && t.value === value)));
-  };
-
-  const handleAddEspecialidade = () => {
-    const val = newEspecialidade === "__custom__" ? customEspecialidade : newEspecialidade;
-    addTag("especialidade", val);
-    setNewEspecialidade("");
-    setCustomEspecialidade("");
   };
 
   const handleAddDoutor = () => {
@@ -161,48 +151,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
           <div>
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Tags</label>
             <div className="space-y-3">
-
-              {/* Especialidade */}
-              <div>
-                <p className="text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Especialidade</p>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {tags.filter((t) => t.type === "especialidade").map((t) => (
-                    <span key={t.value} className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium", tagTypeColors.especialidade)}>
-                      {t.value}
-                      <button onClick={() => removeTag("especialidade", t.value)} className="hover:opacity-70">
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-1.5">
-                  <select
-                    value={newEspecialidade}
-                    onChange={(e) => setNewEspecialidade(e.target.value)}
-                    className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none"
-                  >
-                    <option value="">Selecionar...</option>
-                    {ESPECIALIDADES.map((e) => <option key={e} value={e}>{e}</option>)}
-                    <option value="__custom__">Outro...</option>
-                  </select>
-                  {newEspecialidade === "__custom__" && (
-                    <input
-                      type="text"
-                      value={customEspecialidade}
-                      onChange={(e) => setCustomEspecialidade(e.target.value)}
-                      placeholder="Digite..."
-                      className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none"
-                    />
-                  )}
-                  <button
-                    onClick={handleAddEspecialidade}
-                    disabled={!newEspecialidade || (newEspecialidade === "__custom__" && !customEspecialidade.trim())}
-                    className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 disabled:opacity-40 transition-colors"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
 
               {/* Doutor */}
               <div>
