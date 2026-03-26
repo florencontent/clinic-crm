@@ -10,7 +10,7 @@ import { useConversations, usePatients, useAppointments } from "@/hooks/use-supa
 export default function ConversasPage() {
   const { conversations, loading, setConversations } = useConversations();
   const { patients } = usePatients();
-  const { appointments } = useAppointments();
+  const { appointments, setAppointments } = useAppointments();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selectedConversation = conversations.find((c) => c.leadId === selectedId) || null;
@@ -69,6 +69,9 @@ export default function ConversasPage() {
       <LeadSidebar
         lead={selectedLead}
         appointments={appointments}
+        onAppointmentUpdate={(updated) =>
+          setAppointments((prev) => prev.map((a) => a.id === updated.id ? updated : a))
+        }
       />
     </div>
   );

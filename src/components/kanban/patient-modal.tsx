@@ -2,14 +2,15 @@
 
 import { useState, useRef, useEffect } from "react";
 import { X, Phone, CalendarDays, MessageCircle, User, Clock, Mail, Edit2, Send, Trash2, PauseCircle, PlayCircle, RotateCcw, AlertTriangle } from "lucide-react";
-import { Lead, Conversation, Appointment, statusLabels, statusColors, reminderLabels, reminderColors, TagType } from "@/data/mock-data";
+import { Lead, Conversation, Appointment, statusLabels, statusColors, reminderLabels, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTheme } from "@/lib/theme-context";
 import { EditLeadModal } from "./edit-lead-modal";
 import { MarkAsLostModal } from "./mark-as-lost-modal";
-import { deletePatient, toggleAgentPause, markAsLost, reactivateLead } from "@/lib/api";
+import { deletePatient, toggleAgentPause, markAsLost, reactivateLead, updateAppointmentDoctor } from "@/lib/api";
+import { useDoctors } from "@/hooks/use-doctors";
 
 interface PatientModalProps {
   lead: Lead;
@@ -25,11 +26,6 @@ interface PatientModalProps {
 
 type Tab = "resumo" | "conversa" | "agenda";
 
-const tagTypeColors: Record<TagType, string> = {
-  especialidade: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
-  doutor: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
-  observacao: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
-};
 
 export function PatientModal({
   lead: initialLead,
@@ -44,6 +40,8 @@ export function PatientModal({
 }: PatientModalProps) {
   const [tab, setTab] = useState<Tab>("resumo");
   const [lead, setLead] = useState(initialLead);
+  const [localDoctor, setLocalDoctor] = useState<string | undefined>(undefined);
+  const { doctorNames: DOUTORES } = useDoctors();
   const [showEdit, setShowEdit] = useState(false);
   const [showLostModal, setShowLostModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -134,6 +132,18 @@ export function PatientModal({
       setLead(updated);
       onLeadUpdate?.(updated);
     }
+  };
+
+  const nextLeadAppointment = leadAppointments.find(
+    (a) => new Date(a.date + "T00:00:00") >= new Date()
+  ) || leadAppointments[0];
+
+  const doctorValue = localDoctor !== undefined ? localDoctor : (nextLeadAppointment?.doctor || "");
+
+  const handleDoctorChange = async (value: string) => {
+    if (!nextLeadAppointment) return;
+    setLocalDoctor(value);
+    await updateAppointmentDoctor(nextLeadAppointment.id, value);
   };
 
   return (
@@ -239,22 +249,6 @@ export function PatientModal({
                   </div>
                 </div>
 
-                {/* Tags */}
-                {lead.tags && lead.tags.length > 0 && (
-                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
-                    <p className="text-[10px] text-gray-400 mb-2">Tags</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {lead.tags.map((tag, i) => (
-                        <span
-                          key={i}
-                          className={cn("text-xs px-2 py-0.5 rounded-full font-medium", tagTypeColors[tag.type])}
-                        >
-                          {tag.value}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Observação */}
                 {lead.notes && (
@@ -285,6 +279,19 @@ export function PatientModal({
                     )}
                   </div>
                 )}
+
+                {/* Doutor */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+                  <p className="text-[10px] text-gray-400 mb-2">Doutor(a)</p>
+                  <select
+                    value={doctorValue}
+                    onChange={(e) => handleDoctorChange(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 outline-none focus:border-blue-400 transition-colors"
+                  >
+                    <option value="">Selecionar...</option>
+                    {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
 
                 {/* CTA */}
                 <button

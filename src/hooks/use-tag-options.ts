@@ -11,7 +11,7 @@ const STORAGE_KEYS: Record<TagType, string> = {
 
 const DEFAULTS: Record<TagType, string[]> = {
   especialidade: ["Implante", "Clareamento", "Lente de Contato", "Botox", "Harmonização", "Preenchimento"],
-  doutor: ["Dr. Alfredo"],
+  doutor: ["Dr. Alfredo Marques"],
   observacao: ["Alta prioridade", "Retorno", "Indicação VIP"],
 };
 

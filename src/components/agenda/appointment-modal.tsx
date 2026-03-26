@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Check, Trash2, AlertTriangle } from "lucide-react";
 import { Appointment, reminderLabels, reminderColors } from "@/data/mock-data";
-import { deleteAppointmentWithCalendar, updatePatient } from "@/lib/api";
+import { deleteAppointmentWithCalendar, updatePatient, updateAppointmentDoctor } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useDoctors } from "@/hooks/use-doctors";
 
 interface AppointmentModalProps {
   appointment: Appointment;
@@ -30,6 +31,7 @@ const inputClass =
   "w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-500";
 
 export function AppointmentModal({ appointment, onClose, onSave, onDelete }: AppointmentModalProps) {
+  const { doctorNames: DOUTORES } = useDoctors();
   const procedure = appointment.procedure;
   const [doctor, setDoctor] = useState(appointment.doctor);
   const [patientNotes, setPatientNotes] = useState(appointment.patientNotes ?? "");
@@ -41,9 +43,12 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
 
   const handleSave = async () => {
     onSave({ ...appointment, procedure, doctor });
-    if (appointment.patientId && patientNotes !== (appointment.patientNotes ?? "")) {
-      await updatePatient(appointment.patientId, { notes: patientNotes });
-    }
+    await Promise.all([
+      updateAppointmentDoctor(appointment.id, doctor),
+      appointment.patientId && patientNotes !== (appointment.patientNotes ?? "")
+        ? updatePatient(appointment.patientId, { notes: patientNotes })
+        : Promise.resolve(null),
+    ]);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -156,13 +161,14 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
             </div>
             <div className="flex-1">
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Doutor(a) Responsável</p>
-              <input
-                type="text"
+              <select
                 value={doctor}
                 onChange={(e) => setDoctor(e.target.value)}
-                placeholder="Ex: Dra. Renata, Dr. Marcos..."
                 className={inputClass}
-              />
+              >
+                <option value="">Selecionar...</option>
+                {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
           </div>
 

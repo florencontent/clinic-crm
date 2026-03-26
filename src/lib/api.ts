@@ -417,7 +417,30 @@ async function upsertProcedure(name: string): Promise<string | null> {
   return created?.id || null;
 }
 
-async function upsertDoctor(name: string): Promise<string | null> {
+export async function fetchDoctors(): Promise<Array<{ id: string; name: string }>> {
+  try {
+    const res = await fetch("/api/doctors");
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function deleteDoctorById(id: string): Promise<boolean> {
+  try {
+    const res = await fetch("/api/doctors", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function upsertDoctor(name: string): Promise<string | null> {
   if (!name.trim()) return null;
   const { data: existing } = await supabase
     .from("doctors")
@@ -758,6 +781,19 @@ export async function deletePatient(patientId: string): Promise<boolean> {
   await supabase.from("appointments").delete().eq("patient_id", patientId);
   await supabase.from("lead_status_history").delete().eq("patient_id", patientId);
   const { error } = await supabase.from("patients").delete().eq("id", patientId);
+  return !error;
+}
+
+// ── Update Appointment Doctor ──
+
+export async function updateAppointmentDoctor(appointmentId: string, doctorName: string): Promise<boolean> {
+  const doctorId = doctorName ? await upsertDoctor(doctorName) : null;
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  payload.doctor_id = doctorId;
+  const { error } = await supabase
+    .from("appointments")
+    .update(payload)
+    .eq("id", appointmentId);
   return !error;
 }
 

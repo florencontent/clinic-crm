@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTagOptions } from "@/hooks/use-tag-options";
+import { useDoctors } from "@/hooks/use-doctors";
 import { X, Plus } from "lucide-react";
 import { Lead, LeadSource, Tag, TagType } from "@/data/mock-data";
 import { updatePatient } from "@/lib/api";
@@ -20,7 +20,7 @@ const tagTypeColors: Record<TagType, string> = {
 };
 
 export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
-  const { doutores: DOUTORES } = useTagOptions();
+  const { doctorNames: DOUTORES } = useDoctors();
   const [name, setName] = useState(lead.name);
   const [phone, setPhone] = useState(lead.phone);
   const [email, setEmail] = useState(lead.email || "");

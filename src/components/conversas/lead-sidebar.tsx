@@ -1,35 +1,42 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle, Stethoscope, UserCog } from "lucide-react";
-import { Lead, Appointment, statusLabels, statusColors, reminderLabels, reminderColors, TagType } from "@/data/mock-data";
+import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle, Stethoscope } from "lucide-react";
+import { Lead, Appointment, statusLabels, statusColors, reminderLabels, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toggleAgentPause, updatePatient } from "@/lib/api";
+import { toggleAgentPause, updatePatient, updateAppointmentDoctor } from "@/lib/api";
+import { useDoctors } from "@/hooks/use-doctors";
 
 interface LeadSidebarProps {
   lead: Lead | null;
   appointments: Appointment[];
   onClose?: () => void;
   onLeadUpdate?: (lead: Lead) => void;
+  onAppointmentUpdate?: (appointment: Appointment) => void;
 }
 
-const tagTypeColors: Record<TagType, string> = {
-  especialidade: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
-  doutor: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
-  observacao: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
-};
-
-export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarProps) {
+export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpdate }: LeadSidebarProps) {
   const [open, setOpen] = useState(true);
   const [pauseLoading, setPauseLoading] = useState(false);
   const [localPaused, setLocalPaused] = useState<boolean | undefined>(undefined);
   const [localNotes, setLocalNotes] = useState<string | undefined>(undefined);
   const [notesSaving, setNotesSaving] = useState(false);
+  const { doctorNames: DOUTORES } = useDoctors();
 
   const isPaused = localPaused !== undefined ? localPaused : lead?.agentPaused ?? false;
   const notesValue = localNotes !== undefined ? localNotes : (lead?.notes ?? "");
+
+  const leadAppointments = lead
+    ? appointments.filter((a) => a.patientId === lead.id)
+    : [];
+
+  const nextAppointment = leadAppointments.find(
+    (a) => new Date(a.date + "T00:00:00") >= new Date()
+  );
+
+  const doctorValue = nextAppointment?.doctor || "";
 
   const handleNotesSave = async () => {
     if (!lead || localNotes === undefined) return;
@@ -51,13 +58,13 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
     }
   };
 
-  const leadAppointments = lead
-    ? appointments.filter((a) => a.patientId === lead.id)
-    : [];
-
-  const nextAppointment = leadAppointments.find(
-    (a) => new Date(a.date + "T00:00:00") >= new Date()
-  );
+  const handleDoctorChange = async (value: string) => {
+    if (!nextAppointment) return;
+    // Atualiza imediatamente no estado local via callback
+    onAppointmentUpdate?.({ ...nextAppointment, doctor: value });
+    // Persiste no banco (tabela appointments)
+    await updateAppointmentDoctor(nextAppointment.id, value);
+  };
 
   return (
     <div
@@ -137,14 +144,6 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
                     <span className="text-xs text-gray-700 dark:text-gray-300">{lead.procedure}</span>
                   </div>
                 )}
-                {(nextAppointment?.doctor || lead.tags?.find((t) => t.type === "doutor")?.value) && (
-                  <div className="flex items-center gap-2.5">
-                    <UserCog className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="text-xs text-gray-700 dark:text-gray-300">
-                      {nextAppointment?.doctor || lead.tags?.find((t) => t.type === "doutor")?.value}
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Observação */}
@@ -164,26 +163,6 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
                 </div>
               </>
 
-              {/* Tags */}
-              {lead.tags && lead.tags.length > 0 && (
-                <>
-                  <hr className="border-gray-100 dark:border-gray-700" />
-                  <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Tags</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {lead.tags.map((tag, i) => (
-                        <span
-                          key={i}
-                          className={cn("text-xs px-2 py-0.5 rounded-full font-medium", tagTypeColors[tag.type])}
-                        >
-                          {tag.value}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
               {/* Next appointment */}
               {nextAppointment && (
                 <>
@@ -200,13 +179,26 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
                       {nextAppointment.procedure && (
                         <p className="text-[10px] text-gray-500 dark:text-gray-400">{nextAppointment.procedure}</p>
                       )}
-                      {nextAppointment.doctor && (
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500">{nextAppointment.doctor}</p>
-                      )}
                     </div>
                   </div>
                 </>
               )}
+
+              {/* Doutor */}
+              <>
+                <hr className="border-gray-100 dark:border-gray-700" />
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Doutor(a)</p>
+                  <select
+                    value={doctorValue}
+                    onChange={(e) => handleDoctorChange(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none focus:border-blue-400 transition-colors"
+                  >
+                    <option value="">Selecionar...</option>
+                    {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </>
 
               {/* Actions */}
               <hr className="border-gray-100 dark:border-gray-700" />
