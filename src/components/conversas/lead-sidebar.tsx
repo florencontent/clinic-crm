@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle, Stethoscope } from "lucide-react";
+import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle, Stethoscope, UserCog } from "lucide-react";
 import { Lead, Appointment, statusLabels, statusColors, reminderLabels, reminderColors, TagType } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -109,6 +109,14 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
 
               {/* Info */}
               <div className="space-y-2.5">
+                {lead.date && (
+                  <div className="flex items-center gap-2.5">
+                    <CalendarDays className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-xs text-gray-700 dark:text-gray-300">
+                      Lead desde {format(new Date(lead.date + "T12:00:00"), "dd/MM/yyyy")}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2.5">
                   <Phone className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                   <span className="text-xs text-gray-700 dark:text-gray-300">{lead.phone || "—"}</span>
@@ -129,6 +137,12 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
                     <span className="text-xs text-gray-700 dark:text-gray-300">{lead.procedure}</span>
                   </div>
                 )}
+                {lead.tags?.filter((t) => t.type === "doutor").map((t) => (
+                  <div key={t.value} className="flex items-center gap-2.5">
+                    <UserCog className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-xs text-gray-700 dark:text-gray-300">{t.value}</span>
+                  </div>
+                ))}
               </div>
 
               {/* Observação */}
