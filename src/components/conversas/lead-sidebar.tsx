@@ -137,12 +137,14 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
                     <span className="text-xs text-gray-700 dark:text-gray-300">{lead.procedure}</span>
                   </div>
                 )}
-                {lead.tags?.filter((t) => t.type === "doutor").map((t) => (
-                  <div key={t.value} className="flex items-center gap-2.5">
+                {(nextAppointment?.doctor || lead.tags?.find((t) => t.type === "doutor")?.value) && (
+                  <div className="flex items-center gap-2.5">
                     <UserCog className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="text-xs text-gray-700 dark:text-gray-300">{t.value}</span>
+                    <span className="text-xs text-gray-700 dark:text-gray-300">
+                      {nextAppointment?.doctor || lead.tags?.find((t) => t.type === "doutor")?.value}
+                    </span>
                   </div>
-                ))}
+                )}
               </div>
 
               {/* Observação */}
