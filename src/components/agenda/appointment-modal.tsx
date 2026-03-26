@@ -32,7 +32,6 @@ const inputClass =
 export function AppointmentModal({ appointment, onClose, onSave, onDelete }: AppointmentModalProps) {
   const procedure = appointment.procedure;
   const [doctor, setDoctor] = useState(appointment.doctor);
-  const [notes, setNotes] = useState(appointment.notes);
   const [patientNotes, setPatientNotes] = useState(appointment.patientNotes ?? "");
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -41,7 +40,7 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
   const endTime = formatEndTime(appointment.time, appointment.duration);
 
   const handleSave = async () => {
-    onSave({ ...appointment, procedure, doctor, notes });
+    onSave({ ...appointment, procedure, doctor });
     if (appointment.patientId && patientNotes !== (appointment.patientNotes ?? "")) {
       await updatePatient(appointment.patientId, { notes: patientNotes });
     }
@@ -184,22 +183,6 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
             </div>
           </div>
 
-          {/* Notas - editável */}
-          <div className="flex items-start gap-3">
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 p-2 rounded-lg flex-shrink-0 mt-1">
-              <FileText className="h-4 w-4" />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Informações do Paciente</p>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Dores, problemas, limitações, alergias..."
-                rows={3}
-                className={inputClass + " resize-none"}
-              />
-            </div>
-          </div>
         </div>
 
         {/* Footer */}
