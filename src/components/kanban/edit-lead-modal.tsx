@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTagOptions } from "@/hooks/use-tag-options";
 import { X, Plus } from "lucide-react";
 import { Lead, LeadStatus, LeadSource, Tag, TagType, statusLabels } from "@/data/mock-data";
 import { updatePatient } from "@/lib/api";
