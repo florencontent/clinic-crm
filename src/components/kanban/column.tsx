@@ -2,21 +2,24 @@
 
 import { Droppable } from "@hello-pangea/dnd";
 import { KanbanCard } from "./card";
-import { Lead, LeadStatus, statusLabels, columnColors } from "@/data/mock-data";
+import { Lead, LeadStatus, columnColors } from "@/data/mock-data";
+import { useLanguage } from "@/lib/language-context";
 
 interface KanbanColumnProps {
   status: LeadStatus;
   leads: Lead[];
   onOpenChat: (leadId: string) => void;
   onOpenProfile?: (leadId: string) => void;
+  highlightId?: string | null;
 }
 
-export function KanbanColumn({ status, leads, onOpenChat, onOpenProfile }: KanbanColumnProps) {
+export function KanbanColumn({ status, leads, onOpenChat, onOpenProfile, highlightId }: KanbanColumnProps) {
+  const { t } = useLanguage();
   return (
     <div className={`flex-1 min-w-[280px] bg-gray-50 dark:bg-gray-900 rounded-xl border-t-4 ${columnColors[status]}`}>
       <div className="p-4 pb-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">{statusLabels[status]}</h3>
+          <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">{t.status[status]}</h3>
           <span className="bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs font-medium px-2.5 py-1 rounded-full shadow-sm">
             {leads.length}
           </span>
@@ -33,7 +36,7 @@ export function KanbanColumn({ status, leads, onOpenChat, onOpenProfile }: Kanba
             }`}
           >
             {leads.map((lead, index) => (
-              <KanbanCard key={lead.id} lead={lead} index={index} onOpenChat={onOpenChat} onOpenProfile={onOpenProfile} />
+              <KanbanCard key={lead.id} lead={lead} index={index} onOpenChat={onOpenChat} onOpenProfile={onOpenProfile} highlighted={highlightId === lead.id} />
             ))}
             {provided.placeholder}
           </div>

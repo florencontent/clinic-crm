@@ -6,10 +6,11 @@ import { ConversationList } from "@/components/conversas/conversation-list";
 import { ChatWindow } from "@/components/conversas/chat-window";
 import { LeadSidebar } from "@/components/conversas/lead-sidebar";
 import { useConversations, usePatients, useAppointments } from "@/hooks/use-supabase-data";
+import { pinContact } from "@/lib/api";
 
 export default function ConversasPage() {
   const { conversations, loading, setConversations } = useConversations();
-  const { patients } = usePatients();
+  const { patients, setPatients } = usePatients();
   const { appointments, setAppointments } = useAppointments();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -47,6 +48,11 @@ export default function ConversasPage() {
     }).catch(() => {});
   };
 
+  const handlePinContact = async (leadId: string, pinned: boolean) => {
+    setPatients((prev) => prev.map((p) => p.id === leadId ? { ...p, isPinned: pinned } : p));
+    await pinContact(leadId, pinned);
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -59,8 +65,10 @@ export default function ConversasPage() {
     <div className="h-screen flex">
       <ConversationList
         conversations={conversations}
+        patients={patients}
         selectedId={selectedId}
         onSelect={setSelectedId}
+        onPinContact={handlePinContact}
       />
       <ChatWindow
         conversation={selectedConversation}
@@ -69,6 +77,7 @@ export default function ConversasPage() {
       <LeadSidebar
         lead={selectedLead}
         appointments={appointments}
+        onLeadUpdate={(updated) => setPatients((prev) => prev.map((p) => p.id === updated.id ? updated : p))}
         onAppointmentUpdate={(updated) =>
           setAppointments((prev) => prev.map((a) => a.id === updated.id ? updated : a))
         }

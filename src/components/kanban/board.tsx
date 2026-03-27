@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { X, Loader2, Search, UserPlus, Download, Upload } from "lucide-react";
 import { KanbanColumn } from "./column";
@@ -14,23 +15,16 @@ import {
   Lead,
   LeadStatus,
   LeadSource,
-  statusLabels,
 } from "@/data/mock-data";
 import { usePatients, useConversations, useAppointments } from "@/hooks/use-supabase-data";
 import { updatePatientStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language-context";
 
 const columns: LeadStatus[] = ["em_contato", "agendado", "compareceu", "fechado", "perdido"];
 
-const SOURCE_FILTERS: { value: LeadSource | "all"; label: string }[] = [
-  { value: "all", label: "Todas as origens" },
-  { value: "Meta Ads", label: "Meta Ads" },
-  { value: "Site", label: "Site" },
-  { value: "Orgânico", label: "Orgânico" },
-  { value: "Indicação", label: "Indicação" },
-];
 
-function exportLeadsCSV(leads: Lead[]) {
+function exportLeadsCSV(leads: Lead[], statusLabels: Record<string, string>) {
   const header = ["Nome", "Telefone", "Procedimento", "Origem", "Status", "Data"].join(";");
   const rows = leads.map((l) =>
     [l.name, l.phone, l.procedure, l.source, statusLabels[l.status], l.date].join(";")
@@ -46,9 +40,28 @@ function exportLeadsCSV(leads: Lead[]) {
 }
 
 export function KanbanBoard() {
+  const { t } = useLanguage();
   const { patients: leads, loading, setPatients: setLeads, refresh: refreshLeads } = usePatients();
+
+  const SOURCE_FILTERS: { value: LeadSource | "all"; label: string }[] = [
+    { value: "all", label: t.kanban.allSources },
+    { value: "Meta Ads", label: "Meta Ads" },
+    { value: "Site", label: t.source["Site"] },
+    { value: "Orgânico", label: t.source["Orgânico"] },
+    { value: "Indicação", label: t.source["Indicação"] },
+  ];
   const { conversations, setConversations } = useConversations();
   const { appointments } = useAppointments();
+  const searchParams = useSearchParams();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = searchParams.get("highlight");
+    if (!id) return;
+    setHighlightId(id);
+    const t = setTimeout(() => setHighlightId(null), 3000);
+    return () => clearTimeout(t);
+  }, [searchParams]);
 
   const [showNewLead, setShowNewLead] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -163,7 +176,7 @@ export function KanbanBoard() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar lead..."
+            placeholder={t.kanban.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 pr-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:border-blue-400 transition-colors w-52 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
@@ -196,10 +209,10 @@ export function KanbanBoard() {
               className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X className="h-3.5 w-3.5" />
-              Limpar
+              {t.kanban.clear}
             </button>
             <span className="text-xs text-gray-400">
-              {totalFiltered} lead{totalFiltered !== 1 ? "s" : ""}
+              {totalFiltered} {totalFiltered !== 1 ? t.kanban.leads : t.kanban.lead}
             </span>
           </>
         )}
@@ -209,12 +222,12 @@ export function KanbanBoard() {
 
         {/* Export CSV */}
         <button
-          onClick={() => exportLeadsCSV(filteredLeads)}
+          onClick={() => exportLeadsCSV(filteredLeads, t.status)}
           className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
           title="Exportar CSV"
         >
           <Download className="h-3.5 w-3.5" />
-          Exportar
+          {t.kanban.export}
         </button>
 
         {/* Import CSV */}
@@ -223,7 +236,7 @@ export function KanbanBoard() {
           className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
         >
           <Upload className="h-3.5 w-3.5" />
-          Importar CSV
+          {t.kanban.importCSV}
         </button>
 
         {/* Novo Lead */}
@@ -232,7 +245,7 @@ export function KanbanBoard() {
           className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors font-medium shadow-sm shadow-blue-200 dark:shadow-blue-900/50"
         >
           <UserPlus className="h-3.5 w-3.5" />
-          Novo Lead
+          {t.kanban.newLead}
         </button>
       </div>
 
@@ -245,6 +258,7 @@ export function KanbanBoard() {
               leads={getLeadsByStatus(status)}
               onOpenChat={(id) => setProfileLeadId(id)}
               onOpenProfile={(id) => setProfileLeadId(id)}
+              highlightId={highlightId}
             />
           ))}
         </div>

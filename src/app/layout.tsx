@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ThemeProvider } from "@/lib/theme-context";
+import { LanguageProvider } from "@/lib/language-context";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,12 +23,14 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
-        <ThemeProvider>
-          <Sidebar />
-          <main className="ml-64 min-h-screen bg-[#F8FAFC] dark:bg-gray-950 transition-colors">
-            {children}
-          </main>
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            <Sidebar />
+            <main className="ml-64 min-h-screen bg-[#F8FAFC] dark:bg-gray-950 transition-colors">
+              {children}
+            </main>
+          </ThemeProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

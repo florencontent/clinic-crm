@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabaseAdmin
     .from("doctors")
     .insert({
+      id: crypto.randomUUID(),
       name: name.trim(),
       specialty: specialty?.trim() || null,
       whatsapp: whatsapp?.trim() || null,

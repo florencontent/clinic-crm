@@ -37,6 +37,8 @@ export interface Lead {
   reminderStatus?: ReminderStatus;
   agentPaused?: boolean;
   lossReason?: string;
+  doctor?: string;
+  isPinned?: boolean;
 }
 
 export interface Message {

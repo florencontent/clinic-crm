@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("procedures")
-    .insert({ name: name.trim(), description: description?.trim() || null })
+    .insert({ id: crypto.randomUUID(), name: name.trim(), description: description?.trim() || null })
     .select("id, name, description")
     .single();
 

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Check, Trash2, AlertTriangle } from "lucide-react";
-import { Appointment, reminderLabels, reminderColors } from "@/data/mock-data";
+import { Appointment, reminderColors } from "@/data/mock-data";
 import { deleteAppointmentWithCalendar, updatePatient, updateAppointmentDoctor } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useDoctors } from "@/hooks/use-doctors";
+import { useLanguage } from "@/lib/language-context";
 
 interface AppointmentModalProps {
   appointment: Appointment;
@@ -31,6 +32,7 @@ const inputClass =
   "w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-500";
 
 export function AppointmentModal({ appointment, onClose, onSave, onDelete }: AppointmentModalProps) {
+  const { t } = useLanguage();
   const { doctorNames: DOUTORES } = useDoctors();
   const procedure = appointment.procedure;
   const [doctor, setDoctor] = useState(appointment.doctor);
@@ -124,7 +126,7 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Status do Lembrete</p>
                 <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-0.5", reminderColors[appointment.reminderStatus])}>
-                  {reminderLabels[appointment.reminderStatus]}
+                  {t.reminder[appointment.reminderStatus]}
                 </span>
               </div>
             </div>

@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
-import { Conversation, statusLabels, statusColors } from "@/data/mock-data";
+import { Conversation, statusColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
+import { useLanguage } from "@/lib/language-context";
 
 const MESSAGE_TEMPLATES = [
   { label: "Confirmação", text: "Olá! Confirmamos sua consulta. Caso precise remarcar, é só nos avisar 😊" },
@@ -21,6 +22,7 @@ interface ChatWindowProps {
 
 export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const [input, setInput] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -37,7 +39,7 @@ export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
           <div className="w-16 h-16 rounded-full bg-white/60 dark:bg-gray-700/60 flex items-center justify-center mx-auto mb-3 shadow-sm">
             <MessageSquare className="h-7 w-7 text-gray-400" />
           </div>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Selecione uma conversa para começar</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">{t.conversations.selectConversation}</p>
         </div>
       </div>
     );
@@ -82,7 +84,7 @@ export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{conversation.leadName}</p>
           <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[conversation.status])}>
-            {statusLabels[conversation.status]}
+            {t.status[conversation.status]}
           </span>
         </div>
       </div>
@@ -95,7 +97,7 @@ export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
         {conversation.messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-xs text-gray-400 bg-white/60 dark:bg-gray-700/60 px-3 py-1.5 rounded-full shadow-sm">
-              Nenhuma mensagem ainda
+              {t.conversations.noMessages}
             </p>
           </div>
         ) : (
@@ -165,7 +167,7 @@ export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
             value={input}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="Digite uma mensagem..."
+            placeholder={t.conversations.messagePlaceholder}
             rows={1}
             className="w-full text-sm outline-none resize-none bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed"
             style={{ height: "40px", maxHeight: "120px" }}
@@ -180,7 +182,7 @@ export function ChatWindow({ conversation, onSendMessage }: ChatWindowProps) {
         </button>
       </div>
       <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center pb-1.5 bg-[#F0F2F5] dark:bg-gray-800 select-none">
-        Enter para enviar · Shift+Enter para nova linha
+        {t.conversations.enterToSend}
       </p>
     </div>
   );
