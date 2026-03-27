@@ -282,6 +282,7 @@ export async function updatePatient(
     status?: LeadStatus;
     tags?: Tag[];
     notes?: string;
+    procedure?: string;
   }
 ): Promise<Lead | null> {
   const updatePayload: Record<string, unknown> = {
@@ -294,6 +295,7 @@ export async function updatePatient(
   if (data.status !== undefined) updatePayload.status = kanbanToDefaultDb[data.status];
   if (data.tags !== undefined) updatePayload.tags = data.tags;
   if (data.notes !== undefined) updatePayload.notes = data.notes;
+  if (data.procedure !== undefined) updatePayload.procedure_interest = data.procedure || null;
 
   const { data: result, error } = await supabase
     .from("patients")
