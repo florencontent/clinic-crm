@@ -176,6 +176,8 @@ export default function FollowUpPage() {
 
   useEffect(() => {
     fetchLeads();
+    const interval = setInterval(fetchLeads, 30000);
+    return () => clearInterval(interval);
   }, [fetchLeads]);
 
   // Counts per stage
