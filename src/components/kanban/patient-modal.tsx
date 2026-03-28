@@ -2,15 +2,16 @@
 
 import { useState, useRef, useEffect } from "react";
 import { X, Phone, CalendarDays, MessageCircle, User, Clock, Mail, Edit2, Send, Trash2, PauseCircle, PlayCircle, RotateCcw, AlertTriangle } from "lucide-react";
-import { Lead, Conversation, Appointment, statusLabels, statusColors, reminderLabels, reminderColors } from "@/data/mock-data";
+import { Lead, Conversation, Appointment, statusColors, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTheme } from "@/lib/theme-context";
 import { EditLeadModal } from "./edit-lead-modal";
 import { MarkAsLostModal } from "./mark-as-lost-modal";
-import { deletePatient, toggleAgentPause, markAsLost, reactivateLead, updateAppointmentDoctor } from "@/lib/api";
+import { deletePatient, toggleAgentPause, markAsLost, reactivateLead, updatePatient } from "@/lib/api";
 import { useDoctors } from "@/hooks/use-doctors";
+import { useLanguage } from "@/lib/language-context";
 
 interface PatientModalProps {
   lead: Lead;
@@ -39,6 +40,7 @@ export function PatientModal({
   onLeadUpdate,
   followUpStage,
 }: PatientModalProps) {
+  const { t } = useLanguage();
   const [tab, setTab] = useState<Tab>("resumo");
   const [lead, setLead] = useState(initialLead);
   const [localDoctor, setLocalDoctor] = useState<string | undefined>(undefined);
@@ -65,9 +67,9 @@ export function PatientModal({
   }, [tab, conversation?.messages]);
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
-    { key: "resumo", label: "Resumo" },
-    { key: "conversa", label: "Conversa", count: totalMessages },
-    { key: "agenda", label: "Consultas", count: leadAppointments.length },
+    { key: "resumo", label: t.patientModal.tabs.summary },
+    { key: "conversa", label: t.patientModal.tabs.conversation, count: totalMessages },
+    { key: "agenda", label: t.patientModal.tabs.appointments, count: leadAppointments.length },
   ];
 
   const handleSend = () => {
@@ -139,12 +141,14 @@ export function PatientModal({
     (a) => new Date(a.date + "T00:00:00") >= new Date()
   ) || leadAppointments[0];
 
-  const doctorValue = localDoctor !== undefined ? localDoctor : (nextLeadAppointment?.doctor || "");
+  const doctorValue = localDoctor !== undefined ? localDoctor : (lead.doctor || "");
 
   const handleDoctorChange = async (value: string) => {
-    if (!nextLeadAppointment) return;
     setLocalDoctor(value);
-    await updateAppointmentDoctor(nextLeadAppointment.id, value);
+    const updated = { ...lead, doctor: value };
+    setLead(updated);
+    onLeadUpdate?.(updated);
+    await updatePatient(lead.id, { doctor: value });
   };
 
   return (
@@ -164,11 +168,11 @@ export function PatientModal({
                 <h3 className="text-base font-bold">{lead.name}</h3>
                 <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
                   <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[lead.status])}>
-                    {statusLabels[lead.status]}
+                    {t.status[lead.status]}
                   </span>
                   {lead.status === "agendado" && lead.reminderStatus && (
                     <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
-                      {reminderLabels[lead.reminderStatus]}
+                      {t.reminder[lead.reminderStatus]}
                     </span>
                   )}
                   <span className="text-gray-400 text-xs">{lead.source}</span>
@@ -224,14 +228,14 @@ export function PatientModal({
                 {/* Info grid */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
-                    <p className="text-[10px] text-gray-400 mb-1">Telefone</p>
+                    <p className="text-[10px] text-gray-400 mb-1">{t.patientModal.phone}</p>
                     <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-gray-100">
                       <Phone className="h-3.5 w-3.5 text-gray-400" />
                       {lead.phone || "—"}
                     </div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
-                    <p className="text-[10px] text-gray-400 mb-1">Lead desde</p>
+                    <p className="text-[10px] text-gray-400 mb-1">{t.patientModal.leadSince}</p>
                     <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-gray-100">
                       <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
                       {lead.date
@@ -240,14 +244,14 @@ export function PatientModal({
                     </div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
-                    <p className="text-[10px] text-gray-400 mb-1">Interesse</p>
+                    <p className="text-[10px] text-gray-400 mb-1">{t.patientModal.interest}</p>
                     <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-gray-100">
                       <User className="h-3.5 w-3.5 text-gray-400" />
                       {lead.procedure || "—"}
                     </div>
                   </div>
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
-                    <p className="text-[10px] text-gray-400 mb-1">Email</p>
+                    <p className="text-[10px] text-gray-400 mb-1">{t.patientModal.email}</p>
                     <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                       <Mail className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                       <span className="truncate">{lead.email || "—"}</span>
@@ -259,7 +263,7 @@ export function PatientModal({
                 {/* Observação */}
                 {lead.notes && (
                   <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-100 dark:border-amber-800/50">
-                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium mb-1">Observação</p>
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium mb-1">{t.patientModal.notes}</p>
                     <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{lead.notes}</p>
                   </div>
                 )}
@@ -267,7 +271,7 @@ export function PatientModal({
                 {/* Última mensagem */}
                 {lastMessage && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 border border-blue-100 dark:border-blue-800/50">
-                    <p className="text-[10px] text-blue-500 dark:text-blue-400 font-medium mb-1">Última mensagem</p>
+                    <p className="text-[10px] text-blue-500 dark:text-blue-400 font-medium mb-1">{t.patientModal.lastMessage}</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{lastMessage.text}</p>
                     <p className="text-[10px] text-gray-400 mt-1">{lastMessage.timestamp} · {lastMessage.sender === "clinic" ? "Clínica" : lead.name.split(" ")[0]}</p>
                   </div>
@@ -276,7 +280,7 @@ export function PatientModal({
                 {/* Próxima consulta */}
                 {leadAppointments.length > 0 && (
                   <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 border border-green-100 dark:border-green-800/50">
-                    <p className="text-[10px] text-green-600 dark:text-green-400 font-medium mb-1">Próxima consulta</p>
+                    <p className="text-[10px] text-green-600 dark:text-green-400 font-medium mb-1">{t.patientModal.nextAppointment}</p>
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {format(new Date(leadAppointments[0].date + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })} às {leadAppointments[0].time}
                     </p>
@@ -288,13 +292,13 @@ export function PatientModal({
 
                 {/* Doutor */}
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
-                  <p className="text-[10px] text-gray-400 mb-2">Doutor(a)</p>
+                  <p className="text-[10px] text-gray-400 mb-2">{t.patientModal.doctor}</p>
                   <select
                     value={doctorValue}
                     onChange={(e) => handleDoctorChange(e.target.value)}
                     className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 outline-none focus:border-blue-400 transition-colors"
                   >
-                    <option value="">Selecionar...</option>
+                    <option value="">{t.sidebar.selectDoctor}</option>
                     {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
@@ -316,7 +320,7 @@ export function PatientModal({
                 >
                   <span className="flex items-center gap-2">
                     <MessageCircle className="h-4 w-4" />
-                    Ver conversa
+                    {t.patientModal.viewConversation}
                   </span>
                 </button>
 
@@ -334,8 +338,8 @@ export function PatientModal({
                     )}
                   >
                     {lead.agentPaused
-                      ? <><PlayCircle className="h-3.5 w-3.5" />Retomar Agente</>
-                      : <><PauseCircle className="h-3.5 w-3.5" />Pausar Agente</>
+                      ? <><PlayCircle className="h-3.5 w-3.5" />{t.patientModal.resumeAgent}</>
+                      : <><PauseCircle className="h-3.5 w-3.5" />{t.patientModal.pauseAgent}</>
                     }
                   </button>
 
@@ -346,7 +350,7 @@ export function PatientModal({
                       className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium border bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                     >
                       <RotateCcw className="h-3.5 w-3.5" />
-                      Reativar Lead
+                      {t.patientModal.reactivate}
                     </button>
                   ) : (
                     <button
@@ -354,7 +358,7 @@ export function PatientModal({
                       className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium border bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
                     >
                       <AlertTriangle className="h-3.5 w-3.5" />
-                      Marcar Perdido
+                      {t.patientModal.markLost}
                     </button>
                   )}
                 </div>
@@ -362,7 +366,7 @@ export function PatientModal({
                 {/* Loss reason display */}
                 {lead.status === "perdido" && lead.lossReason && (
                   <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 border border-red-100 dark:border-red-800/50">
-                    <p className="text-[10px] text-red-500 dark:text-red-400 font-medium mb-1">Motivo da perda</p>
+                    <p className="text-[10px] text-red-500 dark:text-red-400 font-medium mb-1">{t.patientModal.lossReason}</p>
                     <p className="text-xs text-gray-700 dark:text-gray-300">{lead.lossReason}</p>
                   </div>
                 )}
@@ -370,14 +374,14 @@ export function PatientModal({
                 {/* Delete */}
                 {confirmDelete ? (
                   <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800/50">
-                    <p className="text-xs text-red-600 dark:text-red-400 flex-1">Excluir permanentemente?</p>
-                    <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">Não</button>
+                    <p className="text-xs text-red-600 dark:text-red-400 flex-1">{t.patientModal.confirmDelete}</p>
+                    <button onClick={() => setConfirmDelete(false)} className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1">{t.common.cancel}</button>
                     <button
                       onClick={handleDelete}
                       disabled={deleting}
                       className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg disabled:opacity-50 transition-colors"
                     >
-                      {deleting ? "..." : "Excluir"}
+                      {deleting ? "..." : t.common.delete}
                     </button>
                   </div>
                 ) : (
@@ -386,7 +390,7 @@ export function PatientModal({
                     className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl border border-dashed border-red-200 dark:border-red-800/50 transition-colors"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    Excluir Lead
+                    {t.patientModal.deleteLead}
                   </button>
                 )}
               </div>
@@ -430,7 +434,7 @@ export function PatientModal({
                     </>
                   ) : (
                     <div className="flex items-center justify-center h-full">
-                      <p className="text-xs text-gray-400 bg-white/60 dark:bg-gray-800/60 px-3 py-1.5 rounded-full">Nenhuma mensagem ainda</p>
+                      <p className="text-xs text-gray-400 bg-white/60 dark:bg-gray-800/60 px-3 py-1.5 rounded-full">{t.conversations.noMessages}</p>
                     </div>
                   )}
                 </div>
@@ -443,7 +447,7 @@ export function PatientModal({
                       value={input}
                       onChange={handleTextareaChange}
                       onKeyDown={handleKeyDown}
-                      placeholder="Digite uma mensagem..."
+                      placeholder={t.conversations.messagePlaceholder}
                       rows={1}
                       className="w-full text-sm outline-none resize-none bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 leading-relaxed"
                       style={{ height: "40px", maxHeight: "120px" }}
@@ -458,7 +462,7 @@ export function PatientModal({
                   </button>
                 </div>
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center pb-2 bg-[#F0F2F5] dark:bg-gray-800 select-none flex-shrink-0">
-                  Enter para enviar · Shift+Enter para nova linha
+                  {t.conversations.enterToSend}
                 </p>
               </>
             )}
@@ -466,7 +470,7 @@ export function PatientModal({
             {tab === "agenda" && (
               <div className="p-4 space-y-3">
                 {leadAppointments.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">Nenhuma consulta agendada</div>
+                  <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">{t.patientModal.noAppointments}</div>
                 ) : (
                   leadAppointments.map((apt) => (
                     <div key={apt.id} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
@@ -482,11 +486,11 @@ export function PatientModal({
                         </div>
                         <div className="flex flex-col items-end gap-1">
                           <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-lg font-medium">
-                            Agendado
+                            {t.status.agendado}
                           </span>
                           {lead.status === "agendado" && lead.reminderStatus && (
                             <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
-                              {reminderLabels[lead.reminderStatus]}
+                              {t.reminder[lead.reminderStatus]}
                             </span>
                           )}
                         </div>

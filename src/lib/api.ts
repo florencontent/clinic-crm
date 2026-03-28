@@ -88,6 +88,8 @@ export async function fetchPatients(): Promise<Lead[]> {
     lossReason: p.loss_reason ?? undefined,
     dealValue: p.deal_value ?? undefined,
     followUpStage: p.follow_up_stage ?? 0,
+    doctor: p.doctor || undefined,
+    isPinned: p.is_pinned ?? false,
   }));
 }
 
@@ -285,6 +287,8 @@ export async function updatePatient(
     tags?: Tag[];
     notes?: string;
     dealValue?: number | null;
+    procedure?: string;
+    doctor?: string;
   }
 ): Promise<Lead | null> {
   const updatePayload: Record<string, unknown> = {
@@ -298,6 +302,8 @@ export async function updatePatient(
   if (data.tags !== undefined) updatePayload.tags = data.tags;
   if (data.notes !== undefined) updatePayload.notes = data.notes;
   if (data.dealValue !== undefined) updatePayload.deal_value = data.dealValue;
+  if (data.procedure !== undefined) updatePayload.procedure_interest = data.procedure || null;
+  if (data.doctor !== undefined) updatePayload.doctor = data.doctor || null;
 
   const { data: result, error } = await supabase
     .from("patients")
@@ -323,6 +329,8 @@ export async function updatePatient(
     tags: Array.isArray(result.tags) ? (result.tags as Tag[]) : undefined,
     notes: result.notes || undefined,
     dealValue: result.deal_value ?? undefined,
+    doctor: result.doctor || undefined,
+    isPinned: result.is_pinned ?? false,
   };
 }
 
@@ -838,6 +846,16 @@ export async function reactivateLead(patientId: string): Promise<boolean> {
   const { error } = await supabase
     .from("patients")
     .update({ status: "em_contato", loss_reason: null, updated_at: new Date().toISOString() })
+    .eq("id", patientId);
+  return !error;
+}
+
+// ── Pin Contact ──
+
+export async function pinContact(patientId: string, pinned: boolean): Promise<boolean> {
+  const { error } = await supabase
+    .from("patients")
+    .update({ is_pinned: pinned, updated_at: new Date().toISOString() })
     .eq("id", patientId);
   return !error;
 }

@@ -1,28 +1,36 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, MessageCircle, Bell } from "lucide-react";
-import { Conversation, LeadStatus, statusLabels, statusColors, reminderLabels, reminderColors } from "@/data/mock-data";
+import { Search, MessageCircle, Bell, Pin, PinOff } from "lucide-react";
+import { Conversation, Lead, LeadStatus, statusColors, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language-context";
 
 interface ConversationListProps {
   conversations: Conversation[];
+  patients: Lead[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onPinContact: (leadId: string, pinned: boolean) => void;
 }
 
-const STATUS_FILTERS: { value: LeadStatus | "all"; label: string }[] = [
-  { value: "all", label: "Todos" },
-  { value: "em_contato", label: "Em contato" },
-  { value: "agendado", label: "Agendado" },
-  { value: "compareceu", label: "Compareceu" },
-  { value: "fechado", label: "Fechado" },
-];
-
-export function ConversationList({ conversations, selectedId, onSelect }: ConversationListProps) {
+export function ConversationList({ conversations, patients, selectedId, onSelect, onPinContact }: ConversationListProps) {
+  const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
   const [onlyUnread, setOnlyUnread] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  const STATUS_FILTERS: { value: LeadStatus | "all"; label: string }[] = [
+    { value: "all", label: t.common.all },
+    { value: "em_contato", label: t.status.em_contato },
+    { value: "agendado", label: t.status.agendado },
+    { value: "compareceu", label: t.status.compareceu },
+    { value: "fechado", label: t.status.fechado },
+    { value: "perdido", label: t.status.perdido },
+  ];
+
+  const pinnedIds = useMemo(() => new Set(patients.filter((p) => p.isPinned).map((p) => p.id)), [patients]);
 
   const filtered = useMemo(() => {
     return conversations.filter((conv) => {
@@ -33,21 +41,102 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
     });
   }, [conversations, search, statusFilter, onlyUnread]);
 
+  const pinned = filtered.filter((c) => pinnedIds.has(c.leadId));
+  const unpinned = filtered.filter((c) => !pinnedIds.has(c.leadId));
+
   const unreadTotal = conversations.reduce((acc, c) => acc + c.unread, 0);
+
+  const renderConv = (conv: Conversation) => {
+    const isPinned = pinnedIds.has(conv.leadId);
+    return (
+      <div
+        key={conv.leadId}
+        className="relative group"
+        onMouseEnter={() => setHoveredId(conv.leadId)}
+        onMouseLeave={() => setHoveredId(null)}
+      >
+        <button
+          onClick={() => onSelect(conv.leadId)}
+          className={cn(
+            "w-full text-left p-4 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
+            selectedId === conv.leadId && "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+          )}
+        >
+          <div className="flex items-start gap-3">
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold">
+                {conv.leadName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
+              </div>
+              {conv.unread > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-blue-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {conv.unread > 9 ? "9+" : conv.unread}
+                </span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0 pr-6">
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {isPinned && <Pin className="h-2.5 w-2.5 text-amber-500 flex-shrink-0 rotate-45" />}
+                  <p className={cn(
+                    "text-sm truncate",
+                    conv.unread > 0 ? "font-semibold text-gray-900 dark:text-gray-100" : "font-medium text-gray-900 dark:text-gray-100"
+                  )}>
+                    {conv.leadName}
+                  </p>
+                </div>
+                <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{conv.lastTime}</span>
+              </div>
+              <p className={cn(
+                "text-xs truncate mb-1.5",
+                conv.unread > 0 ? "text-gray-700 dark:text-gray-300" : "text-gray-500 dark:text-gray-500"
+              )}>
+                {conv.lastMessage || t.conversations.noMessages}
+              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[conv.status])}>
+                  {t.status[conv.status]}
+                </span>
+                {conv.status === "agendado" && conv.reminderStatus && (
+                  <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[conv.reminderStatus])}>
+                    <Bell className="h-2.5 w-2.5" />
+                    {t.reminder[conv.reminderStatus]}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* Pin button — visible on hover */}
+        {hoveredId === conv.leadId && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onPinContact(conv.leadId, !isPinned); }}
+            title={isPinned ? t.conversations.unpin : t.conversations.pin}
+            className="absolute top-3 right-3 p-1.5 rounded-lg bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 shadow-sm text-gray-400 hover:text-amber-500 hover:border-amber-300 dark:hover:border-amber-600 transition-all"
+          >
+            {isPinned
+              ? <PinOff className="h-3 w-3" />
+              : <Pin className="h-3 w-3 rotate-45" />
+            }
+          </button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="w-[400px] border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Conversas</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t.conversations.title}</h3>
           <div className="flex items-center gap-2">
             {unreadTotal > 0 && (
               <span className="bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                 {unreadTotal}
               </span>
             )}
-            <span className="text-xs text-gray-400">{filtered.length} de {conversations.length}</span>
+            <span className="text-xs text-gray-400">{filtered.length} {t.common.of} {conversations.length}</span>
           </div>
         </div>
 
@@ -56,7 +145,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por nome..."
+            placeholder={t.conversations.searchPlaceholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:border-blue-400 focus:bg-white dark:focus:bg-gray-700 transition-colors text-gray-900 dark:text-gray-100 placeholder-gray-400"
@@ -74,7 +163,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
           )}
         >
           <MessageCircle className="h-3 w-3" />
-          Não lidas
+          {t.conversations.unread}
           {unreadTotal > 0 && (
             <span className={cn(
               "text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center",
@@ -108,60 +197,29 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-gray-400">
-            <p className="text-sm">Nenhuma conversa encontrada</p>
+            <p className="text-sm">{t.conversations.noConversations}</p>
           </div>
         ) : (
-          filtered.map((conv) => (
-            <button
-              key={conv.leadId}
-              onClick={() => onSelect(conv.leadId)}
-              className={cn(
-                "w-full text-left p-4 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
-                selectedId === conv.leadId && "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-              )}
-            >
-              <div className="flex items-start gap-3">
-                <div className="relative flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold">
-                    {conv.leadName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
-                  </div>
-                  {conv.unread > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-blue-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                      {conv.unread > 9 ? "9+" : conv.unread}
-                    </span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p className={cn(
-                      "text-sm truncate",
-                      conv.unread > 0 ? "font-semibold text-gray-900 dark:text-gray-100" : "font-medium text-gray-900 dark:text-gray-100"
-                    )}>
-                      {conv.leadName}
-                    </p>
-                    <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{conv.lastTime}</span>
-                  </div>
-                  <p className={cn(
-                    "text-xs truncate mb-1.5",
-                    conv.unread > 0 ? "text-gray-700 dark:text-gray-300" : "text-gray-500 dark:text-gray-500"
-                  )}>
-                    {conv.lastMessage || "Sem mensagens"}
+          <>
+            {/* Pinned section */}
+            {pinned.length > 0 && (
+              <>
+                <div className="px-4 py-1.5 bg-amber-50 dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800/30">
+                  <p className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                    <Pin className="h-2.5 w-2.5 rotate-45" />
+                    {t.conversations.pinned}
                   </p>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[conv.status])}>
-                      {statusLabels[conv.status]}
-                    </span>
-                    {conv.status === "agendado" && conv.reminderStatus && (
-                      <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[conv.reminderStatus])}>
-                        <Bell className="h-2.5 w-2.5" />
-                        {reminderLabels[conv.reminderStatus]}
-                      </span>
-                    )}
-                  </div>
                 </div>
-              </div>
-            </button>
-          ))
+                {pinned.map(renderConv)}
+                {unpinned.length > 0 && (
+                  <div className="px-4 py-1.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{t.common.all}</p>
+                  </div>
+                )}
+              </>
+            )}
+            {unpinned.map(renderConv)}
+          </>
         )}
       </div>
     </div>

@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle, Stethoscope } from "lucide-react";
-import { Lead, Appointment, statusLabels, statusColors, reminderLabels, reminderColors } from "@/data/mock-data";
+import { Lead, Appointment, statusColors, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toggleAgentPause, updatePatient, updateAppointmentDoctor } from "@/lib/api";
 import { DealValueField } from "@/components/shared/deal-value-field";
 import { useDoctors } from "@/hooks/use-doctors";
+import { useLanguage } from "@/lib/language-context";
 
 interface LeadSidebarProps {
   lead: Lead | null;
@@ -18,16 +20,27 @@ interface LeadSidebarProps {
   onAppointmentUpdate?: (appointment: Appointment) => void;
 }
 
-export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpdate }: LeadSidebarProps) {
+export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(true);
   const [pauseLoading, setPauseLoading] = useState(false);
   const [localPaused, setLocalPaused] = useState<boolean | undefined>(undefined);
   const [localNotes, setLocalNotes] = useState<string | undefined>(undefined);
+  const [localDoctor, setLocalDoctor] = useState<string | undefined>(undefined);
   const [notesSaving, setNotesSaving] = useState(false);
+  const { t } = useLanguage();
   const { doctorNames: DOUTORES } = useDoctors();
+
+  // Reset local state whenever the selected lead changes
+  useEffect(() => {
+    setLocalPaused(undefined);
+    setLocalNotes(undefined);
+    setLocalDoctor(undefined);
+  }, [lead?.id]);
 
   const isPaused = localPaused !== undefined ? localPaused : lead?.agentPaused ?? false;
   const notesValue = localNotes !== undefined ? localNotes : (lead?.notes ?? "");
+  const doctorValue = localDoctor !== undefined ? localDoctor : (lead?.doctor ?? "");
 
   const leadAppointments = lead
     ? appointments.filter((a) => a.patientId === lead.id)
@@ -36,8 +49,6 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
   const nextAppointment = leadAppointments.find(
     (a) => new Date(a.date + "T00:00:00") >= new Date()
   );
-
-  const doctorValue = nextAppointment?.doctor || "";
 
   const handleNotesSave = async () => {
     if (!lead || localNotes === undefined) return;
@@ -60,11 +71,10 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
   };
 
   const handleDoctorChange = async (value: string) => {
-    if (!nextAppointment) return;
-    // Atualiza imediatamente no estado local via callback
-    onAppointmentUpdate?.({ ...nextAppointment, doctor: value });
-    // Persiste no banco (tabela appointments)
-    await updateAppointmentDoctor(nextAppointment.id, value);
+    if (!lead) return;
+    setLocalDoctor(value);
+    await updatePatient(lead.id, { doctor: value });
+    onLeadUpdate?.({ ...lead, doctor: value });
   };
 
   return (
@@ -91,7 +101,7 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
         <div className="flex-1 overflow-y-auto">
           {!lead ? (
             <div className="flex items-center justify-center h-full text-center px-4 py-12">
-              <p className="text-sm text-gray-400 dark:text-gray-500">Selecione uma conversa para ver os detalhes do lead</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t.sidebar.selectPrompt}</p>
             </div>
           ) : (
             <div className="p-4 space-y-4">
@@ -103,7 +113,7 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{lead.name}</h3>
                 <div className="flex items-center gap-1.5 mt-1.5 flex-wrap justify-center">
                   <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[lead.status])}>
-                    {statusLabels[lead.status]}
+                    {t.status[lead.status]}
                   </span>
                   {lead.status === "em_contato" && (lead.followUpStage ?? 0) >= 1 && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
@@ -112,7 +122,7 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
                   )}
                   {lead.status === "agendado" && lead.reminderStatus && (
                     <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
-                      {reminderLabels[lead.reminderStatus]}
+                      {t.reminder[lead.reminderStatus]}
                     </span>
                   )}
                 </div>
@@ -126,7 +136,7 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
                   <div className="flex items-center gap-2.5">
                     <CalendarDays className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                     <span className="text-xs text-gray-700 dark:text-gray-300">
-                      Lead desde {format(new Date(lead.date + "T12:00:00"), "dd/MM/yyyy")}
+                      {t.sidebar.leadSince} {format(new Date(lead.date + "T12:00:00"), "dd/MM/yyyy")}
                     </span>
                   </div>
                 )}
@@ -156,16 +166,16 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
               <>
                 <hr className="border-gray-100 dark:border-gray-700" />
                 <div>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Observação</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">{t.sidebar.notes}</p>
                   <textarea
                     value={notesValue}
                     onChange={(e) => setLocalNotes(e.target.value)}
                     onBlur={handleNotesSave}
-                    placeholder="Anote informações sobre o lead..."
+                    placeholder={t.sidebar.notesPlaceholder}
                     rows={3}
                     className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none focus:border-blue-400 transition-colors placeholder-gray-400 resize-none"
                   />
-                  {notesSaving && <p className="text-[10px] text-gray-400 mt-1">Salvando...</p>}
+                  {notesSaving && <p className="text-[10px] text-gray-400 mt-1">{t.sidebar.saving}</p>}
                 </div>
               </>
 
@@ -174,7 +184,7 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
                 <>
                   <hr className="border-gray-100 dark:border-gray-700" />
                   <div>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Próxima consulta</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">{t.sidebar.nextAppointment}</p>
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 border border-green-100 dark:border-green-800/50">
                       <div className="flex items-center gap-1.5 mb-1">
                         <CalendarDays className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
@@ -194,13 +204,13 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
               <>
                 <hr className="border-gray-100 dark:border-gray-700" />
                 <div>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Doutor(a)</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">{t.sidebar.doctor}</p>
                   <select
                     value={doctorValue}
                     onChange={(e) => handleDoctorChange(e.target.value)}
                     className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 outline-none focus:border-blue-400 transition-colors"
                   >
-                    <option value="">Selecionar...</option>
+                    <option value="">{t.sidebar.selectDoctor}</option>
                     {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
@@ -226,9 +236,15 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
                   )}
                 >
                   {isPaused
-                    ? <><PlayCircle className="h-3.5 w-3.5" />Retomar Agente</>
-                    : <><PauseCircle className="h-3.5 w-3.5" />Pausar Agente</>
+                    ? <><PlayCircle className="h-3.5 w-3.5" />{t.sidebar.resumeAgent}</>
+                    : <><PauseCircle className="h-3.5 w-3.5" />{t.sidebar.pauseAgent}</>
                   }
+                </button>
+                <button
+                  onClick={() => router.push("/kanban?highlight=" + lead.id)}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  {t.sidebar.viewOnKanban}
                 </button>
               </div>
             </div>

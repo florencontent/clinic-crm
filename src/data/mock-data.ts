@@ -39,6 +39,8 @@ export interface Lead {
   lossReason?: string;
   dealValue?: number;
   followUpStage?: number;
+  doctor?: string;
+  isPinned?: boolean;
 }
 
 export interface Message {

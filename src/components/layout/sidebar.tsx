@@ -7,23 +7,27 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Settings, Sun, Moon, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
+import { useLanguage } from "@/lib/language-context";
 import { supabase } from "@/lib/supabase";
 
-const navItems = [
-  { href: "/kanban", label: "Kanban", icon: Columns3 },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/conversas", label: "Conversas", icon: MessageCircle },
-  { href: "/follow-up", label: "Follow-up", icon: GitBranch },
-  { href: "/agenda", label: "Agenda", icon: Calendar },
-  { href: "/meta-ads", label: "Campanhas", icon: Megaphone },
-  { href: "/configuracoes", label: "Configurações", icon: Settings },
-];
+// navItems are built inside the component so they can use translations
 
 export function Sidebar() {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
+  const { t } = useLanguage();
   const isDark = theme === "dark";
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const navItems = [
+    { href: "/kanban", label: t.nav.kanban, icon: Columns3 },
+    { href: "/dashboard", label: t.nav.dashboard, icon: LayoutDashboard },
+    { href: "/conversas", label: t.nav.conversations, icon: MessageCircle },
+    { href: "/follow-up", label: "Follow-up", icon: GitBranch },
+    { href: "/agenda", label: t.nav.agenda, icon: Calendar },
+    { href: "/meta-ads", label: t.nav.campaigns, icon: Megaphone },
+    { href: "/configuracoes", label: t.nav.settings, icon: Settings },
+  ];
 
   useEffect(() => {
     const fetchUnread = async () => {
@@ -94,12 +98,12 @@ export function Sidebar() {
           {theme === "dark" ? (
             <>
               <Sun className="h-4 w-4" />
-              Modo Claro
+              {t.nav.lightMode}
             </>
           ) : (
             <>
               <Moon className="h-4 w-4" />
-              Modo Escuro
+              {t.nav.darkMode}
             </>
           )}
         </button>
