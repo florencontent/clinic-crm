@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useDoctors } from "@/hooks/use-doctors";
-import { useSpecialties } from "@/hooks/use-specialties";
 import { useProcedures } from "@/hooks/use-procedures";
 import { X, Plus } from "lucide-react";
-import { Lead, Tag, TagType, LeadSource } from "@/data/mock-data";
+import { Lead, Tag, TagType } from "@/data/mock-data";
 import { updatePatient } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -23,13 +22,11 @@ const tagTypeColors: Record<TagType, string> = {
 
 export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   const { doctorNames: DOUTORES } = useDoctors();
-  const { specialties } = useSpecialties();
   const { procedures } = useProcedures();
 
   const [name, setName] = useState(lead.name);
   const [phone, setPhone] = useState(lead.phone);
   const [email, setEmail] = useState(lead.email || "");
-  const [source, setSource] = useState<LeadSource>(lead.source);
   const [procedure, setProcedure] = useState(lead.procedure || "");
   const [tags, setTags] = useState<Tag[]>(lead.tags || []);
   const [notes, setNotes] = useState(lead.notes || "");
@@ -37,7 +34,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   const [saving, setSaving] = useState(false);
 
   const [newDoutor, setNewDoutor] = useState("");
-  const [newEspecialidade, setNewEspecialidade] = useState("");
 
   const addTag = (type: TagType, value: string) => {
     const trimmed = value.trim();
@@ -51,7 +47,7 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   };
 
   const handleAddDoutor = () => { addTag("doutor", newDoutor); setNewDoutor(""); };
-  const handleAddEspecialidade = () => { addTag("especialidade", newEspecialidade); setNewEspecialidade(""); };
+
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -125,54 +121,8 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
           </div>
 
 
-          {/* Origem */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Origem</label>
-            <select
-              value={source}
-              onChange={(e) => setSource(e.target.value as LeadSource)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
-            >
-              {(["Site", "Meta Ads", "Orgânico", "Indicação"] as LeadSource[]).map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Tags */}
           <div className="space-y-3">
-            {/* Especialidade */}
-            <div>
-              <p className="text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Especialidade</p>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {tags.filter((t) => t.type === "especialidade").map((t) => (
-                  <span key={t.value} className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium", tagTypeColors.especialidade)}>
-                    {t.value}
-                    <button onClick={() => removeTag("especialidade", t.value)} className="hover:opacity-70">
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex gap-1.5">
-                <select
-                  value={newEspecialidade}
-                  onChange={(e) => setNewEspecialidade(e.target.value)}
-                  className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none"
-                >
-                  <option value="">Selecionar...</option>
-                  {specialties.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
-                </select>
-                <button
-                  onClick={handleAddEspecialidade}
-                  disabled={!newEspecialidade}
-                  className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 disabled:opacity-40 transition-colors"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-
             {/* Procedimento */}
             <div>
               <p className="text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Procedimento</p>
