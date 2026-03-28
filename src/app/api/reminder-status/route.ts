@@ -27,18 +27,40 @@ export async function POST(req: NextRequest) {
     // Normaliza o telefone removendo caracteres não numéricos
     const cleanPhone = phone.replace(/\D/g, "");
 
-    // Busca o paciente pelo telefone (pode ter ou não o +55)
-    const { data: patients, error: fetchError } = await supabase
-      .from("patients")
-      .select("id, status")
-      .or(`phone.eq.${cleanPhone},phone.eq.+55${cleanPhone},phone.eq.55${cleanPhone}`)
-      .limit(1);
+    // Remove 55 do início se tiver (código do Brasil)
+    const localPhone = cleanPhone.startsWith("55") && cleanPhone.length > 11
+      ? cleanPhone.slice(2)
+      : cleanPhone;
 
-    if (fetchError || !patients || patients.length === 0) {
-      return NextResponse.json({ error: "Paciente não encontrado" }, { status: 404 });
+    // Tenta buscar em cada variante separadamente para evitar problema de encoding do + no PostgREST
+    let patient: { id: string; status: string } | null = null;
+
+    const phonesToTry = [
+      cleanPhone,
+      localPhone,
+      `55${localPhone}`,
+      `+55${localPhone}`,
+    ];
+
+    for (const p of phonesToTry) {
+      const { data, error } = await supabase
+        .from("patients")
+        .select("id, status")
+        .eq("phone", p)
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        patient = data[0];
+        break;
+      }
     }
 
-    const patient = patients[0];
+    if (!patient) {
+      return NextResponse.json(
+        { error: "Paciente não encontrado", phones_tried: phonesToTry },
+        { status: 404 }
+      );
+    }
 
     // Só atualiza se o paciente estiver agendado
     if (!["agendado", "confirmado"].includes(patient.status)) {
