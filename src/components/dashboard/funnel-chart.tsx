@@ -7,6 +7,9 @@ interface FunnelChartProps {
 export function FunnelChart({ data }: FunnelChartProps) {
   if (!data || data.length === 0) return null;
 
+  const filtered = data.filter((d) => d.stage !== "Follow-up");
+  data = filtered;
+
   const maxValue = Math.max(...data.map((d) => d.value), 1);
   const minWidthPct = 35;
   const maxWidthPct = 85;

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toggleAgentPause, updatePatient, updateAppointmentDoctor } from "@/lib/api";
+import { DealValueField } from "@/components/shared/deal-value-field";
 import { useDoctors } from "@/hooks/use-doctors";
 
 interface LeadSidebarProps {
@@ -104,6 +105,11 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
                   <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full", statusColors[lead.status])}>
                     {statusLabels[lead.status]}
                   </span>
+                  {lead.status === "em_contato" && (lead.followUpStage ?? 0) >= 1 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                      {(lead.followUpStage ?? 0) === 5 ? "Mensagem 5 (Encerrando)" : `Mensagem ${lead.followUpStage}`}
+                    </span>
+                  )}
                   {lead.status === "agendado" && lead.reminderStatus && (
                     <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
                       {reminderLabels[lead.reminderStatus]}
@@ -200,6 +206,12 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
                 </div>
               </>
 
+              {/* Ticket */}
+              <>
+                <hr className="border-gray-100 dark:border-gray-700" />
+                <DealValueField lead={lead} onUpdate={onLeadUpdate} />
+              </>
+
               {/* Actions */}
               <hr className="border-gray-100 dark:border-gray-700" />
               <div className="space-y-2">
@@ -217,11 +229,6 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate, onAppointmentUpd
                     ? <><PlayCircle className="h-3.5 w-3.5" />Retomar Agente</>
                     : <><PauseCircle className="h-3.5 w-3.5" />Pausar Agente</>
                   }
-                </button>
-                <button
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  Ver no Kanban
                 </button>
               </div>
             </div>

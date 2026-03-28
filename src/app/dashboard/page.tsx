@@ -60,8 +60,8 @@ export default function DashboardPage() {
     );
   }
 
-  const agendados = funnel[1]?.value ?? 0;
-  const compareceram = funnel[2]?.value ?? 0;
+  const agendados = funnel.find((f) => f.stage === "Agendados")?.value ?? 0;
+  const compareceram = funnel.find((f) => f.stage === "Compareceram")?.value ?? 0;
 
   return (
     <div className="p-8 max-w-[1400px]">
@@ -141,6 +141,8 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <MetricsCards
           totalLeads={metrics.totalLeads}
+          followUp={metrics.followUp}
+          perdidos={metrics.perdidos}
           agendados={agendados}
           compareceram={compareceram}
           totalSales={metrics.totalSales}

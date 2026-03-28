@@ -86,6 +86,8 @@ export async function fetchPatients(): Promise<Lead[]> {
     reminderStatus: p.reminder_status as ReminderStatus | undefined,
     agentPaused: p.agent_paused ?? false,
     lossReason: p.loss_reason ?? undefined,
+    dealValue: p.deal_value ?? undefined,
+    followUpStage: p.follow_up_stage ?? 0,
   }));
 }
 
@@ -282,6 +284,7 @@ export async function updatePatient(
     status?: LeadStatus;
     tags?: Tag[];
     notes?: string;
+    dealValue?: number | null;
   }
 ): Promise<Lead | null> {
   const updatePayload: Record<string, unknown> = {
@@ -294,6 +297,7 @@ export async function updatePatient(
   if (data.status !== undefined) updatePayload.status = kanbanToDefaultDb[data.status];
   if (data.tags !== undefined) updatePayload.tags = data.tags;
   if (data.notes !== undefined) updatePayload.notes = data.notes;
+  if (data.dealValue !== undefined) updatePayload.deal_value = data.dealValue;
 
   const { data: result, error } = await supabase
     .from("patients")
@@ -318,6 +322,7 @@ export async function updatePatient(
     date: result.created_at?.split("T")[0] || "",
     tags: Array.isArray(result.tags) ? (result.tags as Tag[]) : undefined,
     notes: result.notes || undefined,
+    dealValue: result.deal_value ?? undefined,
   };
 }
 
@@ -597,7 +602,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
       end_time,
       notes,
       status,
-      patients ( name, reminder_status, procedure_interest, notes ),
+      patients ( name, reminder_status, procedure_interest, notes, deal_value ),
       procedures ( name ),
       doctors ( name )
     `)
@@ -611,7 +616,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
 
   return (data || []).map((apt) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const patient = apt.patients as any as { name: string | null; reminder_status: string | null; procedure_interest: string | null; notes: string | null } | null;
+    const patient = apt.patients as any as { name: string | null; reminder_status: string | null; procedure_interest: string | null; notes: string | null; deal_value?: number | null } | null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const procedure = apt.procedures as any as { name: string | null } | null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -638,6 +643,7 @@ export async function fetchAppointments(): Promise<Appointment[]> {
       status: apt.status || undefined,
       reminderStatus: (patient?.reminder_status as ReminderStatus) || undefined,
       patientNotes: patient?.notes || undefined,
+      patientDealValue: patient?.deal_value ?? undefined,
     };
   });
 }
@@ -648,6 +654,8 @@ export interface DashboardData {
   metrics: {
     totalLeads: number;
     totalSales: number;
+    followUp: number;
+    perdidos: number;
   };
   funnel: Array<{ stage: string; value: number; fill: string }>;
   source: Array<{ name: string; value: number; fill: string }>;
@@ -683,7 +691,7 @@ export async function fetchDailyFechados(from: string, to: string): Promise<Arra
 export async function fetchDashboardMetrics(): Promise<DashboardData> {
   const { data: patients, error } = await supabase
     .from("patients")
-    .select("status, source");
+    .select("status, source, follow_up_stage");
 
   if (error) {
     console.error("Error fetching dashboard metrics:", error);
@@ -697,6 +705,10 @@ export async function fetchDashboardMetrics(): Promise<DashboardData> {
   const agendados = all.filter((p) => p.status === "agendado" || p.status === "confirmado").length;
   const compareceram = all.filter((p) => p.status === "compareceu").length;
   const fechados = all.filter((p) => p.status === "fechado").length;
+  const perdidos = all.filter((p) => p.status === "perdido").length;
+
+  // Follow-up: leads with at least one follow-up message sent (stage >= 1)
+  const followUp = all.filter((p) => (p.follow_up_stage ?? 0) >= 1).length;
 
   // Source counts — leads
   const metaAds = all.filter((p) => p.source === "meta_ads").length;
@@ -730,11 +742,14 @@ export async function fetchDashboardMetrics(): Promise<DashboardData> {
     metrics: {
       totalLeads: total,
       totalSales: fechados,
+      followUp,
+      perdidos,
     },
     funnel: [
       { stage: "Leads", value: total, fill: "#1D4ED8" },
+      { stage: "Follow-up", value: followUp, fill: "#9333EA" },
       { stage: "Agendados", value: agendados + compareceram + fechados, fill: "#3B82F6" },
-      { stage: "Compareceram", value: compareceram + fechados, fill: "#6D28D9" },
+      { stage: "Compareceram", value: compareceram + fechados, fill: "#4C1D95" },
       { stage: "Fechados", value: fechados, fill: "#22C55E" },
     ],
     source: [
@@ -829,11 +844,12 @@ export async function reactivateLead(patientId: string): Promise<boolean> {
 
 function emptyDashboard(): DashboardData {
   return {
-    metrics: { totalLeads: 0, totalSales: 0 },
+    metrics: { totalLeads: 0, totalSales: 0, followUp: 0, perdidos: 0 },
     funnel: [
       { stage: "Leads", value: 0, fill: "#1D4ED8" },
+      { stage: "Follow-up", value: 0, fill: "#9333EA" },
       { stage: "Agendados", value: 0, fill: "#3B82F6" },
-      { stage: "Compareceram", value: 0, fill: "#6D28D9" },
+      { stage: "Compareceram", value: 0, fill: "#4C1D95" },
       { stage: "Fechados", value: 0, fill: "#22C55E" },
     ],
     source: [],

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Settings, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Settings, Sun, Moon, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
 import { supabase } from "@/lib/supabase";
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/kanban", label: "Kanban", icon: Columns3 },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/conversas", label: "Conversas", icon: MessageCircle },
+  { href: "/follow-up", label: "Follow-up", icon: GitBranch },
   { href: "/agenda", label: "Agenda", icon: Calendar },
   { href: "/meta-ads", label: "Campanhas", icon: Megaphone },
   { href: "/configuracoes", label: "Configurações", icon: Settings },

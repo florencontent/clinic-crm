@@ -37,6 +37,8 @@ export interface Lead {
   reminderStatus?: ReminderStatus;
   agentPaused?: boolean;
   lossReason?: string;
+  dealValue?: number;
+  followUpStage?: number;
 }
 
 export interface Message {
@@ -72,6 +74,7 @@ export interface Appointment {
   status?: string;
   reminderStatus?: ReminderStatus;
   patientNotes?: string;
+  patientDealValue?: number;
 }
 
 export const statusLabels: Record<LeadStatus, string> = {

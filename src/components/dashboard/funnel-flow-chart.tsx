@@ -109,8 +109,9 @@ export function FunnelFlowChart({ data }: FunnelFlowProps) {
             <defs>
               <linearGradient id="fflow-grad" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%"   stopColor="#1D4ED8" stopOpacity="0.95" />
-                <stop offset="33%"  stopColor="#3B82F6" stopOpacity="0.95" />
-                <stop offset="66%"  stopColor="#6D28D9" stopOpacity="0.95" />
+                <stop offset="20%"  stopColor="#9333EA" stopOpacity="0.95" />
+                <stop offset="50%"  stopColor="#3B82F6" stopOpacity="0.95" />
+                <stop offset="75%"  stopColor="#4C1D95" stopOpacity="0.95" />
                 <stop offset="100%" stopColor="#22C55E" stopOpacity="0.95" />
               </linearGradient>
             </defs>
@@ -126,21 +127,6 @@ export function FunnelFlowChart({ data }: FunnelFlowProps) {
             ))}
           </svg>
 
-          {/* Conversion rates between stages */}
-          <div className="flex mt-2">
-            {data.slice(0, -1).map((d, i) => {
-              const next = data[i + 1];
-              const conv = d.value > 0 ? Math.round((next.value / d.value) * 100) : 0;
-              return (
-                <div key={i} className="flex-1 text-center">
-                  <span className="text-xs font-medium" style={{ color: textMuted }}>
-                    ↓ {conv}%
-                  </span>
-                </div>
-              );
-            })}
-            <div className="flex-1" />
-          </div>
         </div>
 
         {/* Donut chart */}
@@ -164,12 +150,15 @@ export function FunnelFlowChart({ data }: FunnelFlowProps) {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    borderRadius: 10, border: "none",
-                    boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+                    borderRadius: 10,
+                    border: isDark ? "1px solid #374151" : "none",
+                    boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.6)" : "0 4px 16px rgba(0,0,0,0.15)",
                     fontSize: 12,
-                    backgroundColor: bgColor,
+                    backgroundColor: isDark ? "#111827" : "#ffffff",
                     color: textPrimary,
                   }}
+                  labelStyle={{ color: textPrimary, fontWeight: 600 }}
+                  itemStyle={{ color: textPrimary }}
                   formatter={(v: number | undefined) => [v ?? 0, ""]}
                 />
               </PieChart>

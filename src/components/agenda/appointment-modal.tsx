@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Check, Trash2, AlertTriangle } from "lucide-react";
+import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Check, Trash2, AlertTriangle, DollarSign } from "lucide-react";
 import { Appointment, reminderLabels, reminderColors } from "@/data/mock-data";
 import { deleteAppointmentWithCalendar, updatePatient, updateAppointmentDoctor } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -35,6 +35,9 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
   const procedure = appointment.procedure;
   const [doctor, setDoctor] = useState(appointment.doctor);
   const [patientNotes, setPatientNotes] = useState(appointment.patientNotes ?? "");
+  const [dealValueInput, setDealValueInput] = useState(appointment.patientDealValue ? String(appointment.patientDealValue) : "");
+  const [editingDeal, setEditingDeal] = useState(false);
+  const [localDealValue, setLocalDealValue] = useState(appointment.patientDealValue);
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -171,6 +174,58 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
               </select>
             </div>
           </div>
+
+          {/* Ticket / Valor - editável */}
+          {appointment.patientId && (
+            <div className="flex items-start gap-3">
+              <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 p-2 rounded-lg flex-shrink-0 mt-1">
+                <DollarSign className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">Ticket / Valor (R$)</p>
+                {editingDeal ? (
+                  <input
+                    type="number"
+                    value={dealValueInput}
+                    onChange={(e) => setDealValueInput(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter") {
+                        const parsed = dealValueInput ? parseFloat(dealValueInput) : undefined;
+                        setLocalDealValue(parsed);
+                        setEditingDeal(false);
+                        if (appointment.patientId) {
+                          await updatePatient(appointment.patientId, { dealValue: parsed ?? null });
+                        }
+                      } else if (e.key === "Escape") {
+                        setDealValueInput(localDealValue ? String(localDealValue) : "");
+                        setEditingDeal(false);
+                      }
+                    }}
+                    onBlur={async () => {
+                      const parsed = dealValueInput ? parseFloat(dealValueInput) : undefined;
+                      setLocalDealValue(parsed);
+                      setEditingDeal(false);
+                      if (appointment.patientId) {
+                        await updatePatient(appointment.patientId, { dealValue: parsed ?? null });
+                      }
+                    }}
+                    placeholder="0,00"
+                    autoFocus
+                    className={inputClass}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setEditingDeal(true)}
+                    className="w-full text-left px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm bg-white dark:bg-gray-800 hover:border-blue-400 transition-colors"
+                  >
+                    {localDealValue != null
+                      ? localDealValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                      : <span className="text-gray-400 dark:text-gray-500">Clique para informar...</span>}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Observação do lead - editável */}
           <div className="flex items-start gap-3">

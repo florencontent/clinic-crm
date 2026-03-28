@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Users, CalendarCheck, UserCheck, Trophy,
   TrendingUp, TrendingDown, Minus,
-  DollarSign, BarChart2, Zap, Tag,
+  DollarSign, BarChart2, Zap, Tag, GitBranch, XCircle,
 } from "lucide-react";
 import { PeriodComparison } from "@/hooks/use-supabase-data";
 
@@ -14,6 +14,8 @@ type DateFilter = "hoje" | "7d" | "15d" | "30d" | "custom";
 
 interface MetricsCardsProps {
   totalLeads: number;
+  followUp: number;
+  perdidos: number;
   agendados: number;
   compareceram: number;
   totalSales: number;
@@ -48,7 +50,7 @@ function buildMetaUrl(filter: DateFilter, customStart?: string, customEnd?: stri
 // Faturamento desativado por enquanto — não puxa dado do Meta
 
 export function MetricsCards({
-  totalLeads, agendados, compareceram, totalSales,
+  totalLeads, followUp, perdidos, agendados, compareceram, totalSales,
   currPeriod, prevPeriod, activeFilter = "30d", customStart, customEnd,
 }: MetricsCardsProps) {
   const investimento: number | null = null;
@@ -65,6 +67,13 @@ export function MetricsCards({
       color: { bg: "bg-blue-50", darkBg: "dark:bg-blue-900/20", text: "text-blue-600", darkText: "dark:text-blue-400", border: "border-blue-100" },
       convRate: null as number | null,
       change: (currPeriod && prevPeriod) ? calcChange(currPeriod.totalLeads, prevPeriod.totalLeads) : null,
+    },
+    {
+      key: "followup", title: "Leads em Follow-up", subtitle: "Com mensagem enviada",
+      icon: GitBranch, value: followUp, display: String(followUp),
+      color: { bg: "bg-purple-50", darkBg: "dark:bg-purple-900/20", text: "text-purple-600", darkText: "dark:text-purple-400", border: "border-purple-100" },
+      convRate: totalLeads > 0 ? Math.round((followUp / totalLeads) * 100) : null,
+      change: null as number | null,
     },
     {
       key: "agendados", title: "Agendamentos", subtitle: "Consultas marcadas",
@@ -119,12 +128,17 @@ export function MetricsCards({
       icon: Tag, display: fmtBRL(ticketMedio),
       color: { bg: "bg-violet-50", darkBg: "dark:bg-violet-900/20", text: "text-violet-600", darkText: "dark:text-violet-400", border: "border-violet-100" },
     },
+    {
+      key: "perdidos", title: "Perdidos", subtitle: "Leads não convertidos",
+      icon: XCircle, display: String(perdidos),
+      color: { bg: "bg-red-50", darkBg: "dark:bg-red-900/20", text: "text-red-500", darkText: "dark:text-red-400", border: "border-red-100" },
+    },
   ];
 
   return (
     <div className="space-y-4">
       {/* Linha 1 — funil */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {funnelCards.map((card) => (
           <div
             key={card.key}
@@ -159,7 +173,7 @@ export function MetricsCards({
       </div>
 
       {/* Linha 2 — financeiro */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {finCards.map((card) => (
           <div
             key={card.key}

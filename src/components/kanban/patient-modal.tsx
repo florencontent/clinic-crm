@@ -17,11 +17,12 @@ interface PatientModalProps {
   conversations: Conversation[];
   appointments: Appointment[];
   onClose: () => void;
-  onOpenChat: (leadId: string) => void;
+  onOpenChat?: (leadId: string) => void;
   onSave?: (lead: Lead) => void;
   onSendMessage?: (leadId: string, text: string) => void;
   onDelete?: (id: string) => void;
   onLeadUpdate?: (lead: Lead) => void;
+  followUpStage?: number;
 }
 
 type Tab = "resumo" | "conversa" | "agenda";
@@ -32,11 +33,11 @@ export function PatientModal({
   conversations,
   appointments,
   onClose,
-  onOpenChat,
   onSave,
   onSendMessage,
   onDelete,
   onLeadUpdate,
+  followUpStage,
 }: PatientModalProps) {
   const [tab, setTab] = useState<Tab>("resumo");
   const [lead, setLead] = useState(initialLead);
@@ -171,6 +172,11 @@ export function PatientModal({
                     </span>
                   )}
                   <span className="text-gray-400 text-xs">{lead.source}</span>
+                  {lead.status === "em_contato" && (lead.followUpStage ?? followUpStage ?? 0) >= 1 && (
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300">
+                      {(lead.followUpStage ?? followUpStage ?? 0) === 5 ? "Mensagem 5 (Encerrando)" : `Mensagem ${lead.followUpStage ?? followUpStage}`}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -291,6 +297,16 @@ export function PatientModal({
                     <option value="">Selecionar...</option>
                     {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
                   </select>
+                </div>
+
+                {/* Ticket */}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
+                  <p className="text-[10px] text-gray-400 mb-1">Ticket</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {lead.dealValue != null
+                      ? lead.dealValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                      : "—"}
+                  </p>
                 </div>
 
                 {/* CTA */}

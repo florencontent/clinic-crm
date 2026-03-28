@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useDoctors } from "@/hooks/use-doctors";
 import { X, Plus } from "lucide-react";
-import { Lead, LeadSource, Tag, TagType } from "@/data/mock-data";
+import { Lead, Tag, TagType } from "@/data/mock-data";
 import { updatePatient } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +24,9 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   const [name, setName] = useState(lead.name);
   const [phone, setPhone] = useState(lead.phone);
   const [email, setEmail] = useState(lead.email || "");
-  const [source, setSource] = useState<LeadSource>(lead.source);
   const [tags, setTags] = useState<Tag[]>(lead.tags || []);
   const [notes, setNotes] = useState(lead.notes || "");
+  const [dealValue, setDealValue] = useState(lead.dealValue != null ? String(lead.dealValue) : "");
   const [saving, setSaving] = useState(false);
 
   // For adding new tags
@@ -51,20 +51,20 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
+    const parsedDeal = dealValue.trim() ? parseFloat(dealValue) : null;
     const updated = await updatePatient(lead.id, {
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim() || undefined,
-      source,
       tags,
       notes: notes.trim() || undefined,
+      dealValue: parsedDeal,
     });
     setSaving(false);
     if (updated) {
       onSave(updated);
     } else {
-      // Fallback: optimistic update
-      onSave({ ...lead, name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, source, tags, notes: notes.trim() || undefined });
+      onSave({ ...lead, name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, tags, notes: notes.trim() || undefined, dealValue: parsedDeal ?? undefined });
     }
   };
 
@@ -119,20 +119,6 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
           </div>
 
 
-          {/* Origem */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Origem</label>
-            <select
-              value={source}
-              onChange={(e) => setSource(e.target.value as LeadSource)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
-            >
-              {(["Site", "Meta Ads", "Orgânico", "Indicação"] as LeadSource[]).map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Tags */}
           <div>
             <div className="space-y-3">
@@ -167,6 +153,18 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
                     <Plus className="h-3.5 w-3.5" />
                   </button>
                 </div>
+              </div>
+
+              {/* Ticket */}
+              <div>
+                <p className="text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Ticket (R$)</p>
+                <input
+                  type="number"
+                  value={dealValue}
+                  onChange={(e) => setDealValue(e.target.value)}
+                  placeholder="0,00"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors placeholder-gray-400"
+                />
               </div>
 
               {/* Observação */}
