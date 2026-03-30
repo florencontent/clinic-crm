@@ -581,19 +581,22 @@ export async function fetchDashboardMetricsByRange(from: string, to: string): Pr
   agendados: number;
   compareceram: number;
   totalSales: number;
+  totalRevenue: number;
 }> {
   const { data } = await supabase
     .from("patients")
-    .select("status")
+    .select("status, deal_value")
     .gte("created_at", from)
     .lte("created_at", to);
 
   const all = data || [];
+  const fechados = all.filter((p) => p.status === "fechado");
   return {
     totalLeads: all.length,
     agendados: all.filter((p) => ["agendado", "confirmado"].includes(p.status)).length,
     compareceram: all.filter((p) => p.status === "compareceu").length,
-    totalSales: all.filter((p) => p.status === "fechado").length,
+    totalSales: fechados.length,
+    totalRevenue: fechados.reduce((sum, p) => sum + (p.deal_value ?? 0), 0),
   };
 }
 
@@ -664,6 +667,7 @@ export interface DashboardData {
     totalSales: number;
     followUp: number;
     perdidos: number;
+    totalRevenue: number;
   };
   funnel: Array<{ stage: string; value: number; fill: string }>;
   source: Array<{ name: string; value: number; fill: string }>;
@@ -699,7 +703,7 @@ export async function fetchDailyFechados(from: string, to: string): Promise<Arra
 export async function fetchDashboardMetrics(): Promise<DashboardData> {
   const { data: patients, error } = await supabase
     .from("patients")
-    .select("status, source, follow_up_stage");
+    .select("status, source, follow_up_stage, deal_value");
 
   if (error) {
     console.error("Error fetching dashboard metrics:", error);
@@ -746,12 +750,16 @@ export async function fetchDashboardMetrics(): Promise<DashboardData> {
   const comparecimentoRate = (agendados + compareceram + fechados) > 0 ? (compareceram + fechados) / (agendados + compareceram + fechados) * 100 : 0;
   const vendaRate = (compareceram + fechados) > 0 ? fechados / (compareceram + fechados) * 100 : 0;
 
+  const vendasFechadas = all.filter((p) => p.status === "fechado");
+  const totalRevenue = vendasFechadas.reduce((sum, p) => sum + ((p as unknown as { deal_value?: number }).deal_value ?? 0), 0);
+
   return {
     metrics: {
       totalLeads: total,
       totalSales: fechados,
       followUp,
       perdidos,
+      totalRevenue,
     },
     funnel: [
       { stage: "Leads", value: total, fill: "#1D4ED8" },
@@ -862,7 +870,7 @@ export async function pinContact(patientId: string, pinned: boolean): Promise<bo
 
 function emptyDashboard(): DashboardData {
   return {
-    metrics: { totalLeads: 0, totalSales: 0, followUp: 0, perdidos: 0 },
+    metrics: { totalLeads: 0, totalSales: 0, followUp: 0, perdidos: 0, totalRevenue: 0 },
     funnel: [
       { stage: "Leads", value: 0, fill: "#1D4ED8" },
       { stage: "Follow-up", value: 0, fill: "#9333EA" },

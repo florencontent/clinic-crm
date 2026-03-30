@@ -8,9 +8,7 @@ import {
 } from "lucide-react";
 import { PeriodComparison } from "@/hooks/use-supabase-data";
 
-const AVG_TICKET = 3500;
-
-type DateFilter = "hoje" | "7d" | "15d" | "30d" | "custom";
+type DashboardPeriod = "last_7d" | "last_14d" | "last_30d" | "maximum" | "custom";
 
 interface MetricsCardsProps {
   totalLeads: number;
@@ -19,9 +17,10 @@ interface MetricsCardsProps {
   agendados: number;
   compareceram: number;
   totalSales: number;
+  totalRevenue: number;
   currPeriod?: PeriodComparison | null;
   prevPeriod?: PeriodComparison | null;
-  activeFilter?: DateFilter;
+  period?: DashboardPeriod;
   customStart?: string;
   customEnd?: string;
 }
@@ -32,32 +31,40 @@ function calcChange(curr: number, prev: number): number | null {
 }
 
 function fmtBRL(v: number) {
-  if (v >= 1000) return `R$ ${(v / 1000).toFixed(1).replace(".", ",")}k`;
-  return `R$ ${v.toFixed(0)}`;
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-function buildMetaUrl(filter: DateFilter, customStart?: string, customEnd?: string) {
-  if (filter === "custom" && customStart && customEnd) {
+function buildMetaUrl(period: DashboardPeriod, customStart?: string, customEnd?: string) {
+  if (period === "custom" && customStart && customEnd) {
     return `/api/meta-ads?date_preset=last_14d&since=${customStart}&until=${customEnd}`;
   }
-  const preset =
-    filter === "7d" || filter === "hoje" ? "last_7d" :
-    filter === "15d" ? "last_14d" :
-    "last_30d";
+  const preset = period === "maximum" ? "maximum" : period;
   return `/api/meta-ads?date_preset=${preset}`;
 }
 
 // Faturamento desativado por enquanto — não puxa dado do Meta
 
 export function MetricsCards({
-  totalLeads, followUp, perdidos, agendados, compareceram, totalSales,
-  currPeriod, prevPeriod, activeFilter = "30d", customStart, customEnd,
+  totalLeads, followUp, perdidos, agendados, compareceram, totalSales, totalRevenue,
+  currPeriod, prevPeriod, period = "last_14d", customStart, customEnd,
 }: MetricsCardsProps) {
-  const investimento: number | null = null;
+  const [investimento, setInvestimento] = useState<number | null>(null);
 
-  const faturamento = totalSales * AVG_TICKET;
+  useEffect(() => {
+    const url = buildMetaUrl(period, customStart, customEnd);
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.metrics?.totalSpend != null) {
+          setInvestimento(data.metrics.totalSpend);
+        }
+      })
+      .catch(() => {});
+  }, [period, customStart, customEnd]);
+
+  const faturamento = totalRevenue;
   const roas = investimento && investimento > 0 ? faturamento / investimento : null;
-  const ticketMedio = totalSales > 0 ? faturamento / totalSales : AVG_TICKET;
+  const ticketMedio = totalSales > 0 ? totalRevenue / totalSales : 0;
 
   // ── Row 1: funil ──
   const funnelCards = [

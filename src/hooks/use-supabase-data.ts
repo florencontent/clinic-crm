@@ -81,16 +81,27 @@ export interface PeriodComparison {
   agendados: number;
   compareceram: number;
   totalSales: number;
+  totalRevenue: number;
 }
 
-function getPeriodRange(filter: string): { from: string; to: string; prevFrom: string; prevTo: string } | null {
+function getPeriodRange(filter: string, since?: string, until?: string): { from: string; to: string; prevFrom: string; prevTo: string } | null {
+  if (filter === "custom" && since && until) {
+    const days = Math.round((new Date(until).getTime() - new Date(since).getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const prevTo = new Date(since);
+    prevTo.setDate(prevTo.getDate() - 1);
+    const prevFrom = new Date(prevTo);
+    prevFrom.setDate(prevFrom.getDate() - days + 1);
+    const fmt = (d: Date) => d.toISOString().split("T")[0];
+    return { from: since, to: until, prevFrom: fmt(prevFrom), prevTo: fmt(prevTo) };
+  }
+
   const now = new Date();
   const toDate = new Date(now);
   let days = 0;
-  if (filter === "hoje") days = 1;
-  else if (filter === "7d") days = 7;
-  else if (filter === "15d") days = 15;
-  else if (filter === "30d") days = 30;
+  if (filter === "last_7d") days = 7;
+  else if (filter === "last_14d") days = 14;
+  else if (filter === "last_30d") days = 30;
+  else if (filter === "maximum") days = 365;
   else return null;
 
   const fromDate = new Date(now);
@@ -110,7 +121,7 @@ function getPeriodRange(filter: string): { from: string; to: string; prevFrom: s
   };
 }
 
-export function useDashboardData(activeFilter?: string) {
+export function useDashboardData(activeFilter?: string, since?: string, until?: string) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [prevPeriod, setPrevPeriod] = useState<PeriodComparison | null>(null);
@@ -122,7 +133,7 @@ export function useDashboardData(activeFilter?: string) {
     setLoading(false);
 
     if (activeFilter) {
-      const range = getPeriodRange(activeFilter);
+      const range = getPeriodRange(activeFilter, since, until);
       if (range) {
         const [curr, prev] = await Promise.all([
           fetchDashboardMetricsByRange(range.from + "T00:00:00Z", range.to + "T23:59:59Z"),
@@ -135,7 +146,7 @@ export function useDashboardData(activeFilter?: string) {
         setPrevPeriod(null);
       }
     }
-  }, [activeFilter]);
+  }, [activeFilter, since, until]);
 
   useEffect(() => {
     refresh();
@@ -144,7 +155,7 @@ export function useDashboardData(activeFilter?: string) {
   }, [refresh]);
 
   return {
-    metrics: data?.metrics ?? { totalLeads: 0, totalSales: 0 },
+    metrics: data?.metrics ?? { totalLeads: 0, totalSales: 0, followUp: 0, perdidos: 0, totalRevenue: 0 },
     funnel: data?.funnel ?? [],
     source: data?.source ?? [],
     sourceAgendamentos: data?.sourceAgendamentos ?? [],

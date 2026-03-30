@@ -1,37 +1,78 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { format, addMonths, subMonths, addWeeks, subWeeks, isSameDay, isWithinInterval, startOfWeek, endOfWeek, startOfYear, endOfYear, startOfMonth, endOfMonth } from "date-fns";
+import { useState, useRef, useEffect } from "react";
+import {
+  format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, addYears, subYears,
+  isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear,
+  isSameMonth, isWithinInterval,
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Loader2, CalendarDays, Clock, CalendarCheck, UserCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Loader2, CalendarDays, CalendarCheck, UserCheck } from "lucide-react";
 import { CalendarView } from "@/components/agenda/calendar-view";
 import { WeekView } from "@/components/agenda/week-view";
+import { DayView } from "@/components/agenda/day-view";
+import { YearView } from "@/components/agenda/year-view";
 import { AppointmentModal } from "@/components/agenda/appointment-modal";
 import { NewAppointmentModal } from "@/components/agenda/new-appointment-modal";
 import { Appointment } from "@/data/mock-data";
 import { useAppointments } from "@/hooks/use-supabase-data";
 import { cn } from "@/lib/utils";
 
-type ViewMode = "month" | "week";
-type PeriodFilter = "anual" | "mensal" | "semanal" | "personalizado";
+type ViewMode = "day" | "week" | "month" | "year";
+
+const VIEW_OPTIONS: { value: ViewMode; label: string; shortcut: string }[] = [
+  { value: "day", label: "Dia", shortcut: "D" },
+  { value: "week", label: "Semana", shortcut: "S" },
+  { value: "month", label: "Mês", shortcut: "M" },
+  { value: "year", label: "Ano", shortcut: "A" },
+];
+
+function getTitle(viewMode: ViewMode, currentDate: Date): string {
+  switch (viewMode) {
+    case "day":
+      return format(currentDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR });
+    case "week": {
+      const start = startOfWeek(currentDate, { weekStartsOn: 0 });
+      const end = endOfWeek(currentDate, { weekStartsOn: 0 });
+      if (isSameMonth(start, end)) {
+        return format(start, "MMMM yyyy", { locale: ptBR });
+      }
+      return `${format(start, "MMM", { locale: ptBR })}. – ${format(end, "MMM. yyyy", { locale: ptBR })}`;
+    }
+    case "month":
+      return format(currentDate, "MMMM yyyy", { locale: ptBR });
+    case "year":
+      return format(currentDate, "yyyy");
+  }
+}
 
 export default function AgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [showViewSelect, setShowViewSelect] = useState(false);
+  const viewSelectRef = useRef<HTMLDivElement>(null);
+
   const { appointments, loading, setAppointments } = useAppointments();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [newAptDate, setNewAptDate] = useState<string | null>(null);
 
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("mensal");
-  const [customFrom, setCustomFrom] = useState<string>("");
-  const [customTo, setCustomTo] = useState<string>("");
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (viewSelectRef.current && !viewSelectRef.current.contains(e.target as Node)) {
+        setShowViewSelect(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const navigate = (direction: "prev" | "next") => {
-    if (viewMode === "month") {
-      setCurrentDate((d) => direction === "prev" ? subMonths(d, 1) : addMonths(d, 1));
-    } else {
-      setCurrentDate((d) => direction === "prev" ? subWeeks(d, 1) : addWeeks(d, 1));
-    }
+    setCurrentDate((d) => {
+      if (viewMode === "day") return direction === "prev" ? subDays(d, 1) : addDays(d, 1);
+      if (viewMode === "week") return direction === "prev" ? subWeeks(d, 1) : addWeeks(d, 1);
+      if (viewMode === "year") return direction === "prev" ? subYears(d, 1) : addYears(d, 1);
+      return direction === "prev" ? subMonths(d, 1) : addMonths(d, 1);
+    });
   };
 
   const goToToday = () => setCurrentDate(new Date());
@@ -43,30 +84,26 @@ export default function AgendaPage() {
 
   const today = new Date();
 
-  // Period-filtered appointments
-  const periodFilteredAppointments = useMemo(() => {
-    let start: Date, end: Date;
-    if (periodFilter === "anual") {
-      start = startOfYear(today);
-      end = endOfYear(today);
-    } else if (periodFilter === "semanal") {
-      start = startOfWeek(today, { weekStartsOn: 0 });
-      end = endOfWeek(today, { weekStartsOn: 0 });
-    } else if (periodFilter === "personalizado") {
-      if (!customFrom || !customTo) return appointments;
-      start = new Date(customFrom + "T00:00:00");
-      end = new Date(customTo + "T23:59:59");
-    } else {
-      // mensal (default)
-      start = startOfMonth(today);
-      end = endOfMonth(today);
+  // Period range based on current view mode + navigation date
+  const periodRange = (() => {
+    switch (viewMode) {
+      case "day":
+        return { start: new Date(format(currentDate, "yyyy-MM-dd") + "T00:00:00"), end: new Date(format(currentDate, "yyyy-MM-dd") + "T23:59:59"), label: "no dia" };
+      case "week":
+        return { start: startOfWeek(currentDate, { weekStartsOn: 0 }), end: endOfWeek(currentDate, { weekStartsOn: 0 }), label: "na semana" };
+      case "month":
+        return { start: startOfMonth(currentDate), end: endOfMonth(currentDate), label: "no mês" };
+      case "year":
+        return { start: startOfYear(currentDate), end: endOfYear(currentDate), label: "no ano" };
     }
-    return appointments.filter((a) => {
-      const d = new Date(a.date + "T00:00:00");
-      return isWithinInterval(d, { start, end });
-    });
-  }, [appointments, periodFilter, customFrom, customTo]);
+  })();
 
+  const periodApts = appointments.filter((a) =>
+    isWithinInterval(new Date(a.date + "T00:00:00"), { start: periodRange.start, end: periodRange.end })
+  );
+  const compareceuCount = periodApts.filter((a) => a.status === "compareceu" || a.status === "fechado").length;
+
+  // Fixed reference: today and this week (for context)
   const todayApts = appointments.filter((a) => isSameDay(new Date(a.date + "T00:00:00"), today));
   const weekApts = appointments.filter((a) => {
     const d = new Date(a.date + "T00:00:00");
@@ -74,14 +111,6 @@ export default function AgendaPage() {
     const end = endOfWeek(today, { weekStartsOn: 0 });
     return d >= start && d <= end;
   });
-  const compareceuCount = appointments.filter((a) => a.status === "compareceu").length;
-
-  const PERIOD_FILTERS: { value: PeriodFilter; label: string }[] = [
-    { value: "anual", label: "Anual" },
-    { value: "mensal", label: "Mensal" },
-    { value: "semanal", label: "Semanal" },
-    { value: "personalizado", label: "Personalizado" },
-  ];
 
   if (loading) {
     return (
@@ -90,6 +119,8 @@ export default function AgendaPage() {
       </div>
     );
   }
+
+  const currentViewLabel = VIEW_OPTIONS.find((v) => v.value === viewMode)?.label ?? "Mês";
 
   return (
     <div className="p-8">
@@ -100,27 +131,6 @@ export default function AgendaPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 shadow-sm">
-            <button
-              onClick={() => setViewMode("month")}
-              className={cn(
-                "px-4 py-1.5 text-xs font-medium rounded-lg transition-all",
-                viewMode === "month" ? "bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              )}
-            >
-              Mensal
-            </button>
-            <button
-              onClick={() => setViewMode("week")}
-              className={cn(
-                "px-4 py-1.5 text-xs font-medium rounded-lg transition-all",
-                viewMode === "week" ? "bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              )}
-            >
-              Semanal
-            </button>
-          </div>
-
           <button
             onClick={goToToday}
             className="px-3 py-2 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors"
@@ -132,25 +142,55 @@ export default function AgendaPage() {
             <button onClick={() => navigate("prev")} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 min-w-[150px] text-center capitalize px-1">
-              {format(currentDate, viewMode === "month" ? "MMMM yyyy" : "'Semana de' d MMM", { locale: ptBR })}
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 min-w-[160px] text-center capitalize px-1">
+              {getTitle(viewMode, currentDate)}
             </span>
             <button onClick={() => navigate("next")} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
+
+          <div className="relative" ref={viewSelectRef}>
+            <button
+              onClick={() => setShowViewSelect((v) => !v)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors"
+            >
+              {currentViewLabel}
+              <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+            </button>
+
+            {showViewSelect && (
+              <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-1 min-w-[140px]">
+                {VIEW_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => { setViewMode(opt.value); setShowViewSelect(false); }}
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-2 text-xs transition-colors",
+                      viewMode === opt.value
+                        ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    )}
+                  >
+                    <span>{opt.label}</span>
+                    <span className="text-gray-300 dark:text-gray-600 text-[10px] font-mono">{opt.shortcut}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
           <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
             <CalendarDays className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{todayApts.length}</p>
-            <p className="text-xs text-gray-400">Consultas hoje</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{periodApts.length}</p>
+            <p className="text-xs text-gray-400 capitalize">Consultas {periodRange.label}</p>
           </div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
@@ -158,86 +198,52 @@ export default function AgendaPage() {
             <CalendarCheck className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{weekApts.length}</p>
-            <p className="text-xs text-gray-400">Esta semana</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {viewMode === "day" ? weekApts.length : todayApts.length}
+            </p>
+            <p className="text-xs text-gray-400">
+              {viewMode === "day" ? "Esta semana" : "Hoje"}
+            </p>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
-          <div className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-xl">
-            <Clock className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{appointments.length}</p>
-            <p className="text-xs text-gray-400">Total agendado</p>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
+<div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm px-5 py-4 flex items-center gap-3">
           <div className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 p-2.5 rounded-xl">
             <UserCheck className="h-4 w-4" />
           </div>
           <div>
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{compareceuCount}</p>
-            <p className="text-xs text-gray-400">Compareceram</p>
+            <p className="text-xs text-gray-400 capitalize">Compareceram {periodRange.label}</p>
           </div>
         </div>
       </div>
 
-      {/* Period filter tabs */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 shadow-sm">
-          {PERIOD_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setPeriodFilter(f.value)}
-              className={cn(
-                "px-4 py-1.5 text-xs font-medium rounded-lg transition-all",
-                periodFilter === f.value
-                  ? "bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 shadow-sm"
-                  : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        {periodFilter === "personalizado" && (
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-500 dark:text-gray-400">De</label>
-            <input
-              type="date"
-              value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)}
-              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
-            />
-            <label className="text-xs text-gray-500 dark:text-gray-400">Até</label>
-            <input
-              type="date"
-              value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)}
-              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
-            />
-          </div>
-        )}
-
-        {periodFilter !== "mensal" && (
-          <span className="text-xs text-gray-400">
-            {periodFilteredAppointments.length} consulta{periodFilteredAppointments.length !== 1 ? "s" : ""} no período
-          </span>
-        )}
-      </div>
-
-      {viewMode === "month" ? (
+      {/* Calendar views */}
+      {viewMode === "month" && (
         <CalendarView
           currentDate={currentDate}
-          appointments={periodFilteredAppointments}
+          appointments={appointments}
           onSelectAppointment={setSelectedAppointment}
           onNewAppointment={(date) => setNewAptDate(date)}
         />
-      ) : (
+      )}
+      {viewMode === "week" && (
         <WeekView
           currentDate={currentDate}
-          appointments={periodFilteredAppointments}
+          appointments={appointments}
+          onSelectAppointment={setSelectedAppointment}
+        />
+      )}
+      {viewMode === "day" && (
+        <DayView
+          currentDate={currentDate}
+          appointments={appointments}
+          onSelectAppointment={setSelectedAppointment}
+        />
+      )}
+      {viewMode === "year" && (
+        <YearView
+          currentDate={currentDate}
+          appointments={appointments}
           onSelectAppointment={setSelectedAppointment}
         />
       )}
