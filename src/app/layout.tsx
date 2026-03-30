@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-context";
 import { LanguageProvider } from "@/lib/language-context";
 import { AuthProvider } from "@/lib/auth-context";
+import { DoctorsProvider } from "@/lib/doctors-context";
 import { AppShell } from "@/components/layout/app-shell";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -25,11 +26,13 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={inter.className}>
         <AuthProvider>
-          <LanguageProvider>
-            <ThemeProvider>
-              <AppShell>{children}</AppShell>
-            </ThemeProvider>
-          </LanguageProvider>
+          <DoctorsProvider>
+            <LanguageProvider>
+              <ThemeProvider>
+                <AppShell>{children}</AppShell>
+              </ThemeProvider>
+            </LanguageProvider>
+          </DoctorsProvider>
         </AuthProvider>
       </body>
     </html>

@@ -5,7 +5,7 @@ import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Che
 import { Appointment, reminderLabels, reminderColors } from "@/data/mock-data";
 import { deleteAppointmentWithCalendar, updatePatient, updateAppointmentDoctor } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useDoctors } from "@/hooks/use-doctors";
+import { useDoctors } from "@/lib/doctors-context";
 import { useLanguage } from "@/lib/language-context";
 
 interface AppointmentModalProps {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, X, Ticket, Stethoscope, User, Clipboard, Phone, Mail, ChevronDown, ChevronUp, Pencil, Check } from "lucide-react";
 import { useSpecialties } from "@/hooks/use-specialties";
 import { useProcedures } from "@/hooks/use-procedures";
-import { useDoctors, Doctor } from "@/hooks/use-doctors";
+import { useDoctors, Doctor } from "@/lib/doctors-context";
 import { cn } from "@/lib/utils";
 
 export default function TicketsPage() {

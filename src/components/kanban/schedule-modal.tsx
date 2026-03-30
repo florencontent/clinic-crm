@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, CalendarCheck, Loader2, Check } from "lucide-react";
 import { createAppointment } from "@/lib/api";
 import { Lead } from "@/data/mock-data";
+import { useDoctors } from "@/lib/doctors-context";
 
 interface ScheduleModalProps {
   lead: Lead;
@@ -19,8 +20,9 @@ export function ScheduleModal({ lead, onClose, onScheduled }: ScheduleModalProps
   const [date, setDate] = useState(today);
   const [time, setTime] = useState("09:00");
   const [duration, setDuration] = useState(60);
-  const [doctor, setDoctor] = useState("Dr. Alfredo Marques");
+  const [doctor, setDoctor] = useState("");
   const [notes, setNotes] = useState("");
+  const { doctorNames } = useDoctors();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -87,13 +89,14 @@ export function ScheduleModal({ lead, onClose, onScheduled }: ScheduleModalProps
             </div>
             <div>
               <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 block">Médico</label>
-              <input
-                type="text"
+              <select
                 value={doctor}
                 onChange={(e) => setDoctor(e.target.value)}
-                placeholder="Dr. Alfredo..."
                 className={inputClass}
-              />
+              >
+                <option value="">Selecionar...</option>
+                {doctorNames.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
           </div>
 

@@ -10,7 +10,7 @@ import { useTheme } from "@/lib/theme-context";
 import { EditLeadModal } from "./edit-lead-modal";
 import { MarkAsLostModal } from "./mark-as-lost-modal";
 import { deletePatient, toggleAgentPause, markAsLost, reactivateLead, updatePatient } from "@/lib/api";
-import { useDoctors } from "@/hooks/use-doctors";
+import { useDoctors } from "@/lib/doctors-context";
 import { useLanguage } from "@/lib/language-context";
 
 interface PatientModalProps {

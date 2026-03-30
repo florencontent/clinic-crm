@@ -9,7 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toggleAgentPause, updatePatient, updateAppointmentDoctor } from "@/lib/api";
 import { DealValueField } from "@/components/shared/deal-value-field";
-import { useDoctors } from "@/hooks/use-doctors";
+import { useDoctors } from "@/lib/doctors-context";
 import { useLanguage } from "@/lib/language-context";
 
 interface LeadSidebarProps {

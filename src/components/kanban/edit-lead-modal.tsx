@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useDoctors } from "@/hooks/use-doctors";
+import { useDoctors } from "@/lib/doctors-context";
 import { useProcedures } from "@/hooks/use-procedures";
 import { X, Plus } from "lucide-react";
 import { Lead, Tag, TagType } from "@/data/mock-data";
