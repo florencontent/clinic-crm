@@ -1,11 +1,12 @@
 "use client";
 
-import { DollarSign, Users, TrendingDown, MousePointer, Eye, BarChart2 } from "lucide-react";
+import { DollarSign, Users, TrendingDown, MousePointer, Eye, BarChart2, PointerIcon, Percent } from "lucide-react";
 
 interface OverviewCardsProps {
   metrics: {
     totalSpend: number;
     totalLeads: number;
+    totalClicks?: number;
     cpl: number;
     cpc: number;
     ctr: number;
@@ -34,7 +35,7 @@ export function OverviewCards({ metrics, activeCampaigns }: OverviewCardsProps) 
   const valClass = "text-2xl font-bold text-gray-900 dark:text-gray-100";
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {/* Investimento */}
       <div className={cardClass}>
         <div className="flex items-center justify-between mb-3">
@@ -99,6 +100,18 @@ export function OverviewCards({ metrics, activeCampaigns }: OverviewCardsProps) 
         <p className={subClass}>custo por mil impressões</p>
       </div>
 
+      {/* Cliques */}
+      <div className={cardClass}>
+        <div className="flex items-center justify-between mb-3">
+          <span className={labelClass}>Cliques</span>
+          <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center">
+            <PointerIcon className="w-4 h-4 text-teal-500" />
+          </div>
+        </div>
+        <p className={valClass}>{(metrics.totalClicks ?? 0).toLocaleString("pt-BR")}</p>
+        <p className={subClass}>total no período</p>
+      </div>
+
       {/* CPC */}
       <div className={cardClass}>
         <div className="flex items-center justify-between mb-3">
@@ -109,6 +122,18 @@ export function OverviewCards({ metrics, activeCampaigns }: OverviewCardsProps) 
         </div>
         <p className={valClass}>{metrics.cpc > 0 ? `R$ ${fmt(metrics.cpc)}` : "—"}</p>
         <p className={subClass}>custo por clique</p>
+      </div>
+
+      {/* CTR */}
+      <div className={cardClass}>
+        <div className="flex items-center justify-between mb-3">
+          <span className={labelClass}>CTR</span>
+          <div className="w-8 h-8 rounded-lg bg-pink-50 dark:bg-pink-900/30 flex items-center justify-center">
+            <Percent className="w-4 h-4 text-pink-500" />
+          </div>
+        </div>
+        <p className={valClass}>{metrics.ctr > 0 ? `${fmt(metrics.ctr)}%` : "—"}</p>
+        <p className={subClass}>taxa de cliques</p>
       </div>
     </div>
   );

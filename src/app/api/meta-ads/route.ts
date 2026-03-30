@@ -301,12 +301,63 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
   const metrics = {
     totalSpend,
     totalLeads,
+    totalClicks,
     cpl: totalLeads > 0 ? totalSpend / totalLeads : 0,
     cpc: totalClicks > 0 ? totalSpend / totalClicks : 0,
     ctr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
     reach: totalReach,
     cpm: totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0,
   };
+
+  // 6. Demographic breakdowns (age + gender)
+  // Note: WhatsApp/messaging lead conversions are NOT available in demographic breakdowns via Meta API.
+  // We use link_click counts as a demographic proxy — this represents who engaged with the ads.
+  // This is the same approach used by tools like mLabs for WhatsApp campaign accounts.
+  function extractClicks(actions?: Array<{ action_type: string; value: string }>) {
+    if (!actions) return 0;
+    const found = actions.find(a => a.action_type === "link_click");
+    return found ? parseInt(found.value, 10) : 0;
+  }
+
+  let demographicsByAge: Array<{ age: string; leads: number }> = [];
+  let demographicsByGender: Array<{ gender: string; leads: number }> = [];
+
+  try {
+    const ageInsights = await fetchAllPages(
+      `${ACCOUNT_ID}/insights?fields=actions&${dateParam}&breakdowns=age`
+    );
+    const ageMap = new Map<string, number>();
+    for (const row of ageInsights) {
+      const clicks = extractClicks(row.actions as Array<{ action_type: string; value: string }> | undefined);
+      if (clicks > 0) {
+        const age = row.age as string;
+        ageMap.set(age, (ageMap.get(age) ?? 0) + clicks);
+      }
+    }
+    const ageOrder = ["13-17", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
+    demographicsByAge = ageOrder
+      .filter(a => ageMap.has(a))
+      .map(a => ({ age: a, leads: ageMap.get(a)! }));
+  } catch {
+    // non-fatal
+  }
+
+  try {
+    const genderInsights = await fetchAllPages(
+      `${ACCOUNT_ID}/insights?fields=actions&${dateParam}&breakdowns=gender`
+    );
+    const genderMap = new Map<string, number>();
+    for (const row of genderInsights) {
+      const clicks = extractClicks(row.actions as Array<{ action_type: string; value: string }> | undefined);
+      if (clicks > 0) {
+        const gender = row.gender as string;
+        genderMap.set(gender, (genderMap.get(gender) ?? 0) + clicks);
+      }
+    }
+    demographicsByGender = Array.from(genderMap.entries()).map(([gender, leads]) => ({ gender, leads }));
+  } catch {
+    // non-fatal
+  }
 
   // Lead origins — split WhatsApp vs Site/Pixel from raw campaign actions
   const whatsappActionTypes = [
@@ -332,7 +383,11 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
   }
   const leadOrigins = { whatsapp: whatsappLeads, site: siteLeads };
 
-  return { campaigns, adsets, ads, daily, metrics, leadOrigins, lastUpdated: Date.now(), datePreset };
+  const demographics = {
+    byAge: demographicsByAge,
+    byGender: demographicsByGender,
+  };
+  return { campaigns, adsets, ads, daily, metrics, leadOrigins, demographics, lastUpdated: Date.now(), datePreset };
 }
 
 export const dynamic = "force-dynamic";

@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { AlertTriangle, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import type { MetaAdSet } from "@/data/mock-data";
 import { useTheme } from "@/lib/theme-context";
 
 interface AudiencesTabProps {
   adsets: MetaAdSet[];
+  demographics?: {
+    byAge: Array<{ age: string; leads: number }>;
+    byGender: Array<{ gender: string; leads: number }>;
+  };
 }
 
 function fmt(val: number | undefined | null) {
@@ -75,7 +79,10 @@ function groupByAudience(adsets: MetaAdSet[]) {
   }));
 }
 
-export function AudiencesTab({ adsets }: AudiencesTabProps) {
+const GENDER_LABELS: Record<string, string> = { male: "Homem", female: "Mulher", unknown: "Desconhecido" };
+const GENDER_COLORS: Record<string, string> = { male: "#3b82f6", female: "#a855f7", unknown: "#9ca3af" };
+
+export function AudiencesTab({ adsets, demographics }: AudiencesTabProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const tooltipStyle = {
@@ -85,6 +92,8 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
     backgroundColor: isDark ? "#1f2937" : "#ffffff",
     color: isDark ? "#f1f5f9" : "#111827",
   };
+  const tooltipLabelStyle = { color: isDark ? "#f1f5f9" : "#111827" };
+  const tooltipItemStyle = { color: isDark ? "#d1d5db" : "#374151" };
   const [sortKey, setSortKey] = useState<SortKey>("leads");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [onlyActive, setOnlyActive] = useState(false);
@@ -114,8 +123,9 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
     [grouped]
   );
 
-  function wrapText(text: string, maxChars = 14): string[] {
-    const words = text.split(" ");
+  function CustomXTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
+    const maxChars = 12;
+    const words = (payload?.value ?? "").split(" ");
     const lines: string[] = [];
     let current = "";
     for (const word of words) {
@@ -127,11 +137,6 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
       }
     }
     if (current) lines.push(current);
-    return lines;
-  }
-
-  function CustomXTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
-    const lines = wrapText(payload?.value ?? "");
     const fill = isDark ? "#9ca3af" : "#64748b";
     return (
       <g transform={`translate(${x},${y})`}>
@@ -185,40 +190,123 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
         {barData.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-8">Nenhum público gerou leads neste período.</p>
         ) : (
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart
-              data={barData}
-              margin={{ top: 16, right: 16, left: 0, bottom: barData.length > 5 ? 90 : 60 }}
-              barSize={Math.max(24, Math.min(48, Math.floor(600 / barData.length)))}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#374151" : "#f1f5f9"} />
-              <XAxis
-                dataKey="name"
-                tick={<CustomXTick />}
-                interval={0}
-                stroke={isDark ? "#374151" : "#e2e8f0"}
-              />
-              <YAxis
-                allowDecimals={false}
-                tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#64748b" }}
-                stroke={isDark ? "#374151" : "#e2e8f0"}
-              />
-              <Tooltip
-                formatter={(v, _name, props) => [
-                  `${v} leads · CPL R$ ${props.payload.cpl.toFixed(2)}`,
-                  props.payload.name,
-                ]}
-                contentStyle={tooltipStyle}
-              />
-              <Bar
-                dataKey="leads"
-                fill="#8b5cf6"
-                radius={[4, 4, 0, 0]}
-                label={{ position: "top", fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280" }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="overflow-x-auto">
+            <div style={{ width: Math.max(600, barData.length * 64) }}>
+              <BarChart
+                width={Math.max(600, barData.length * 64)}
+                height={320}
+                data={barData}
+                margin={{ top: 20, right: 20, left: 8, bottom: 100 }}
+                barSize={40}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#374151" : "#f1f5f9"} />
+                <XAxis
+                  dataKey="name"
+                  tick={<CustomXTick />}
+                  interval={0}
+                  stroke={isDark ? "#374151" : "#e2e8f0"}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#64748b" }}
+                  stroke={isDark ? "#374151" : "#e2e8f0"}
+                />
+                <Tooltip
+                  formatter={(v, _name, props) => [
+                    `${v} leads · CPL R$ ${props.payload.cpl.toFixed(2)}`,
+                    props.payload.name,
+                  ]}
+                  contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
+                />
+                <Bar
+                  dataKey="leads"
+                  fill="#8b5cf6"
+                  radius={[4, 4, 0, 0]}
+                  label={{ position: "top", fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280" }}
+                />
+              </BarChart>
+            </div>
+          </div>
         )}
+      </div>
+
+      {/* Dados demográficos */}
+      <div>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Dados demográficos</h3>
+          <div className="grid grid-cols-2 gap-4">
+
+            {/* Cliques por Faixa Etária */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Cliques por Faixa Etária</h4>
+              <p className="text-xs text-gray-400 mb-4">Distribuição de cliques por idade</p>
+              {!demographics?.byAge?.length ? (
+                <p className="text-sm text-gray-400 text-center py-8">Sem dados de idade neste período.</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart
+                    data={demographics.byAge}
+                    margin={{ top: 20, right: 16, left: 0, bottom: 8 }}
+                    barSize={36}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#374151" : "#f1f5f9"} />
+                    <XAxis dataKey="age" tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#64748b" }} stroke={isDark ? "#374151" : "#e2e8f0"} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#64748b" }} stroke={isDark ? "#374151" : "#e2e8f0"} width={45} tickFormatter={(v) => Number(v).toLocaleString("pt-BR")} />
+                    <Tooltip formatter={(v) => [Number(v).toLocaleString("pt-BR"), "Cliques"]} contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
+                    <Bar dataKey="leads" fill="#22c55e" radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280", formatter: (v: number) => v.toLocaleString("pt-BR") }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Cliques por Gênero */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Cliques por Gênero</h4>
+              <p className="text-xs text-gray-400 mb-4">Distribuição de cliques por gênero</p>
+              {!demographics?.byGender?.length ? (
+                <p className="text-sm text-gray-400 text-center py-8">Sem dados de gênero neste período.</p>
+              ) : (() => {
+                const genderData = demographics!.byGender.map(g => ({
+                  name: GENDER_LABELS[g.gender] ?? g.gender,
+                  value: g.leads,
+                  fill: GENDER_COLORS[g.gender] ?? "#9ca3af",
+                }));
+                const total = genderData.reduce((s, g) => s + g.value, 0);
+                return (
+                  <div className="flex items-center gap-6">
+                    <PieChart width={180} height={180}>
+                      <Pie
+                        data={genderData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={52}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        dataKey="value"
+                        labelLine={false}
+                      >
+                        {genderData.map((g, i) => (
+                          <Cell key={i} fill={g.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v) => [Number(v).toLocaleString("pt-BR"), "Cliques"]} contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle} />
+                    </PieChart>
+                    <div className="flex flex-col gap-3">
+                      {genderData.map((g) => (
+                        <div key={g.name} className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: g.fill }} />
+                          <div>
+                            <p className="text-xs font-medium text-gray-700 dark:text-gray-200">{g.name}</p>
+                            <p className="text-xs text-gray-400">{g.value.toLocaleString("pt-BR")} · {total > 0 ? ((g.value / total) * 100).toFixed(0) : 0}%</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+          </div>
       </div>
 
       {/* Tabela */}
@@ -248,7 +336,6 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
             <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
               <tr>
                 <Th k="audience" label="Público" />
-                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-left">Campanhas</th>
                 <Th k="spend" label="Invest." align="right" />
                 <Th k="leads" label="Leads" align="right" />
                 <Th k="cpl" label="CPL" align="right" />
@@ -264,18 +351,6 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
                     <div className="flex items-center gap-2">
                       {g.frequency > 3 && <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
                       <span className="text-sm text-gray-800 dark:text-gray-100">{g.audience}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {g.campaigns.filter(Boolean).slice(0, 2).map((c, ci) => (
-                        <span key={ci} className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full truncate max-w-[120px]" title={c}>
-                          {c.length > 15 ? c.slice(0, 15) + "…" : c}
-                        </span>
-                      ))}
-                      {g.campaigns.length > 2 && (
-                        <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full">+{g.campaigns.length - 2}</span>
-                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">R$ {fmt(g.spend)}</td>

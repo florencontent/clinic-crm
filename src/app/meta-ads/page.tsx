@@ -38,6 +38,7 @@ interface MetaAdsData {
   metrics: {
     totalSpend: number;
     totalLeads: number;
+    totalClicks: number;
     cpl: number;
     cpc: number;
     ctr: number;
@@ -45,6 +46,10 @@ interface MetaAdsData {
     cpm?: number;
   };
   leadOrigins?: { whatsapp: number; site: number };
+  demographics?: {
+    byAge: Array<{ age: string; leads: number }>;
+    byGender: Array<{ gender: string; leads: number }>;
+  };
   datePreset?: string;
   lastUpdated?: number;
   stale?: boolean;
@@ -295,7 +300,7 @@ export default function MetaAdsPage() {
           <CampaignsTab campaigns={data.campaigns} adsets={data.adsets} daily={data.daily} leadOrigins={data.leadOrigins} datePreset={data.datePreset} />
         )}
         {activeTab === "publicos" && (
-          <AudiencesTab adsets={data.adsets} />
+          <AudiencesTab adsets={data.adsets} demographics={data.demographics} />
         )}
         {activeTab === "anuncios" && (
           <AdsTab ads={data.ads} adsets={data.adsets} campaigns={data.campaigns} />
