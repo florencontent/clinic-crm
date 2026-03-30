@@ -4,20 +4,29 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Settings, Sun, Moon, GitBranch } from "lucide-react";
+import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Settings, Sun, Moon, GitBranch, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
 import { useLanguage } from "@/lib/language-context";
+import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 // navItems are built inside the component so they can use translations
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggle } = useTheme();
   const { t } = useLanguage();
+  const { signOut } = useAuth();
   const isDark = theme === "dark";
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace("/login");
+  };
 
   const navItems = [
     { href: "/kanban", label: t.nav.kanban, icon: Columns3 },
@@ -108,7 +117,7 @@ export function Sidebar() {
           )}
         </button>
 
-        {/* User info */}
+        {/* User info + logout */}
         <div className="flex items-center gap-3 px-4 py-2">
           <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${
             isDark
@@ -116,7 +125,7 @@ export function Sidebar() {
               : "bg-gradient-to-br from-blue-400 to-blue-600 shadow-md shadow-blue-200"
           }`}>
             <Image
-              src={isDark ? "/little-logo-white.png" : "/little-logo-white.png"}
+              src="/little-logo-white.png"
               alt="Floren"
               width={isDark ? 32 : 20}
               height={isDark ? 32 : 20}
@@ -124,9 +133,16 @@ export function Sidebar() {
               unoptimized
             />
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Dr. Alfredo</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">Dr. Alfredo</p>
           </div>
+          <button
+            onClick={handleSignOut}
+            title="Sair"
+            className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors flex-shrink-0"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </aside>
