@@ -110,14 +110,25 @@ function buildDateParam(datePreset: DatePreset, since?: string, until?: string) 
 async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: string) {
   const dateParam = buildDateParam(datePreset, since, until);
 
-  // 0. Campaign status (effective_status not available in insights, must fetch separately)
+  // 0. Campaign + adset status (effective_status not available in insights, must fetch separately)
   const campaignStatusMap: Record<string, string> = {};
+  const adsetStatusMap: Record<string, string> = {};
   try {
     const campaignList = await fetchAllPages(
       `${ACCOUNT_ID}/campaigns?fields=id,effective_status`
     );
     for (const c of campaignList) {
       campaignStatusMap[c.id as string] = (c.effective_status as string) || "UNKNOWN";
+    }
+  } catch {
+    // non-fatal
+  }
+  try {
+    const adsetList = await fetchAllPages(
+      `${ACCOUNT_ID}/adsets?fields=id,effective_status`
+    );
+    for (const a of adsetList) {
+      adsetStatusMap[a.id as string] = (a.effective_status as string) || "UNKNOWN";
     }
   } catch {
     // non-fatal
@@ -235,6 +246,7 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
       campaignId: ins.campaign_id as string,
       campaignName: (ins.campaign_name as string) || "Sem nome",
       audience: (ins.adset_name as string) || "Sem nome",
+      status: adsetStatusMap[ins.adset_id as string] || "UNKNOWN",
       spend,
       leads,
       impressions,

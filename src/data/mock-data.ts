@@ -125,6 +125,7 @@ export interface MetaAdSet {
   campaignId: string;
   campaignName: string;
   audience: string;
+  status: string;
   spend: number;
   leads: number;
   impressions: number;

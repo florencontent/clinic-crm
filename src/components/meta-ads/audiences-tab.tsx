@@ -29,6 +29,7 @@ function groupByAudience(adsets: MetaAdSet[]) {
   const map = new Map<string, {
     audience: string;
     campaigns: string[];
+    status: string;
     spend: number;
     leads: number;
     impressions: number;
@@ -49,10 +50,13 @@ function groupByAudience(adsets: MetaAdSet[]) {
       ex.count++;
       const cName = a.campaignName || "";
       if (!ex.campaigns.includes(cName)) ex.campaigns.push(cName);
+      // If any adset in the group is ACTIVE, mark the group as ACTIVE
+      if (a.status === "ACTIVE") ex.status = "ACTIVE";
     } else {
       map.set(key, {
         audience: a.audience,
         campaigns: [a.campaignName || ""],
+        status: a.status || "UNKNOWN",
         spend: a.spend,
         leads: a.leads,
         impressions: a.impressions,
@@ -83,6 +87,7 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
   };
   const [sortKey, setSortKey] = useState<SortKey>("leads");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [onlyActive, setOnlyActive] = useState(false);
 
   const grouped = useMemo(() => groupByAudience(adsets), [adsets]);
 
@@ -91,21 +96,53 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
     else { setSortKey(key); setSortDir("desc"); }
   }
 
-  const sorted = [...grouped].sort((a, b) => {
-    const va = a[sortKey] as number | string;
-    const vb = b[sortKey] as number | string;
-    if (typeof va === "string") return sortDir === "asc" ? va.localeCompare(vb as string) : (vb as string).localeCompare(va);
-    return sortDir === "asc" ? (va as number) - (vb as number) : (vb as number) - (va as number);
-  });
+  const sorted = [...grouped]
+    .filter(g => g.leads > 0)
+    .filter(g => !onlyActive || g.status === "ACTIVE")
+    .sort((a, b) => {
+      const va = a[sortKey] as number | string;
+      const vb = b[sortKey] as number | string;
+      if (typeof va === "string") return sortDir === "asc" ? va.localeCompare(vb as string) : (vb as string).localeCompare(va);
+      return sortDir === "asc" ? (va as number) - (vb as number) : (vb as number) - (va as number);
+    });
 
-  const barData = [...grouped]
-    .sort((a, b) => a.cpl - b.cpl)
-    .slice(0, 12)
-    .map(g => ({
-      name: g.audience.length > 22 ? g.audience.slice(0, 22) + "…" : g.audience,
-      cpl: parseFloat(g.cpl.toFixed(2)),
-      leads: g.leads,
-    }));
+  const barData = useMemo(() =>
+    grouped
+      .filter(g => g.leads > 0)
+      .sort((a, b) => b.leads - a.leads)
+      .map(g => ({ name: g.audience, leads: g.leads, cpl: parseFloat(g.cpl.toFixed(2)) })),
+    [grouped]
+  );
+
+  function wrapText(text: string, maxChars = 14): string[] {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let current = "";
+    for (const word of words) {
+      if (current && (current + " " + word).length > maxChars) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = current ? current + " " + word : word;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  function CustomXTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
+    const lines = wrapText(payload?.value ?? "");
+    const fill = isDark ? "#9ca3af" : "#64748b";
+    return (
+      <g transform={`translate(${x},${y})`}>
+        {lines.map((line, i) => (
+          <text key={i} x={0} y={0} dy={i * 13 + 12} textAnchor="middle" fill={fill} fontSize={10}>
+            {line}
+          </text>
+        ))}
+      </g>
+    );
+  }
 
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <ChevronsUpDown className="w-3 h-3 text-gray-300" />;
@@ -139,31 +176,74 @@ export function AudiencesTab({ adsets }: AudiencesTabProps) {
         </div>
       )}
 
-      {/* CPL por público */}
+      {/* Leads por público */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">CPL por Público</h3>
-        <p className="text-xs text-gray-400 mb-4">Menores CPLs — públicos mais eficientes</p>
-        <ResponsiveContainer width="100%" height={Math.max(200, barData.length * 36)}>
-          <BarChart data={barData} layout="vertical" margin={{ left: 8, right: 48 }}>
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={isDark ? "#374151" : "#f1f5f9"} />
-            <XAxis type="number" tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#64748b" }} stroke={isDark ? "#374151" : "#e2e8f0"} tickFormatter={v => `R$${v}`} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#64748b" }} width={160} stroke={isDark ? "#374151" : "#e2e8f0"} />
-            <Tooltip
-              formatter={(v) => [`R$ ${Number(v).toFixed(2)}`, "CPL"]}
-              contentStyle={tooltipStyle}
-            />
-            <Bar dataKey="cpl" fill="#8b5cf6" radius={[0, 4, 4, 0]} label={{ position: "right", fontSize: 10, fill: isDark ? "#9ca3af" : "#64748b", formatter: (v: unknown) => `R$${Number(v).toFixed(0)}` }} />
-          </BarChart>
-        </ResponsiveContainer>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Leads por Público</h3>
+        <p className="text-xs text-gray-400 mb-4">
+          {barData.length} público{barData.length !== 1 ? "s" : ""} com leads no período — ordenado do maior para o menor
+        </p>
+        {barData.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">Nenhum público gerou leads neste período.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart
+              data={barData}
+              margin={{ top: 16, right: 16, left: 0, bottom: barData.length > 5 ? 90 : 60 }}
+              barSize={Math.max(24, Math.min(48, Math.floor(600 / barData.length)))}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#374151" : "#f1f5f9"} />
+              <XAxis
+                dataKey="name"
+                tick={<CustomXTick />}
+                interval={0}
+                stroke={isDark ? "#374151" : "#e2e8f0"}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 11, fill: isDark ? "#9ca3af" : "#64748b" }}
+                stroke={isDark ? "#374151" : "#e2e8f0"}
+              />
+              <Tooltip
+                formatter={(v, _name, props) => [
+                  `${v} leads · CPL R$ ${props.payload.cpl.toFixed(2)}`,
+                  props.payload.name,
+                ]}
+                contentStyle={tooltipStyle}
+              />
+              <Bar
+                dataKey="leads"
+                fill="#8b5cf6"
+                radius={[4, 4, 0, 0]}
+                label={{ position: "top", fontSize: 11, fill: isDark ? "#9ca3af" : "#6b7280" }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* Tabela */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Todos os Públicos</h3>
-          <span className="text-xs text-gray-400">{grouped.length} públicos únicos</span>
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">Públicos com Leads</h3>
+            <span className="text-xs text-gray-400">{sorted.length} público{sorted.length !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <button
+              onClick={() => setOnlyActive(false)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${!onlyActive ? "bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-100 shadow-sm" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"}`}
+            >
+              Todos
+            </button>
+            <button
+              onClick={() => setOnlyActive(true)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${onlyActive ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm" : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"}`}
+            >
+              ● Ativos
+            </button>
+          </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[420px]">
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
               <tr>
