@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { X, CalendarPlus, Loader2, Check, Search } from "lucide-react";
 import { createAppointment, searchPatients } from "@/lib/api";
 import { Appointment } from "@/data/mock-data";
+import { useDoctors } from "@/lib/doctors-context";
 
 interface NewAppointmentModalProps {
   initialDate: string;
@@ -15,11 +16,12 @@ const inputClass =
   "w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 dark:placeholder-gray-500 transition-all";
 
 export function NewAppointmentModal({ initialDate, onClose, onCreated }: NewAppointmentModalProps) {
+  const { doctorNames: DOUTORES } = useDoctors();
   const [date, setDate] = useState(initialDate);
   const [time, setTime] = useState("09:00");
   const [duration, setDuration] = useState(60);
   const [procedure, setProcedure] = useState("");
-  const [doctor, setDoctor] = useState("Dr. Alfredo Marques");
+  const [doctor, setDoctor] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -178,8 +180,11 @@ export function NewAppointmentModal({ initialDate, onClose, onCreated }: NewAppo
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">Médico</label>
-              <input type="text" value={doctor} onChange={(e) => setDoctor(e.target.value)} placeholder="Dr. Alfredo..." className={inputClass} />
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 block">Doutor(a)</label>
+              <select value={doctor} onChange={(e) => setDoctor(e.target.value)} className={inputClass}>
+                <option value="">Selecionar...</option>
+                {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
           </div>
 

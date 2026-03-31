@@ -3,22 +3,15 @@
 import { useState } from "react";
 import { useDoctors } from "@/lib/doctors-context";
 import { useProcedures } from "@/hooks/use-procedures";
-import { X, Plus } from "lucide-react";
-import { Lead, Tag, TagType } from "@/data/mock-data";
+import { X } from "lucide-react";
+import { Lead, Tag } from "@/data/mock-data";
 import { updatePatient } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 interface EditLeadModalProps {
   lead: Lead;
   onClose: () => void;
   onSave: (lead: Lead) => void;
 }
-
-const tagTypeColors: Record<TagType, string> = {
-  especialidade: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
-  doutor: "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300",
-  observacao: "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
-};
 
 export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   const { doctorNames: DOUTORES } = useDoctors();
@@ -28,26 +21,11 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
   const [phone, setPhone] = useState(lead.phone);
   const [email, setEmail] = useState(lead.email || "");
   const [procedure, setProcedure] = useState(lead.procedure || "");
-  const [tags, setTags] = useState<Tag[]>(lead.tags || []);
+  const [tags] = useState<Tag[]>(lead.tags || []);
   const [notes, setNotes] = useState(lead.notes || "");
   const [dealValue, setDealValue] = useState(lead.dealValue != null ? String(lead.dealValue) : "");
+  const [doctor, setDoctor] = useState(lead.doctor || "");
   const [saving, setSaving] = useState(false);
-
-  const [newDoutor, setNewDoutor] = useState("");
-
-  const addTag = (type: TagType, value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    if (tags.some((t) => t.type === type && t.value === trimmed)) return;
-    setTags((prev) => [...prev, { type, value: trimmed }]);
-  };
-
-  const removeTag = (type: TagType, value: string) => {
-    setTags((prev) => prev.filter((t) => !(t.type === type && t.value === value)));
-  };
-
-  const handleAddDoutor = () => { addTag("doutor", newDoutor); setNewDoutor(""); };
-
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -61,14 +39,18 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
       notes: notes.trim() || undefined,
       dealValue: parsedDeal,
       procedure: procedure.trim() || undefined,
+      doctor: doctor || undefined,
     });
     setSaving(false);
     if (updated) {
       onSave(updated);
     } else {
-      onSave({ ...lead, name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, source, tags, notes: notes.trim() || undefined, dealValue: parsedDeal ?? undefined, procedure: procedure.trim() || undefined });
+      onSave({ ...lead, name: name.trim(), phone: phone.trim(), email: email.trim() || undefined, tags, notes: notes.trim() || undefined, dealValue: parsedDeal ?? undefined, procedure: procedure.trim() || undefined, doctor: doctor || undefined });
     }
   };
+
+  const inputClass = "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors";
+  const labelClass = "block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1";
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -86,115 +68,63 @@ export function EditLeadModal({ lead, onClose, onSave }: EditLeadModalProps) {
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 p-5 space-y-4">
-          {/* Nome */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Nome</label>
+            <label className={labelClass}>Nome</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Telefone</label>
+            <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" className={inputClass + " placeholder-gray-400"} />
+          </div>
+
+          <div>
+            <label className={labelClass}>Procedimento</label>
+            <select value={procedure} onChange={(e) => setProcedure(e.target.value)} className={inputClass}>
+              <option value="">Selecionar procedimento...</option>
+              {procedures.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+              {procedure && !procedures.find((p) => p.name === procedure) && (
+                <option value={procedure}>{procedure}</option>
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>Doutor(a)</label>
+            <select value={doctor} onChange={(e) => setDoctor(e.target.value)} className={inputClass}>
+              <option value="">Selecionar...</option>
+              {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
+              {doctor && !DOUTORES.includes(doctor) && (
+                <option value={doctor}>{doctor}</option>
+              )}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelClass}>Ticket (R$)</label>
             <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
+              type="number"
+              value={dealValue}
+              onChange={(e) => setDealValue(e.target.value)}
+              placeholder="0,00"
+              className={inputClass + " placeholder-gray-400"}
             />
           </div>
 
-          {/* Telefone */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Telefone</label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors"
+            <label className={labelClass}>Observação</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Anote informações relevantes sobre o lead: histórico, preferências, restrições..."
+              rows={4}
+              className={inputClass + " placeholder-gray-400 resize-none text-xs"}
             />
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="email@exemplo.com"
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors placeholder-gray-400"
-            />
-          </div>
-
-
-          {/* Tags */}
-          <div className="space-y-3">
-            {/* Procedimento */}
-            <div>
-              <p className="text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Procedimento</p>
-              <select
-                value={procedure}
-                onChange={(e) => setProcedure(e.target.value)}
-                className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none"
-              >
-                <option value="">Selecionar procedimento...</option>
-                {procedures.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
-                {/* Manter valor atual mesmo se não estiver na lista */}
-                {procedure && !procedures.find((p) => p.name === procedure) && (
-                  <option value={procedure}>{procedure}</option>
-                )}
-              </select>
-            </div>
-
-            {/* Doutor */}
-            <div>
-              <p className="text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Doutor</p>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {tags.filter((t) => t.type === "doutor").map((t) => (
-                  <span key={t.value} className={cn("flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium", tagTypeColors.doutor)}>
-                    {t.value}
-                    <button onClick={() => removeTag("doutor", t.value)} className="hover:opacity-70">
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex gap-1.5">
-                <select
-                  value={newDoutor}
-                  onChange={(e) => setNewDoutor(e.target.value)}
-                  className="flex-1 px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none"
-                >
-                  <option value="">Selecionar...</option>
-                  {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-                <button
-                  onClick={handleAddDoutor}
-                  disabled={!newDoutor}
-                  className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 disabled:opacity-40 transition-colors"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Ticket */}
-            <div>
-              <p className="text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Ticket (R$)</p>
-              <input
-                type="number"
-                value={dealValue}
-                onChange={(e) => setDealValue(e.target.value)}
-                placeholder="0,00"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors placeholder-gray-400"
-              />
-            </div>
-
-            {/* Observação */}
-            <div>
-              <p className="text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Observação</p>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Anote informações relevantes sobre o lead: histórico, preferências, restrições..."
-                rows={4}
-                className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400 transition-colors placeholder-gray-400 resize-none"
-              />
-            </div>
           </div>
         </div>
 
