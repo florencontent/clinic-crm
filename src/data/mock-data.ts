@@ -145,6 +145,7 @@ export interface MetaAd {
   creative: string;
   thumbnailUrl?: string;
   objectType?: string;
+  campaignType?: "whatsapp" | "lp" | "unknown";
   spend: number;
   leads: number;
   impressions: number;

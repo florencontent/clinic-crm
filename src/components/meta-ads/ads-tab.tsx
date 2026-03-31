@@ -14,6 +14,7 @@ interface DeduplicatedAd {
   name: string;
   thumbnailUrl?: string;
   objectType?: string;
+  campaignType?: "whatsapp" | "lp" | "unknown";
   instances: number;
   adsetNames: string[];
   spend: number;
@@ -74,6 +75,7 @@ function deduplicateAds(ads: MetaAd[], adsets: MetaAdSet[]): DeduplicatedAd[] {
         name: ad.name,
         thumbnailUrl: ad.thumbnailUrl,
         objectType: ad.objectType,
+        campaignType: ad.campaignType,
         instances: 1,
         adsetNames: [adsetName],
         spend: ad.spend,
@@ -98,6 +100,7 @@ function deduplicateAds(ads: MetaAd[], adsets: MetaAdSet[]): DeduplicatedAd[] {
 export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"leads" | "cpl" | "spend">("leads");
+  const [campaignFilter, setCampaignFilter] = useState<"all" | "whatsapp" | "lp">("all");
   const [expandedAd, setExpandedAd] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
@@ -105,7 +108,8 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
 
   const filtered = useMemo(() => {
     let result = deduplicated.filter(a =>
-      a.name.toLowerCase().includes(search.toLowerCase())
+      a.name.toLowerCase().includes(search.toLowerCase()) &&
+      (campaignFilter === "all" || a.campaignType === campaignFilter)
     );
     result.sort((a, b) => {
       if (sortBy === "leads") return b.leads - a.leads;
@@ -113,7 +117,7 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
       return b.spend - a.spend;
     });
     return result;
-  }, [deduplicated, search, sortBy]);
+  }, [deduplicated, search, sortBy, campaignFilter]);
 
   const displayed = showAll ? filtered : filtered.slice(0, 9);
 
@@ -134,6 +138,21 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
           />
         </div>
         <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          {([
+            { value: "all", label: "Todos" },
+            { value: "whatsapp", label: "WhatsApp" },
+            { value: "lp", label: "Landing Page" },
+          ] as const).map(f => (
+            <button
+              key={f.value}
+              onClick={() => setCampaignFilter(f.value)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${campaignFilter === f.value ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
           {(["leads", "cpl", "spend"] as const).map(s => (
             <button
               key={s}
@@ -144,11 +163,11 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
             </button>
           ))}
         </div>
-        <span className="text-xs text-gray-400">{filtered.length} anúncios únicos · CPL médio R$ {fmt(avgCpl)}</span>
+        <span className="text-xs text-gray-400">{filtered.length} anúncios · CPL médio R$ {fmt(avgCpl)}</span>
       </div>
 
       {/* Cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
         {displayed.map((ad, idx) => {
           const colors = cplColor(ad.cpl);
           const isExpanded = expandedAd === ad.name;
@@ -160,14 +179,14 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
               key={ad.name}
               className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden transition-all hover:shadow-md"
             >
-              {/* Thumbnail */}
-              <div className="relative h-40 bg-gray-100 dark:bg-gray-700 overflow-hidden">
+              {/* Thumbnail — proporção 4:5 (1080×1350) */}
+              <div className="relative w-full aspect-[4/5] bg-gray-100 dark:bg-gray-700 overflow-hidden">
                 {ad.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={ad.thumbnailUrl}
                     alt={ad.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
                   />
                 ) : (
@@ -188,6 +207,18 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
                   <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
                     <ObjectTypeIcon type={ad.objectType} />
                     <span>{typeLabel}</span>
+                  </div>
+                )}
+
+                {/* Campaign type badge */}
+                {ad.campaignType === "whatsapp" && (
+                  <div className="absolute bottom-2 left-2 bg-emerald-600/90 text-white text-xs px-2 py-0.5 rounded-full font-semibold backdrop-blur-sm">
+                    WhatsApp
+                  </div>
+                )}
+                {ad.campaignType === "lp" && (
+                  <div className="absolute bottom-2 left-2 bg-orange-500/90 text-white text-xs px-2 py-0.5 rounded-full font-semibold backdrop-blur-sm">
+                    Landing Page
                   </div>
                 )}
 

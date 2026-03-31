@@ -159,7 +159,7 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
       const creative = ad.creative as Record<string, string> | undefined;
       if (creative) {
         creativeMap[ad.id as string] = {
-          thumbnailUrl: creative.thumbnail_url || creative.image_url,
+          thumbnailUrl: creative.image_url || creative.thumbnail_url,
           objectType: creative.object_type,
         };
       }
@@ -210,6 +210,18 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
     }
   }
 
+  // Action type arrays used both for campaignType detection and leadOrigins
+  const whatsappActionTypes = [
+    "onsite_conversion.messaging_first_reply",
+    "onsite_conversion.total_messaging_connection",
+    "onsite_conversion.messaging_conversation_started_7d",
+  ];
+  const siteActionTypes = [
+    "offsite_conversion.fb_pixel_lead",
+    "lead",
+    "onsite_web_lead",
+  ];
+
   // Build campaigns
   const campaigns = campaignInsights.map((ins) => {
     const spend = parseFloat((ins.spend as string) || "0");
@@ -217,10 +229,15 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
     const clicks = parseInt((ins.clicks as string) || "0", 10);
     const reach = parseInt((ins.reach as string) || "0", 10);
     const leads = extractLeads(ins.actions as Array<{ action_type: string; value: string }> | undefined);
+    const actions = ins.actions as Array<{ action_type: string; value: string }> | undefined;
+    const hasWhatsapp = actions?.some(a => whatsappActionTypes.includes(a.action_type) && parseInt(a.value) > 0) ?? false;
+    const hasSite = actions?.some(a => siteActionTypes.includes(a.action_type) && parseInt(a.value) > 0) ?? false;
+    const campaignType: "whatsapp" | "lp" | "unknown" = hasWhatsapp ? "whatsapp" : hasSite ? "lp" : "unknown";
     return {
       id: ins.campaign_id as string,
       name: (ins.campaign_name as string) || "Sem nome",
       status: campaignStatusMap[ins.campaign_id as string] || "UNKNOWN",
+      campaignType,
       spend,
       impressions,
       clicks,
@@ -232,6 +249,9 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
       cpm: impressions > 0 ? (spend / impressions) * 1000 : 0,
     };
   });
+
+  // Map campaignId → campaignType for quick lookup in ads/adsets
+  const campaignTypeMap = new Map(campaigns.map(c => [c.id, c.campaignType]));
 
   // Build adsets
   const adsets = adsetInsights.map((ins) => {
@@ -275,6 +295,7 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
       creative: (ins.ad_name as string) || "Sem nome",
       thumbnailUrl: creative.thumbnailUrl,
       objectType: creative.objectType,
+      campaignType: campaignTypeMap.get(ins.campaign_id as string) ?? "unknown",
       spend,
       leads,
       impressions,
@@ -360,17 +381,6 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
   }
 
   // Lead origins — split WhatsApp vs Site/Pixel from raw campaign actions
-  const whatsappActionTypes = [
-    "onsite_conversion.messaging_first_reply",
-    "onsite_conversion.total_messaging_connection",
-    "onsite_conversion.messaging_conversation_started_7d",
-  ];
-  const siteActionTypes = [
-    "offsite_conversion.fb_pixel_lead",
-    "lead",
-    "onsite_web_lead",
-  ];
-
   let whatsappLeads = 0;
   let siteLeads = 0;
   for (const ins of campaignInsights) {
