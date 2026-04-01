@@ -513,6 +513,19 @@ export async function createAppointment(data: {
     return null;
   }
 
+  // Update patient status to agendado + reminder_status aguardando
+  const patientUpdate: Record<string, unknown> = {
+    status: "agendado",
+    reminder_status: "aguardando",
+    updated_at: new Date().toISOString(),
+  };
+  if (data.procedure) patientUpdate.procedure_interest = data.procedure;
+
+  await supabase
+    .from("patients")
+    .update(patientUpdate)
+    .eq("id", data.patientId);
+
   // Fetch patient info for calendar sync
   if (result?.id) {
     const { data: patient } = await supabase

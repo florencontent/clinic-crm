@@ -51,17 +51,17 @@ export default function LoginPage() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
           {/* Logo + title */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden mb-4 shadow-md">
+            <div className="mb-4">
               <Image
                 src="/logo-floren.png"
                 alt="Floren"
-                width={64}
-                height={64}
-                className="w-full h-full object-cover"
+                width={160}
+                height={80}
+                className="object-contain"
               />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-              Floren Manage
+              AI Agente CRM
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Faça login para acessar o sistema
