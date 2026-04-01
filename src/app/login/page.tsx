@@ -51,12 +51,12 @@ export default function LoginPage() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-8">
           {/* Logo + title */}
           <div className="flex flex-col items-center mb-8">
-            <div className="mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center mb-4 shadow-md">
               <Image
                 src="/little-logo-white.png"
                 alt="Floren"
-                width={160}
-                height={80}
+                width={50}
+                height={50}
                 className="object-contain"
               />
             </div>
