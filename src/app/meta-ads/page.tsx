@@ -8,12 +8,11 @@ import { OverviewCards } from "@/components/meta-ads/overview-cards";
 import { CampaignsTab } from "@/components/meta-ads/campaigns-tab";
 import { AudiencesTab } from "@/components/meta-ads/audiences-tab";
 import { AdsTab } from "@/components/meta-ads/ads-tab";
-import { EvolutionTab } from "@/components/meta-ads/evolution-tab";
 import { MetaAdsSkeleton } from "@/components/meta-ads/meta-ads-skeleton";
 import type { MetaCampaign, MetaAdSet, MetaAd, MetaDailyMetric } from "@/data/mock-data";
 
 type Period = "last_7d" | "last_14d" | "last_30d" | "maximum" | "custom";
-type Tab = "campanhas" | "publicos" | "anuncios" | "evolucao";
+type Tab = "campanhas" | "publicos" | "anuncios";
 
 const periodLabels: Record<Period, string> = {
   last_7d: "7 dias",
@@ -27,7 +26,6 @@ const tabLabels: Record<Tab, string> = {
   campanhas: "Campanhas",
   publicos: "Públicos",
   anuncios: "Anúncios",
-  evolucao: "Evolução",
 };
 
 interface MetaAdsData {
@@ -273,7 +271,7 @@ export default function MetaAdsPage() {
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex gap-1">
-          {(["campanhas", "publicos", "anuncios", "evolucao"] as Tab[]).map(tab => (
+          {(["campanhas", "publicos", "anuncios"] as Tab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -304,9 +302,6 @@ export default function MetaAdsPage() {
         )}
         {activeTab === "anuncios" && (
           <AdsTab ads={data.ads} adsets={data.adsets} campaigns={data.campaigns} />
-        )}
-        {activeTab === "evolucao" && (
-          <EvolutionTab daily={data.daily} />
         )}
       </div>
     </div>

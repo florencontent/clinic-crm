@@ -2,6 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { Image as ImageIcon, Video, LayoutGrid, Search, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from "recharts";
 import type { MetaAd, MetaAdSet, MetaCampaign } from "@/data/mock-data";
 
 interface AdsTabProps {
@@ -50,7 +54,7 @@ function ObjectTypeIcon({ type }: { type?: string }) {
   const t = type.toUpperCase();
   if (t.includes("VIDEO")) return <Video className="w-4 h-4 text-purple-500" />;
   if (t.includes("CAROUSEL")) return <LayoutGrid className="w-4 h-4 text-blue-500" />;
-  return <ImageIcon className="w-4 h-4 text-emerald-500" />;
+  return <ImageIcon className="w-4 h-4 text-yellow-500" />;
 }
 
 function deduplicateAds(ads: MetaAd[], adsets: MetaAdSet[]): DeduplicatedAd[] {
@@ -97,6 +101,86 @@ function deduplicateAds(ads: MetaAd[], adsets: MetaAdSet[]): DeduplicatedAd[] {
   }));
 }
 
+// Short label for bar chart x-axis
+function shortName(name: string) {
+  const words = name.split(" ");
+  return words.slice(0, 3).join(" ");
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function WrappedXTick({ x, y, payload }: any) {
+  const words: string[] = payload.value.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (test.length > 9 && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+
+  return (
+    <g transform={`translate(${x},${y + 6})`}>
+      {lines.map((line, i) => (
+        <text
+          key={i}
+          x={0}
+          y={i * 12}
+          textAnchor="middle"
+          fill="#9ca3af"
+          fontSize={9}
+        >
+          {line}
+        </text>
+      ))}
+    </g>
+  );
+}
+
+const PIE_COLORS: Record<string, string> = {
+  whatsapp: "#22c55e",
+  lp: "#f97316",
+  unknown: "#94a3b8",
+};
+
+const PIE_LABELS: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  lp: "Landing Page",
+  unknown: "Outros",
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CustomBarTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const leads = payload[0]?.value ?? 0;
+  const cpl = payload[0]?.payload?.cpl ?? 0;
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-xs">
+      <p className="font-semibold text-gray-800 dark:text-gray-100 mb-1.5 max-w-[180px] leading-snug">{label}</p>
+      <p className="text-gray-600 dark:text-gray-300">Leads: <span className="font-bold text-gray-900 dark:text-white">{leads}</span></p>
+      <p className="text-gray-600 dark:text-gray-300">CPL: <span className="font-bold text-gray-900 dark:text-white">R$ {fmt(cpl)}</span></p>
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CustomPieTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0];
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-xs">
+      <p className="font-semibold text-gray-800 dark:text-gray-100 mb-1.5">{d.name}</p>
+      <p className="text-gray-600 dark:text-gray-300">Leads: <span className="font-bold text-gray-900 dark:text-white">{d.payload.leads}</span></p>
+      <p className="text-gray-600 dark:text-gray-300">CPL médio: <span className="font-bold text-gray-900 dark:text-white">R$ {fmt(d.payload.cpl)}</span></p>
+      <p className="text-gray-600 dark:text-gray-300">Investimento: <span className="font-bold text-gray-900 dark:text-white">R$ {fmt(d.payload.spend)}</span></p>
+    </div>
+  );
+}
+
 export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"leads" | "cpl" | "spend">("leads");
@@ -123,8 +207,126 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
 
   const avgCpl = deduplicated.filter(a => a.cpl > 0).reduce((s, a, _, arr) => s + a.cpl / arr.length, 0);
 
+  // Bar chart data — only ads with leads, sorted by leads desc
+  const barData = useMemo(() =>
+    [...deduplicated]
+      .filter(a => a.leads > 0)
+      .sort((a, b) => b.leads - a.leads)
+      .map(a => ({ name: a.name, shortName: shortName(a.name), leads: a.leads, cpl: a.cpl })),
+    [deduplicated]
+  );
+
+  // Pie chart data — group by campaignType
+  const pieData = useMemo(() => {
+    const groups = new Map<string, { leads: number; spend: number }>();
+    for (const a of deduplicated) {
+      const key = a.campaignType ?? "unknown";
+      const g = groups.get(key) ?? { leads: 0, spend: 0 };
+      g.leads += a.leads;
+      g.spend += a.spend;
+      groups.set(key, g);
+    }
+    return Array.from(groups.entries())
+      .filter(([, g]) => g.leads > 0)
+      .map(([key, g]) => ({
+        name: PIE_LABELS[key] ?? key,
+        color: PIE_COLORS[key] ?? "#94a3b8",
+        leads: g.leads,
+        spend: g.spend,
+        cpl: g.leads > 0 ? g.spend / g.leads : 0,
+        value: g.leads,
+      }));
+  }, [deduplicated]);
+
+  const BAR_WIDTH = Math.max(barData.length * 72, 400);
+
   return (
     <div className="space-y-5">
+      {/* Charts section */}
+      <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-4 min-w-0">
+        {/* Bar chart — leads & CPL per ad */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 min-w-0">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Leads e CPL por Anúncio</h3>
+          <div className="overflow-x-auto w-full">
+            <div style={{ width: BAR_WIDTH, minWidth: BAR_WIDTH, height: 260 }}>
+              <BarChart
+                width={BAR_WIDTH}
+                height={260}
+                data={barData}
+                margin={{ top: 10, right: 16, left: 0, bottom: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                <XAxis
+                  dataKey="shortName"
+                  tick={<WrappedXTick />}
+                  interval={0}
+                  height={56}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "#9ca3af" }}
+                  width={32}
+                  tickFormatter={v => String(v)}
+                />
+                <Tooltip content={<CustomBarTooltip />} cursor={{ fill: "rgba(59,130,246,0.06)" }} />
+                <Bar dataKey="leads" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={48} />
+              </BarChart>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">* Role para ver todos os anúncios · CPL exibido no tooltip</p>
+        </div>
+
+        {/* Pie chart — leads by campaign type */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Leads por categoria de anúncio</h3>
+          {pieData.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-sm text-gray-400">Sem dados</div>
+          ) : (
+            <div className="flex flex-col items-center gap-4">
+              <PieChart width={200} height={200}>
+                <Pie
+                  data={pieData}
+                  cx={100}
+                  cy={100}
+                  innerRadius={52}
+                  outerRadius={88}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {pieData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomPieTooltip />} />
+              </PieChart>
+
+              {/* Legend */}
+              <div className="w-full space-y-3">
+                {pieData.map((entry, i) => {
+                  const total = pieData.reduce((s, p) => s + p.leads, 0);
+                  const pct = total > 0 ? ((entry.leads / total) * 100).toFixed(0) : "0";
+                  return (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: entry.color }} />
+                        <span className="text-gray-600 dark:text-gray-300 font-medium">{entry.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
+                        <span>{entry.leads} leads ({pct}%)</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-200">R$ {fmt(entry.cpl)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                  <span>CPL médio geral</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-200">R$ {fmt(avgCpl)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Controls */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
@@ -202,25 +404,25 @@ export function AdsTab({ ads, adsets, campaigns: _campaigns }: AdsTabProps) {
                   </div>
                 )}
 
-                {/* Type badge */}
-                {typeLabel && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
-                    <ObjectTypeIcon type={ad.objectType} />
-                    <span>{typeLabel}</span>
-                  </div>
-                )}
-
-                {/* Campaign type badge */}
-                {ad.campaignType === "whatsapp" && (
-                  <div className="absolute bottom-2 left-2 bg-emerald-600/90 text-white text-xs px-2 py-0.5 rounded-full font-semibold backdrop-blur-sm">
-                    WhatsApp
-                  </div>
-                )}
-                {ad.campaignType === "lp" && (
-                  <div className="absolute bottom-2 left-2 bg-orange-500/90 text-white text-xs px-2 py-0.5 rounded-full font-semibold backdrop-blur-sm">
-                    Landing Page
-                  </div>
-                )}
+                {/* Type + Campaign badges stacked top-right */}
+                <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                  {typeLabel && (
+                    <div className="flex items-center gap-1 bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">
+                      <ObjectTypeIcon type={ad.objectType} />
+                      <span>{typeLabel}</span>
+                    </div>
+                  )}
+                  {ad.campaignType === "whatsapp" && (
+                    <div className="bg-emerald-600/90 text-white text-xs px-2 py-0.5 rounded-full font-semibold backdrop-blur-sm">
+                      WhatsApp
+                    </div>
+                  )}
+                  {ad.campaignType === "lp" && (
+                    <div className="bg-orange-500/90 text-white text-xs px-2 py-0.5 rounded-full font-semibold backdrop-blur-sm">
+                      Landing Page
+                    </div>
+                  )}
+                </div>
 
                 {/* Instances badge */}
                 {ad.instances > 1 && (

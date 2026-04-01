@@ -293,14 +293,9 @@ export function PatientModal({
                 {/* Doutor */}
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
                   <p className="text-[10px] text-gray-400 mb-2">{t.patientModal.doctor}</p>
-                  <select
-                    value={doctorValue}
-                    onChange={(e) => handleDoctorChange(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 outline-none focus:border-blue-400 transition-colors"
-                  >
-                    <option value="">{t.sidebar.selectDoctor}</option>
-                    {DOUTORES.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {doctorValue || <span className="text-gray-400 dark:text-gray-500 font-normal">—</span>}
+                  </p>
                 </div>
 
                 {/* Ticket */}
