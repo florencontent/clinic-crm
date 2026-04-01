@@ -53,7 +53,7 @@ export default function LoginPage() {
           <div className="flex flex-col items-center mb-8">
             <div className="mb-4">
               <Image
-                src="/logo-floren.png"
+                src="/little-logo-white.png"
                 alt="Floren"
                 width={160}
                 height={80}
