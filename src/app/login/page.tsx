@@ -41,36 +41,34 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex bg-white dark:bg-gray-950">
       {/* Left panel — branding */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-12 relative overflow-hidden">
+      <div className="hidden lg:flex w-1/2 flex-col justify-between bg-gray-950 p-12 relative overflow-hidden">
         {/* Background blobs */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
           <div className="absolute -top-32 -left-32 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-0 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
         </div>
 
-        <div className="bg-white rounded-2xl px-5 py-3 inline-flex relative z-10 shadow-sm">
-          <Image
-            src="/logo1.png"
-            alt="Floren"
-            width={140}
-            height={52}
-            className="object-contain"
-          />
-        </div>
+        <Image
+          src="/logo1.png"
+          alt="Floren"
+          width={160}
+          height={60}
+          className="object-contain relative z-10"
+        />
 
         <div className="relative z-10">
-          <p className="text-white/60 text-sm uppercase tracking-widest font-medium mb-3">
+          <p className="text-gray-500 text-sm uppercase tracking-widest font-medium mb-3">
             Gestão Inteligente
           </p>
           <h2 className="text-4xl font-bold text-white leading-tight mb-4">
             Seu CRM com<br />IA integrada
           </h2>
-          <p className="text-blue-100/70 text-base leading-relaxed max-w-sm">
+          <p className="text-gray-400 text-base leading-relaxed max-w-sm">
             Gerencie leads, automatize follow-ups e acompanhe cada paciente com inteligência artificial.
           </p>
         </div>
 
-        <p className="text-blue-200/40 text-xs relative z-10">
+        <p className="text-gray-600 text-xs relative z-10">
           © 2026 Floren Odonto. Todos os direitos reservados.
         </p>
       </div>
