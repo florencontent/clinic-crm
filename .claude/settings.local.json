@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/Notebook/Documents/clinic-crm-main -type f \\\\\\(-name *.ts -o -name *.tsx -o -name *.js -o -name *.json \\\\\\))",
+      "Bash(xargs grep:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \":*)"
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Phone, CalendarDays, MessageCircle, User, Clock, Mail, Edit2, Send, Trash2, PauseCircle, PlayCircle, RotateCcw, AlertTriangle } from "lucide-react";
+import { X, Phone, CalendarDays, MessageCircle, User, Clock, Mail, Edit2, Send, Trash2, PauseCircle, PlayCircle, RotateCcw, AlertTriangle, RefreshCw } from "lucide-react";
 import { Lead, Conversation, Appointment, statusColors, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -50,6 +50,8 @@ export function PatientModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [pauseLoading, setPauseLoading] = useState(false);
+  const [reagendando, setReagendando] = useState(false);
+  const [reagendadoOk, setReagendadoOk] = useState(false);
   const [input, setInput] = useState("");
   const { theme } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -125,6 +127,17 @@ export function PatientModal({
       setLead(updated);
       onLeadUpdate?.(updated);
       setShowLostModal(false);
+    }
+  };
+
+  const handleTriggerReagendamento = async () => {
+    setReagendando(true);
+    try {
+      await fetch(`/api/leads/${lead.id}/trigger-reagendamento`, { method: "POST" });
+      setReagendadoOk(true);
+      setTimeout(() => setReagendadoOk(false), 3000);
+    } finally {
+      setReagendando(false);
     }
   };
 
@@ -358,6 +371,18 @@ export function PatientModal({
                   )}
                 </div>
 
+                {/* Reagendamento — só para nao_compareceu */}
+                {lead.status === "nao_compareceu" && (
+                  <button
+                    onClick={handleTriggerReagendamento}
+                    disabled={reagendando}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold border bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-700/50 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors disabled:opacity-60"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${reagendando ? "animate-spin" : ""}`} />
+                    {reagendadoOk ? "Fluxo iniciado!" : reagendando ? "Iniciando..." : "Iniciar reagendamento"}
+                  </button>
+                )}
+
                 {/* Loss reason display */}
                 {lead.status === "perdido" && lead.lossReason && (
                   <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 border border-red-100 dark:border-red-800/50">
@@ -480,8 +505,12 @@ export function PatientModal({
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
-                          <span className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-lg font-medium">
-                            {t.status.agendado}
+                          <span className={cn("text-xs px-2 py-1 rounded-lg font-medium",
+                            lead.status === "nao_compareceu"
+                              ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                              : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                          )}>
+                            {lead.status === "nao_compareceu" ? "Não compareceu" : t.status.agendado}
                           </span>
                           {lead.status === "agendado" && lead.reminderStatus && (
                             <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>

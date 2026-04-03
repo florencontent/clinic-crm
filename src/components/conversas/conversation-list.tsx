@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, MessageCircle, Bell, Pin, PinOff } from "lucide-react";
+import { Search, MessageCircle, Bell, Pin, PinOff, UserX, Headphones } from "lucide-react";
 import { Conversation, Lead, LeadStatus, statusColors, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language-context";
@@ -25,6 +25,7 @@ export function ConversationList({ conversations, patients, selectedId, onSelect
     { value: "all", label: t.common.all },
     { value: "em_contato", label: t.status.em_contato },
     { value: "agendado", label: t.status.agendado },
+    { value: "nao_compareceu", label: t.status.nao_compareceu },
     { value: "compareceu", label: t.status.compareceu },
     { value: "fechado", label: t.status.fechado },
     { value: "perdido", label: t.status.perdido },
@@ -46,8 +47,12 @@ export function ConversationList({ conversations, patients, selectedId, onSelect
 
   const unreadTotal = conversations.reduce((acc, c) => acc + c.unread, 0);
 
+  const HUMAN_KEYWORDS = ["atendente", "humano", "pessoa real", "falar com alguém", "falar com uma pessoa", "quero falar com", "preciso de ajuda humana", "suporte humano"];
+
   const renderConv = (conv: Conversation) => {
     const isPinned = pinnedIds.has(conv.leadId);
+    const lastMsg = conv.lastMessage?.toLowerCase() || "";
+    const wantsHuman = HUMAN_KEYWORDS.some((kw) => lastMsg.includes(kw));
     return (
       <div
         key={conv.leadId}
@@ -59,7 +64,9 @@ export function ConversationList({ conversations, patients, selectedId, onSelect
           onClick={() => onSelect(conv.leadId)}
           className={cn(
             "w-full text-left p-4 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors",
-            selectedId === conv.leadId && "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            selectedId === conv.leadId && "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/20",
+            wantsHuman && selectedId !== conv.leadId && "bg-amber-50/60 dark:bg-amber-900/10 border-l-2 border-l-amber-400",
+            conv.status === "nao_compareceu" && selectedId !== conv.leadId && "bg-red-50/40 dark:bg-red-900/10"
           )}
         >
           <div className="flex items-start gap-3">
@@ -100,6 +107,18 @@ export function ConversationList({ conversations, patients, selectedId, onSelect
                   <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[conv.reminderStatus])}>
                     <Bell className="h-2.5 w-2.5" />
                     {t.reminder[conv.reminderStatus]}
+                  </span>
+                )}
+                {conv.status === "nao_compareceu" && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                    <UserX className="h-2.5 w-2.5" />
+                    Não compareceu
+                  </span>
+                )}
+                {wantsHuman && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
+                    <Headphones className="h-2.5 w-2.5" />
+                    Quer atendente
                   </span>
                 )}
               </div>

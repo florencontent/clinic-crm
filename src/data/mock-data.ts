@@ -1,4 +1,4 @@
-export type LeadStatus = "em_contato" | "agendado" | "compareceu" | "fechado" | "perdido";
+export type LeadStatus = "em_contato" | "agendado" | "compareceu" | "fechado" | "perdido" | "nao_compareceu";
 export type LeadSource = "Site" | "Meta Ads" | "Orgânico" | "Indicação";
 export type ReminderStatus = "aguardando" | "d2" | "d1" | "dia";
 
@@ -85,6 +85,7 @@ export const statusLabels: Record<LeadStatus, string> = {
   compareceu: "Compareceu",
   fechado: "Fechado",
   perdido: "Perdido",
+  nao_compareceu: "Não Compareceu",
 };
 
 export const statusColors: Record<LeadStatus, string> = {
@@ -93,6 +94,7 @@ export const statusColors: Record<LeadStatus, string> = {
   compareceu: "bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300",
   fechado: "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300",
   perdido: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300",
+  nao_compareceu: "bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300",
 };
 
 export const columnColors: Record<LeadStatus, string> = {
@@ -101,6 +103,7 @@ export const columnColors: Record<LeadStatus, string> = {
   compareceu: "border-t-purple-400",
   fechado: "border-t-green-400",
   perdido: "border-t-red-400",
+  nao_compareceu: "border-t-orange-500",
 };
 
 // Meta Ads types

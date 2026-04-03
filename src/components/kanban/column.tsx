@@ -11,9 +11,10 @@ interface KanbanColumnProps {
   onOpenChat: (leadId: string) => void;
   onOpenProfile?: (leadId: string) => void;
   highlightId?: string | null;
+  pastAppointmentLeadIds?: Set<string>;
 }
 
-export function KanbanColumn({ status, leads, onOpenChat, onOpenProfile, highlightId }: KanbanColumnProps) {
+export function KanbanColumn({ status, leads, onOpenChat, onOpenProfile, highlightId, pastAppointmentLeadIds }: KanbanColumnProps) {
   const { t } = useLanguage();
   return (
     <div className={`flex-1 min-w-[280px] bg-gray-50 dark:bg-gray-900 rounded-xl border-t-4 ${columnColors[status]}`}>
@@ -36,7 +37,15 @@ export function KanbanColumn({ status, leads, onOpenChat, onOpenProfile, highlig
             }`}
           >
             {leads.map((lead, index) => (
-              <KanbanCard key={lead.id} lead={lead} index={index} onOpenChat={onOpenChat} onOpenProfile={onOpenProfile} highlighted={highlightId === lead.id} />
+              <KanbanCard
+                key={lead.id}
+                lead={lead}
+                index={index}
+                onOpenChat={onOpenChat}
+                onOpenProfile={onOpenProfile}
+                highlighted={highlightId === lead.id}
+                isPastAppointment={pastAppointmentLeadIds?.has(lead.id) ?? false}
+              />
             ))}
             {provided.placeholder}
           </div>

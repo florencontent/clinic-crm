@@ -11,7 +11,8 @@ type DbPatientStatus =
   | "confirmado"
   | "compareceu"
   | "fechado"
-  | "perdido";
+  | "perdido"
+  | "nao_compareceu";
 
 const statusToKanban: Record<DbPatientStatus, LeadStatus> = {
   novo: "em_contato",
@@ -22,6 +23,7 @@ const statusToKanban: Record<DbPatientStatus, LeadStatus> = {
   compareceu: "compareceu",
   fechado: "fechado",
   perdido: "perdido",
+  nao_compareceu: "nao_compareceu",
 };
 
 // Kanban column → DB statuses (for writing back)
@@ -31,6 +33,7 @@ export const kanbanToDbStatuses: Record<LeadStatus, DbPatientStatus[]> = {
   compareceu: ["compareceu"],
   fechado: ["fechado"],
   perdido: ["perdido"],
+  nao_compareceu: ["nao_compareceu"],
 };
 
 // When dragging to a column, use the first DB status as default
@@ -40,6 +43,7 @@ const kanbanToDefaultDb: Record<LeadStatus, DbPatientStatus> = {
   compareceu: "compareceu",
   fechado: "fechado",
   perdido: "perdido",
+  nao_compareceu: "nao_compareceu",
 };
 
 // ── Source mapping ──
@@ -814,17 +818,36 @@ export async function fetchDashboardMetrics(): Promise<DashboardData> {
 // ── Delete Patient ──
 
 export async function deletePatient(patientId: string): Promise<boolean> {
+  // Fetch data needed for Google Calendar cleanup before deleting
+  const { data: patient } = await supabase.from("patients").select("name").eq("id", patientId).single();
+  const { data: appts } = await supabase.from("appointments").select("id, date, time, procedure").eq("patient_id", patientId);
+
   // Delete in FK order
   await supabase.from("messages").delete().in("conversation_id",
     (await supabase.from("conversations").select("id").eq("patient_id", patientId)).data?.map((c: { id: string }) => c.id) || []
   );
   await supabase.from("conversations").delete().eq("patient_id", patientId);
   await supabase.from("appointment_reminders").delete().in("appointment_id",
-    (await supabase.from("appointments").select("id").eq("patient_id", patientId)).data?.map((a: { id: string }) => a.id) || []
+    (appts || []).map((a: { id: string }) => a.id)
   );
   await supabase.from("appointments").delete().eq("patient_id", patientId);
   await supabase.from("lead_status_history").delete().eq("patient_id", patientId);
   const { error } = await supabase.from("patients").delete().eq("id", patientId);
+
+  // Trigger Google Calendar cleanup for all appointments
+  if (!error && patient && appts) {
+    const webhookUrl = process.env.NEXT_PUBLIC_N8N_CALENDAR_DELETE_WEBHOOK;
+    if (webhookUrl) {
+      for (const apt of appts) {
+        fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ leadName: patient.name, procedure: apt.procedure, date: apt.date, time: apt.time }),
+        }).catch(() => {});
+      }
+    }
+  }
+
   return !error;
 }
 

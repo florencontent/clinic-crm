@@ -21,7 +21,7 @@ import { updatePatientStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language-context";
 
-const columns: LeadStatus[] = ["em_contato", "agendado", "compareceu", "fechado", "perdido"];
+const columns: LeadStatus[] = ["em_contato", "agendado", "nao_compareceu", "compareceu", "fechado", "perdido"];
 
 
 function exportLeadsCSV(leads: Lead[], statusLabels: Record<string, string>) {
@@ -52,6 +52,23 @@ export function KanbanBoard() {
   ];
   const { conversations, setConversations } = useConversations();
   const { appointments } = useAppointments();
+
+  // Leads with a past-today appointment (date = today AND time < now)
+  const pastAppointmentLeadIds = useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    return new Set(
+      appointments
+        .filter((a) => {
+          if (a.date !== todayStr) return false;
+          const [h, m] = a.time.split(":").map(Number);
+          return h * 60 + m < nowMinutes;
+        })
+        .map((a) => a.patientId)
+        .filter(Boolean) as string[]
+    );
+  }, [appointments]);
   const searchParams = useSearchParams();
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
@@ -259,6 +276,7 @@ export function KanbanBoard() {
               onOpenChat={(id) => setProfileLeadId(id)}
               onOpenProfile={(id) => setProfileLeadId(id)}
               highlightId={highlightId}
+              pastAppointmentLeadIds={pastAppointmentLeadIds}
             />
           ))}
         </div>

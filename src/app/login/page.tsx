@@ -53,7 +53,7 @@ export default function LoginPage() {
         <Image
           src="/logo1.png"
           alt="Floren"
-          width={160}
+          width={230}
           height={60}
           className="object-contain relative z-10"
         />

@@ -29,6 +29,7 @@ const pt = {
     compareceu: "Compareceu",
     fechado: "Fechado",
     perdido: "Perdido",
+    nao_compareceu: "Não Compareceu",
   },
   reminder: {
     aguardando: "Aguardando Lembrete",
@@ -205,6 +206,7 @@ const en: Translations = {
     compareceu: "Attended",
     fechado: "Closed",
     perdido: "Lost",
+    nao_compareceu: "No Show",
   },
   reminder: {
     aguardando: "Awaiting Reminder",

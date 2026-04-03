@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { Phone, Globe, Instagram, Bell } from "lucide-react";
+import { Phone, Globe, Instagram, Bell, UserX } from "lucide-react";
 import { Lead, reminderColors } from "@/data/mock-data";
 import { useLanguage } from "@/lib/language-context";
 
@@ -12,9 +12,10 @@ interface KanbanCardProps {
   onOpenChat: (leadId: string) => void;
   onOpenProfile?: (leadId: string) => void;
   highlighted?: boolean;
+  isPastAppointment?: boolean;
 }
 
-export function KanbanCard({ lead, index, onOpenProfile, highlighted }: KanbanCardProps) {
+export function KanbanCard({ lead, index, onOpenProfile, highlighted, isPastAppointment }: KanbanCardProps) {
   const { t } = useLanguage();
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -55,6 +56,10 @@ export function KanbanCard({ lead, index, onOpenProfile, highlighted }: KanbanCa
                 ? "shadow-lg ring-2 ring-blue-200 dark:ring-blue-700 border-gray-100 dark:border-gray-700"
                 : highlighted
                 ? "border-blue-400 dark:border-blue-500 ring-2 ring-blue-300 dark:ring-blue-600 ring-offset-1 shadow-md animate-pulse"
+                : isPastAppointment && lead.status === "agendado"
+                ? "border-orange-400 dark:border-orange-500 ring-2 ring-orange-200 dark:ring-orange-800/50 ring-offset-1"
+                : lead.status === "nao_compareceu"
+                ? "border-orange-300 dark:border-orange-700 bg-orange-50/30 dark:bg-orange-900/10"
                 : "border-gray-100 dark:border-gray-700 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700"
             }`}
           >
@@ -95,6 +100,19 @@ export function KanbanCard({ lead, index, onOpenProfile, highlighted }: KanbanCa
             <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full mb-2 ${reminderColors[lead.reminderStatus]}`}>
               <Bell className="h-2.5 w-2.5" />
               {t.reminder[lead.reminderStatus]}
+            </span>
+          )}
+
+          {isPastAppointment && lead.status === "agendado" && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">
+              ⚠ Consulta passou — confirmar presença
+            </span>
+          )}
+
+          {lead.status === "nao_compareceu" && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+              <UserX className="h-2.5 w-2.5" />
+              Não compareceu
             </span>
           )}
 
