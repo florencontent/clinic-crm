@@ -48,13 +48,15 @@ export default function LoginPage() {
           <div className="absolute bottom-0 right-0 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
         </div>
 
-        <Image
-          src="/logo1.png"
-          alt="Floren"
-          width={160}
-          height={60}
-          className="object-contain relative z-10"
-        />
+        <div className="bg-white rounded-2xl px-5 py-3 inline-flex relative z-10 shadow-sm">
+          <Image
+            src="/logo1.png"
+            alt="Floren"
+            width={140}
+            height={52}
+            className="object-contain"
+          />
+        </div>
 
         <div className="relative z-10">
           <p className="text-white/60 text-sm uppercase tracking-widest font-medium mb-3">
