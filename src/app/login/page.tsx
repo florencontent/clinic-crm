@@ -53,7 +53,7 @@ export default function LoginPage() {
           <div className="flex flex-col items-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center mb-4 shadow-md">
               <Image
-                src="/little-logo-white.png"
+                src="/logo1.png"
                 alt="Floren"
                 width={50}
                 height={50}
