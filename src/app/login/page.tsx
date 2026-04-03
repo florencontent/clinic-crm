@@ -39,13 +39,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white dark:bg-gray-950">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between bg-gray-950 p-12 relative overflow-hidden">
-        {/* Background blobs */}
-        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-          <div className="absolute -top-32 -left-32 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
+    <div className="min-h-screen flex">
+      {/* Left panel — branding (very dark) */}
+      <div
+        className="hidden lg:flex w-1/2 flex-col justify-between p-12 relative overflow-hidden"
+        style={{ background: "rgb(8, 8, 12)" }}
+      >
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full opacity-10"
+            style={{ background: "radial-gradient(circle, rgb(30,30,50) 0%, transparent 70%)" }} />
         </div>
 
         <Image
@@ -57,24 +59,27 @@ export default function LoginPage() {
         />
 
         <div className="relative z-10">
-          <p className="text-gray-500 text-sm uppercase tracking-widest font-medium mb-3">
+          <p className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: "rgb(100,100,120)" }}>
             Gestão Inteligente
           </p>
-          <h2 className="text-4xl font-bold text-white leading-tight mb-4">
+          <h2 className="text-4xl font-bold leading-tight mb-4" style={{ color: "rgb(230,230,240)" }}>
             Seu CRM com<br />IA integrada
           </h2>
-          <p className="text-gray-400 text-base leading-relaxed max-w-sm">
+          <p className="text-base leading-relaxed max-w-sm" style={{ color: "rgb(90,90,110)" }}>
             Gerencie leads, automatize follow-ups e acompanhe cada paciente com inteligência artificial.
           </p>
         </div>
 
-        <p className="text-gray-600 text-xs relative z-10">
+        <p className="relative z-10 text-xs" style={{ color: "rgb(50,50,65)" }}>
           © 2026 Floren Odonto. Todos os direitos reservados.
         </p>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
+      {/* Right panel — form (deep dark blue) */}
+      <div
+        className="flex-1 flex items-center justify-center px-6 py-12"
+        style={{ background: "rgb(6, 14, 36)" }}
+      >
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex justify-center mb-8 lg:hidden">
@@ -88,17 +93,17 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-2xl font-bold" style={{ color: "rgb(220,228,255)" }}>
               Bem-vindo de volta
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm mt-1" style={{ color: "rgb(80,100,150)" }}>
               Entre com suas credenciais para acessar
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium mb-1.5" style={{ color: "rgb(140,160,210)" }}>
                 Email
               </label>
               <input
@@ -107,12 +112,19 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
                 autoComplete="email"
-                className="w-full px-4 py-3 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-gray-900 transition-all"
+                className="w-full px-4 py-3 text-sm rounded-xl outline-none transition-all placeholder-gray-600"
+                style={{
+                  background: "rgb(12, 22, 52)",
+                  border: "1px solid rgb(25, 40, 90)",
+                  color: "rgb(200, 215, 255)",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = "rgb(59,130,246)")}
+                onBlur={(e) => (e.target.style.borderColor = "rgb(25, 40, 90)")}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+              <label className="block text-sm font-medium mb-1.5" style={{ color: "rgb(140,160,210)" }}>
                 Senha
               </label>
               <div className="relative">
@@ -122,12 +134,20 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="w-full px-4 py-3 pr-11 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-gray-900 transition-all"
+                  className="w-full px-4 py-3 pr-11 text-sm rounded-xl outline-none transition-all placeholder-gray-600"
+                  style={{
+                    background: "rgb(12, 22, 52)",
+                    border: "1px solid rgb(25, 40, 90)",
+                    color: "rgb(200, 215, 255)",
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = "rgb(59,130,246)")}
+                  onBlur={(e) => (e.target.style.borderColor = "rgb(25, 40, 90)")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: "rgb(70,90,140)" }}
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -136,13 +156,14 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+              <p className="text-sm text-red-400">{error}</p>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors shadow-md shadow-blue-600/20 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: "rgb(29, 78, 216)" }}
             >
               {loading ? (
                 <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
