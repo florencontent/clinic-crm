@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { Phone, Globe, Instagram, Bell, UserX } from "lucide-react";
+import { Phone, Globe, Instagram, Bell, UserX, Headphones } from "lucide-react";
 import { Lead, reminderColors } from "@/data/mock-data";
 import { useLanguage } from "@/lib/language-context";
 
@@ -13,9 +13,10 @@ interface KanbanCardProps {
   onOpenProfile?: (leadId: string) => void;
   highlighted?: boolean;
   isPastAppointment?: boolean;
+  wantsHuman?: boolean;
 }
 
-export function KanbanCard({ lead, index, onOpenProfile, highlighted, isPastAppointment }: KanbanCardProps) {
+export function KanbanCard({ lead, index, onOpenProfile, highlighted, isPastAppointment, wantsHuman }: KanbanCardProps) {
   const { t } = useLanguage();
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -57,9 +58,9 @@ export function KanbanCard({ lead, index, onOpenProfile, highlighted, isPastAppo
                 : highlighted
                 ? "border-blue-400 dark:border-blue-500 ring-2 ring-blue-300 dark:ring-blue-600 ring-offset-1 shadow-md animate-pulse"
                 : isPastAppointment && lead.status === "agendado"
-                ? "border-orange-400 dark:border-orange-500 ring-2 ring-orange-200 dark:ring-orange-800/50 ring-offset-1"
+                ? "border-red-400 dark:border-red-500 ring-2 ring-red-200 dark:ring-red-800/50 ring-offset-1 bg-red-50/30 dark:bg-red-900/10"
                 : lead.status === "nao_compareceu"
-                ? "border-orange-300 dark:border-orange-700 bg-orange-50/30 dark:bg-orange-900/10"
+                ? "border-red-300 dark:border-red-700 bg-red-50/30 dark:bg-red-900/10"
                 : "border-gray-100 dark:border-gray-700 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700"
             }`}
           >
@@ -104,8 +105,8 @@ export function KanbanCard({ lead, index, onOpenProfile, highlighted, isPastAppo
           )}
 
           {isPastAppointment && lead.status === "agendado" && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">
-              ⚠ Consulta passou — confirmar presença
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+              ⚠ Não compareceu — reagendar
             </span>
           )}
 
@@ -113,6 +114,13 @@ export function KanbanCard({ lead, index, onOpenProfile, highlighted, isPastAppo
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
               <UserX className="h-2.5 w-2.5" />
               Não compareceu
+            </span>
+          )}
+
+          {wantsHuman && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
+              <Headphones className="h-2.5 w-2.5" />
+              Quer atendente
             </span>
           )}
 

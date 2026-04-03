@@ -6,6 +6,9 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const ZAPI_URL = `https://api.z-api.io/instances/3ED9461997AF52F36B7AC638E0CE140F/token/67E42A2367AAA15BA33795A7/send-text`;
+const ZAPI_CLIENT_TOKEN = "Fc54c130fab3f4768b454ab482ccbac55S";
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: { id: string } }
@@ -15,7 +18,7 @@ export async function POST(
 
   const { data: patient, error } = await supabaseAdmin
     .from("patients")
-    .select("id, name, phone, email, procedure_interest, status")
+    .select("id, name, phone, procedure_interest")
     .eq("id", leadId)
     .single();
 
@@ -23,31 +26,32 @@ export async function POST(
     return NextResponse.json({ error: "Lead não encontrado" }, { status: 404 });
   }
 
-  const webhookUrl = process.env.N8N_REAGENDAMENTO_WEBHOOK;
-  if (!webhookUrl) {
-    return NextResponse.json({ error: "Webhook não configurado" }, { status: 500 });
-  }
+  const procedure = patient.procedure_interest || "procedimento";
+  const message = `Olá ${patient.name}! 👋 Notamos que você não compareceu à sua consulta de ${procedure}. Sem problemas — gostaríamos de reagendar para você. 😊\n\nQuando ficaria melhor? Pode me dizer um dia e horário de preferência?`;
 
   try {
-    const res = await fetch(webhookUrl, {
+    const res = await fetch(ZAPI_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Client-Token": ZAPI_CLIENT_TOKEN,
+      },
       body: JSON.stringify({
-        leadId: patient.id,
-        name: patient.name,
         phone: patient.phone,
-        email: patient.email,
-        procedure: patient.procedure_interest,
-        status: patient.status,
+        message,
       }),
     });
 
+    const body = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      return NextResponse.json({ error: "Falha ao acionar webhook" }, { status: 502 });
+      console.error("Z-API error:", res.status, body);
+      return NextResponse.json({ error: "Falha ao enviar mensagem", detail: body }, { status: 502 });
     }
 
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (err) {
+    console.error("Reagendamento error:", err);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { Lead, LeadStatus, LeadSource, ReminderStatus, Conversation, Message, Appointment, Tag } from "@/data/mock-data";
+import { HUMAN_KEYWORDS } from "@/data/mock-data";
 
 // ── Status mapping: DB (8 statuses) → Kanban (4 columns) ──
 
@@ -158,6 +159,10 @@ function mapConvRow(conv: {
   ).length;
 
   const patientStatus = patient?.status as DbPatientStatus | undefined;
+  
+  // Variáveis declaradas ANTES do return
+  const lastMsgText = lastMsg?.content?.toLowerCase() || "";
+  const wantsHuman = HUMAN_KEYWORDS.some((kw) => lastMsgText.includes(kw));
 
   return {
     leadId: patient?.id || conv.patient_id,
@@ -170,6 +175,7 @@ function mapConvRow(conv: {
     status: statusToKanban[patientStatus || "novo"],
     messages: mappedMessages,
     reminderStatus: patient?.reminder_status as ReminderStatus | undefined,
+    wantsHuman: wantsHuman || undefined,
   };
 }
 

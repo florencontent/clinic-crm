@@ -17,6 +17,7 @@ interface PatientModalProps {
   lead: Lead;
   conversations: Conversation[];
   appointments: Appointment[];
+  isPastMissedAppointment?: boolean;
   onClose: () => void;
   onOpenChat?: (leadId: string) => void;
   onSave?: (lead: Lead) => void;
@@ -33,6 +34,7 @@ export function PatientModal({
   lead: initialLead,
   conversations,
   appointments,
+  isPastMissedAppointment,
   onClose,
   onSave,
   onSendMessage,
@@ -371,12 +373,12 @@ export function PatientModal({
                   )}
                 </div>
 
-                {/* Reagendamento — só para nao_compareceu */}
-                {lead.status === "nao_compareceu" && (
+                {/* Reagendamento — para agendados com consulta 24h+ passada */}
+                {(isPastMissedAppointment || lead.status === "nao_compareceu") && (
                   <button
                     onClick={handleTriggerReagendamento}
                     disabled={reagendando}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold border bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-700/50 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors disabled:opacity-60"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold border bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-60"
                   >
                     <RefreshCw className={`h-3.5 w-3.5 ${reagendando ? "animate-spin" : ""}`} />
                     {reagendadoOk ? "Fluxo iniciado!" : reagendando ? "Iniciando..." : "Iniciar reagendamento"}
@@ -489,44 +491,69 @@ export function PatientModal({
 
             {tab === "agenda" && (
               <div className="p-4 space-y-3">
+                {isPastMissedAppointment && (
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50">
+                    <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-red-700 dark:text-red-400">Consulta não realizada</p>
+                      <p className="text-[10px] text-red-500 dark:text-red-500">Há mais de 24h — lead não movido para Compareceu</p>
+                    </div>
+                    <button
+                      onClick={handleTriggerReagendamento}
+                      disabled={reagendando}
+                      className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors disabled:opacity-60 flex-shrink-0"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${reagendando ? "animate-spin" : ""}`} />
+                      {reagendadoOk ? "Iniciado!" : "Reagendar"}
+                    </button>
+                  </div>
+                )}
                 {leadAppointments.length === 0 ? (
                   <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">{t.patientModal.noAppointments}</div>
                 ) : (
-                  leadAppointments.map((apt) => (
-                    <div key={apt.id} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            {format(new Date(apt.date + "T12:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <Clock className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{apt.time} · {apt.duration} min</span>
+                  leadAppointments.map((apt) => {
+                    const aptMissed = isPastMissedAppointment && new Date(apt.date + "T" + apt.time) < new Date(Date.now() - 24 * 60 * 60 * 1000);
+                    return (
+                      <div key={apt.id} className={cn(
+                        "rounded-xl p-4 border",
+                        aptMissed
+                          ? "bg-red-50/60 dark:bg-red-900/10 border-red-200 dark:border-red-800/50"
+                          : "bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700"
+                      )}>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                              {format(new Date(apt.date + "T12:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <Clock className="h-3 w-3 text-gray-400" />
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{apt.time} · {apt.duration} min</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className={cn("text-xs px-2 py-1 rounded-lg font-medium",
+                              aptMissed || lead.status === "nao_compareceu"
+                                ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                                : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                            )}>
+                              {aptMissed || lead.status === "nao_compareceu" ? "Não compareceu" : t.status.agendado}
+                            </span>
+                            {lead.status === "agendado" && !aptMissed && lead.reminderStatus && (
+                              <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
+                                {t.reminder[lead.reminderStatus]}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className={cn("text-xs px-2 py-1 rounded-lg font-medium",
-                            lead.status === "nao_compareceu"
-                              ? "bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                              : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                          )}>
-                            {lead.status === "nao_compareceu" ? "Não compareceu" : t.status.agendado}
-                          </span>
-                          {lead.status === "agendado" && lead.reminderStatus && (
-                            <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
-                              {t.reminder[lead.reminderStatus]}
-                            </span>
-                          )}
-                        </div>
+                        {apt.procedure && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{apt.procedure}</p>
+                        )}
+                        {apt.doctor && (
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{apt.doctor}</p>
+                        )}
                       </div>
-                      {apt.procedure && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{apt.procedure}</p>
-                      )}
-                      {apt.doctor && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{apt.doctor}</p>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}

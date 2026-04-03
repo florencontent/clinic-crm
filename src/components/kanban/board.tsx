@@ -21,7 +21,7 @@ import { updatePatientStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language-context";
 
-const columns: LeadStatus[] = ["em_contato", "agendado", "nao_compareceu", "compareceu", "fechado", "perdido"];
+const columns: LeadStatus[] = ["em_contato", "agendado", "compareceu", "fechado", "perdido"];
 
 
 function exportLeadsCSV(leads: Lead[], statusLabels: Record<string, string>) {
@@ -53,22 +53,24 @@ export function KanbanBoard() {
   const { conversations, setConversations } = useConversations();
   const { appointments } = useAppointments();
 
-  // Leads with a past-today appointment (date = today AND time < now)
+  // Leads that requested human attendant
+  const wantsHumanLeadIds = useMemo(() => {
+    return new Set(conversations.filter((c) => c.wantsHuman).map((c) => c.leadId));
+  }, [conversations]);
+
+  // Leads still "agendado" whose appointment was 24h+ ago (missed consultation)
   const pastAppointmentLeadIds = useMemo(() => {
-    const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const agendadoIds = new Set(leads.filter((l) => l.status === "agendado").map((l) => l.id));
     return new Set(
       appointments
         .filter((a) => {
-          if (a.date !== todayStr) return false;
-          const [h, m] = a.time.split(":").map(Number);
-          return h * 60 + m < nowMinutes;
+          if (!a.patientId || !agendadoIds.has(a.patientId)) return false;
+          return new Date(a.date + "T" + a.time) < cutoff;
         })
-        .map((a) => a.patientId)
-        .filter(Boolean) as string[]
+        .map((a) => a.patientId) as string[]
     );
-  }, [appointments]);
+  }, [appointments, leads]);
   const searchParams = useSearchParams();
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
@@ -277,6 +279,7 @@ export function KanbanBoard() {
               onOpenProfile={(id) => setProfileLeadId(id)}
               highlightId={highlightId}
               pastAppointmentLeadIds={pastAppointmentLeadIds}
+              wantsHumanLeadIds={wantsHumanLeadIds}
             />
           ))}
         </div>
@@ -315,6 +318,7 @@ export function KanbanBoard() {
           lead={profileLead}
           conversations={conversations}
           appointments={appointments}
+          isPastMissedAppointment={pastAppointmentLeadIds.has(profileLeadId)}
           onClose={() => setProfileLeadId(null)}
           onOpenChat={(id) => setProfileLeadId(id)}
           onSave={(updated) => setLeads((prev) => prev.map((l) => l.id === updated.id ? updated : l))}

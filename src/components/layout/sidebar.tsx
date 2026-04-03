@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Settings, Sun, Moon, GitBranch, LogOut } from "lucide-react";
+import { LayoutDashboard, Columns3, MessageCircle, Calendar, Megaphone, Settings, Sun, Moon, GitBranch, LogOut, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme-context";
 import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { HUMAN_KEYWORDS } from "@/data/mock-data";
 
 // navItems are built inside the component so they can use translations
 
@@ -22,6 +23,7 @@ export function Sidebar() {
   const { signOut } = useAuth();
   const isDark = theme === "dark";
   const [unreadCount, setUnreadCount] = useState(0);
+  const [humanCount, setHumanCount] = useState(0);
 
   const handleSignOut = async () => {
     await signOut();
@@ -32,6 +34,7 @@ export function Sidebar() {
     { href: "/kanban", label: t.nav.kanban, icon: Columns3 },
     { href: "/dashboard", label: t.nav.dashboard, icon: LayoutDashboard },
     { href: "/conversas", label: t.nav.conversations, icon: MessageCircle },
+    { href: "/atendimento-humano", label: "Atendimento Humano", icon: Headphones },
     { href: "/follow-up", label: "Follow-up", icon: GitBranch },
     { href: "/agenda", label: t.nav.agenda, icon: Calendar },
     { href: "/meta-ads", label: t.nav.campaigns, icon: Megaphone },
@@ -53,6 +56,30 @@ export function Sidebar() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const fetchHumanCount = async () => {
+      // Get last message per conversation and check for human keywords
+      const { data: convs } = await supabase
+        .from("conversations")
+        .select("id, messages ( content, direction, sent_at )");
+      if (!convs) return;
+      let count = 0;
+      for (const conv of convs) {
+        const msgs = (conv.messages as Array<{ content: string | null; direction: string; sent_at: string }>) || [];
+        const sorted = [...msgs].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+        const last = sorted[sorted.length - 1];
+        if (last && last.direction === "inbound") {
+          const text = (last.content || "").toLowerCase();
+          if (HUMAN_KEYWORDS.some((kw) => text.includes(kw))) count++;
+        }
+      }
+      setHumanCount(count);
+    };
+    fetchHumanCount();
+    const interval = setInterval(fetchHumanCount, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col z-50 transition-colors">
       <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center">
@@ -71,7 +98,11 @@ export function Sidebar() {
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
-          const badge = item.href === "/conversas" && unreadCount > 0 ? unreadCount : null;
+          const badge =
+            item.href === "/conversas" && unreadCount > 0 ? unreadCount :
+            item.href === "/atendimento-humano" && humanCount > 0 ? humanCount :
+            null;
+          const badgeAmber = item.href === "/atendimento-humano";
           return (
             <Link
               key={item.href}
@@ -88,7 +119,7 @@ export function Sidebar() {
               {badge !== null && (
                 <span className={cn(
                   "text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
-                  isActive ? "bg-white/30 text-white" : "bg-red-500 text-white"
+                  isActive ? "bg-white/30 text-white" : badgeAmber ? "bg-amber-500 text-white" : "bg-red-500 text-white"
                 )}>
                   {badge > 99 ? "99+" : badge}
                 </span>

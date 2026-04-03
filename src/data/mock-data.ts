@@ -50,6 +50,24 @@ export interface Message {
   timestamp: string;
 }
 
+export const HUMAN_KEYWORDS = [
+  "quero falar com alguém",
+  "quero falar com um atendente",
+  "quero falar com uma pessoa",
+  "falar com atendente",
+  "falar com humano",
+  "falar com uma pessoa",
+  "secretária",
+  "secretaria",
+  "atendente humano",
+  "pessoa real",
+  "suporte humano",
+  "atendimento humano",
+  "não quero falar com robô",
+  "nao quero falar com robo",
+  "quero um humano",
+];
+
 export interface Conversation {
   leadId: string;
   conversationId: string;
@@ -61,6 +79,7 @@ export interface Conversation {
   status: LeadStatus;
   messages: Message[];
   reminderStatus?: ReminderStatus;
+  wantsHuman?: boolean;
 }
 
 export interface Appointment {

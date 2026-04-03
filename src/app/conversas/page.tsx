@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { ConversationList } from "@/components/conversas/conversation-list";
 import { ChatWindow } from "@/components/conversas/chat-window";
@@ -16,6 +16,19 @@ export default function ConversasPage() {
 
   const selectedConversation = conversations.find((c) => c.leadId === selectedId) || null;
   const selectedLead = selectedId ? (patients.find((p) => p.id === selectedId) || null) : null;
+
+  const missedAppointmentLeadIds = useMemo(() => {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const agendadoIds = new Set(patients.filter((p) => p.status === "agendado").map((p) => p.id));
+    return new Set(
+      appointments
+        .filter((a) => {
+          if (!a.patientId || !agendadoIds.has(a.patientId)) return false;
+          return new Date(a.date + "T" + a.time) < cutoff;
+        })
+        .map((a) => a.patientId) as string[]
+    );
+  }, [appointments, patients]);
 
   const handleSendMessage = (leadId: string, text: string) => {
     const conv = conversations.find((c) => c.leadId === leadId);
@@ -69,6 +82,7 @@ export default function ConversasPage() {
         selectedId={selectedId}
         onSelect={setSelectedId}
         onPinContact={handlePinContact}
+        missedAppointmentLeadIds={missedAppointmentLeadIds}
       />
       <ChatWindow
         conversation={selectedConversation}
