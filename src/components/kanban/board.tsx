@@ -53,10 +53,10 @@ export function KanbanBoard() {
   const { conversations, setConversations } = useConversations();
   const { appointments } = useAppointments();
 
-  // Leads that requested human attendant
+  // Leads that requested human attendant (from DB field on patient)
   const wantsHumanLeadIds = useMemo(() => {
-    return new Set(conversations.filter((c) => c.wantsHuman).map((c) => c.leadId));
-  }, [conversations]);
+    return new Set(leads.filter((l) => l.wantsHuman).map((l) => l.id));
+  }, [leads]);
 
   // Leads still "agendado" whose appointment was 24h+ ago (missed consultation)
   const pastAppointmentLeadIds = useMemo(() => {

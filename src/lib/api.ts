@@ -90,6 +90,7 @@ export async function fetchPatients(): Promise<Lead[]> {
     notes: p.notes || undefined,
     reminderStatus: p.reminder_status as ReminderStatus | undefined,
     agentPaused: p.agent_paused ?? false,
+    wantsHuman: p.wants_human ?? false,
     lossReason: p.loss_reason ?? undefined,
     dealValue: p.deal_value ?? undefined,
     followUpStage: p.follow_up_stage ?? 0,
@@ -118,6 +119,17 @@ export async function updatePatientStatus(
   }
 }
 
+// ── Mark human attendant as resolved ──
+
+export async function markHumanAttended(patientId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("patients")
+    .update({ wants_human: false, agent_paused: false, updated_at: new Date().toISOString() })
+    .eq("id", patientId);
+  if (error) console.error("Error marking human attended:", error);
+  return !error;
+}
+
 // ── Fetch Conversations ──
 
 function mapConvRow(conv: {
@@ -128,7 +140,7 @@ function mapConvRow(conv: {
   messages: unknown;
 }): Conversation {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const patient = conv.patients as any as { id: string; name: string | null; status: string; phone: string | null; reminder_status?: string | null } | null;
+  const patient = conv.patients as any as { id: string; name: string | null; status: string; phone: string | null; reminder_status?: string | null; wants_human?: boolean | null } | null;
   const msgs = (conv.messages as Array<{
     id: string;
     content: string | null;
@@ -161,8 +173,11 @@ function mapConvRow(conv: {
   const patientStatus = patient?.status as DbPatientStatus | undefined;
   
   // Variáveis declaradas ANTES do return
+  // Use DB field (persistent) — fall back to keyword detection if DB field not available
+  const wantsHumanDb = patient?.wants_human ?? null;
   const lastMsgText = lastMsg?.content?.toLowerCase() || "";
-  const wantsHuman = HUMAN_KEYWORDS.some((kw) => lastMsgText.includes(kw));
+  const wantsHumanKeyword = HUMAN_KEYWORDS.some((kw) => lastMsgText.includes(kw));
+  const wantsHuman = wantsHumanDb !== null ? wantsHumanDb : wantsHumanKeyword;
 
   return {
     leadId: patient?.id || conv.patient_id,
@@ -187,7 +202,7 @@ export async function fetchConversations(): Promise<Conversation[]> {
       id,
       patient_id,
       last_message_at,
-      patients ( id, name, status, phone, reminder_status ),
+      patients ( id, name, status, phone, reminder_status, wants_human ),
       messages ( id, content, direction, sender, sent_at )
     `)
     .order("last_message_at", { ascending: false });

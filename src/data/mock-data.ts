@@ -36,6 +36,7 @@ export interface Lead {
   avatar?: string;
   reminderStatus?: ReminderStatus;
   agentPaused?: boolean;
+  wantsHuman?: boolean;
   lossReason?: string;
   dealValue?: number;
   followUpStage?: number;
