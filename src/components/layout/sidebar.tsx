@@ -11,7 +11,6 @@ import { useLanguage } from "@/lib/language-context";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { HUMAN_KEYWORDS } from "@/data/mock-data";
 
 // navItems are built inside the component so they can use translations
 
@@ -58,25 +57,14 @@ export function Sidebar() {
 
   useEffect(() => {
     const fetchHumanCount = async () => {
-      // Get last message per conversation and check for human keywords
-      const { data: convs } = await supabase
-        .from("conversations")
-        .select("id, messages ( content, direction, sent_at )");
-      if (!convs) return;
-      let count = 0;
-      for (const conv of convs) {
-        const msgs = (conv.messages as Array<{ content: string | null; direction: string; sent_at: string }>) || [];
-        const sorted = [...msgs].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
-        const last = sorted[sorted.length - 1];
-        if (last && last.direction === "inbound") {
-          const text = (last.content || "").toLowerCase();
-          if (HUMAN_KEYWORDS.some((kw) => text.includes(kw))) count++;
-        }
-      }
-      setHumanCount(count);
+      const { count } = await supabase
+        .from("patients")
+        .select("*", { count: "exact", head: true })
+        .eq("wants_human", true);
+      setHumanCount(count || 0);
     };
     fetchHumanCount();
-    const interval = setInterval(fetchHumanCount, 30_000);
+    const interval = setInterval(fetchHumanCount, 15_000);
     return () => clearInterval(interval);
   }, []);
 
