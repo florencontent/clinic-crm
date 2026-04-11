@@ -33,26 +33,42 @@ function detectColumn(header: string): ColumnKey {
   return "ignore";
 }
 
+function detectSep(firstLine: string): string {
+  if (firstLine.includes("\t")) return "\t";
+  if (firstLine.includes(";")) return ";";
+  return ",";
+}
+
+// Convert scientific notation like "5,56193E+11" or "5.56193E+11" to integer string
+function fixScientific(val: string): string {
+  const normalized = val.replace(",", ".");
+  if (/^-?\d+\.?\d*[eE][+-]?\d+$/.test(normalized)) {
+    const n = Number(normalized);
+    if (!isNaN(n)) return Math.round(n).toString();
+  }
+  return val;
+}
+
 function parseCSV(text: string): string[][] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length === 0) return [];
+  const sep = detectSep(lines[0]);
   return lines.map((line) => {
-    // Handle quoted fields
     const result: string[] = [];
     let current = "";
     let inQuotes = false;
-    const sep = line.includes(";") ? ";" : ",";
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
         inQuotes = !inQuotes;
       } else if (ch === sep && !inQuotes) {
-        result.push(current.trim());
+        result.push(fixScientific(current.trim()));
         current = "";
       } else {
         current += ch;
       }
     }
-    result.push(current.trim());
+    result.push(fixScientific(current.trim()));
     return result;
   });
 }
