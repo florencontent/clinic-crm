@@ -382,37 +382,40 @@ export async function importPatients(
     source?: string;
     notes?: string;
   }>
-): Promise<number> {
-  const rows = leads.map((l) => {
-    const rawSource = (l.source || "").toLowerCase().trim();
-    let normalizedSource = "site";
-    if (rawSource.includes("meta") || rawSource.includes("ads")) normalizedSource = "meta_ads";
-    else if (rawSource.includes("org") || rawSource.includes("insta") || rawSource.includes("natural")) normalizedSource = "organico";
-    else if (rawSource.includes("indica") || rawSource.includes("referr") || rawSource.includes("referência")) normalizedSource = "indicacao";
-    else if (rawSource === "meta_ads" || rawSource === "organico" || rawSource === "indicacao" || rawSource === "site") normalizedSource = rawSource;
-    return {
-      name: l.name,
-      phone: l.phone,
-      email: l.email || null,
-      procedure_interest: l.procedure || "",
-      source: normalizedSource,
-      notes: l.notes || null,
-      status: "em_contato",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  });
+): Promise<{ count: number; error?: string }> {
+  function normalizeSource(raw: string): string {
+    const s = (raw || "").toLowerCase().trim();
+    if (s.includes("meta") || s.includes("ads")) return "meta_ads";
+    if (s.includes("org") || s.includes("insta") || s.includes("natural")) return "organico";
+    if (s.includes("indica") || s.includes("referr") || s.includes("referência")) return "indicacao";
+    if (s === "meta_ads" || s === "organico" || s === "indicacao" || s === "site") return s;
+    return "site";
+  }
 
+  const now = new Date().toISOString();
+  const rows = leads.map((l) => ({
+    name: l.name,
+    phone: l.phone || null,
+    email: l.email || null,
+    procedure_interest: l.procedure || "",
+    source: normalizeSource(l.source || ""),
+    notes: l.notes || null,
+    status: "em_contato",
+    created_at: now,
+    updated_at: now,
+  }));
+
+  // Use upsert with ignoreDuplicates to skip rows that violate unique constraints (e.g. duplicate phone)
   const { data, error } = await supabase
     .from("patients")
-    .insert(rows)
+    .upsert(rows, { onConflict: "phone", ignoreDuplicates: true })
     .select("id");
 
   if (error) {
     console.error("Error importing patients:", error);
-    return 0;
+    return { count: 0, error: error.message };
   }
-  return (data || []).length;
+  return { count: (data || []).length };
 }
 
 // ── Search Patients ──

@@ -118,10 +118,12 @@ export function ImportLeadsModal({ onClose, onImported }: ImportLeadsModalProps)
       })
       .filter((l) => l.name);
 
-    const count = await importPatients(leads);
+    const result = await importPatients(leads);
     setImporting(false);
-    if (count > 0) {
-      setResult({ success: true, count });
+    if (result.error) {
+      setError(`Erro do banco de dados: ${result.error}`);
+    } else if (result.count > 0) {
+      setResult({ success: true, count: result.count });
     } else {
       setResult({ success: false, count: 0 });
     }
