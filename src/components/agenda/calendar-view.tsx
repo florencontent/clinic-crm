@@ -13,6 +13,7 @@ interface CalendarViewProps {
   appointments: Appointment[];
   onSelectAppointment: (appointment: Appointment) => void;
   onNewAppointment?: (date: string) => void;
+  missedAppointmentIds?: Set<string>;
 }
 
 const APT_COLORS = [
@@ -23,7 +24,7 @@ const APT_COLORS = [
   "bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/50 dark:text-rose-300 dark:hover:bg-rose-900/70",
 ];
 
-export function CalendarView({ currentDate, appointments, onSelectAppointment, onNewAppointment }: CalendarViewProps) {
+export function CalendarView({ currentDate, appointments, onSelectAppointment, onNewAppointment, missedAppointmentIds }: CalendarViewProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calStart = startOfWeek(monthStart, { locale: ptBR });
@@ -86,18 +87,23 @@ export function CalendarView({ currentDate, appointments, onSelectAppointment, o
               </span>
 
               <div className="space-y-0.5">
-                {dayApts.slice(0, 3).map((apt, aptIdx) => (
-                  <button
-                    key={apt.id}
-                    onClick={(e) => { e.stopPropagation(); onSelectAppointment(apt); }}
-                    className={cn(
-                      "w-full text-left text-[10px] font-medium px-1.5 py-1 rounded-lg truncate transition-colors",
-                      APT_COLORS[aptIdx % APT_COLORS.length]
-                    )}
-                  >
-                    {apt.time} · {apt.leadName.split(" ")[0]}
-                  </button>
-                ))}
+                {dayApts.slice(0, 3).map((apt, aptIdx) => {
+                  const isMissed = missedAppointmentIds?.has(apt.id) ?? false;
+                  return (
+                    <button
+                      key={apt.id}
+                      onClick={(e) => { e.stopPropagation(); onSelectAppointment(apt); }}
+                      className={cn(
+                        "w-full text-left text-[10px] font-medium px-1.5 py-1 rounded-lg truncate transition-colors",
+                        isMissed
+                          ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
+                          : APT_COLORS[aptIdx % APT_COLORS.length]
+                      )}
+                    >
+                      {isMissed ? "⚠ " : ""}{apt.time} · {apt.leadName.split(" ")[0]}
+                    </button>
+                  );
+                })}
                 {dayApts.length > 3 && (
                   <span className="text-[10px] text-gray-400 dark:text-gray-500 pl-1">
                     +{dayApts.length - 3} mais

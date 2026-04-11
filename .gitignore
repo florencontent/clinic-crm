@@ -42,3 +42,6 @@ next-env.d.ts
 public/renders/
 public/uploads/
 .cache/
+
+# Claude Code local settings (may contain secrets)
+.claude/settings.local.json

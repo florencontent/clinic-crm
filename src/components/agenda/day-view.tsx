@@ -9,6 +9,7 @@ interface DayViewProps {
   currentDate: Date;
   appointments: Appointment[];
   onSelectAppointment: (appointment: Appointment) => void;
+  missedAppointmentIds?: Set<string>;
 }
 
 const hours = Array.from({ length: 17 }, (_, i) => i + 6); // 6h–22h
@@ -21,7 +22,7 @@ const APT_GRADIENTS = [
   "from-rose-500 to-pink-500",
 ];
 
-export function DayView({ currentDate, appointments, onSelectAppointment }: DayViewProps) {
+export function DayView({ currentDate, appointments, onSelectAppointment, missedAppointmentIds }: DayViewProps) {
   const today = isToday(currentDate);
   const dayApts = appointments.filter((a) => isSameDay(new Date(a.date + "T00:00:00"), currentDate));
 
@@ -53,19 +54,22 @@ export function DayView({ currentDate, appointments, onSelectAppointment }: DayV
                 <span className="text-[11px] text-gray-300 dark:text-gray-600 font-medium">{`${hour}h`}</span>
               </div>
               <div className={cn("border-l border-t border-gray-50 dark:border-gray-800 p-1.5", today && "bg-blue-50/20 dark:bg-blue-900/10")}>
-                {apts.map((apt, aptIdx) => (
-                  <button
-                    key={apt.id}
-                    onClick={() => onSelectAppointment(apt)}
-                    className={cn(
-                      "w-full text-left text-white rounded-xl px-2.5 py-2 text-[11px] mb-1 transition-all hover:opacity-90 hover:shadow-md bg-gradient-to-b",
-                      APT_GRADIENTS[aptIdx % APT_GRADIENTS.length]
-                    )}
-                  >
-                    <p className="font-semibold truncate">{apt.leadName}</p>
-                    <p className="opacity-80 text-[10px] truncate mt-0.5">{apt.time} · {apt.procedure}</p>
-                  </button>
-                ))}
+                {apts.map((apt, aptIdx) => {
+                  const isMissed = missedAppointmentIds?.has(apt.id) ?? false;
+                  return (
+                    <button
+                      key={apt.id}
+                      onClick={() => onSelectAppointment(apt)}
+                      className={cn(
+                        "w-full text-left text-white rounded-xl px-2.5 py-2 text-[11px] mb-1 transition-all hover:opacity-90 hover:shadow-md bg-gradient-to-b",
+                        isMissed ? "from-red-500 to-red-600" : APT_GRADIENTS[aptIdx % APT_GRADIENTS.length]
+                      )}
+                    >
+                      <p className="font-semibold truncate">{isMissed ? "⚠ " : ""}{apt.leadName}</p>
+                      <p className="opacity-80 text-[10px] truncate mt-0.5">{apt.time} · {apt.procedure}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );

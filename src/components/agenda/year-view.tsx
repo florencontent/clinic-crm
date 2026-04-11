@@ -13,11 +13,12 @@ interface YearViewProps {
   currentDate: Date;
   appointments: Appointment[];
   onSelectAppointment: (appointment: Appointment) => void;
+  missedAppointmentIds?: Set<string>;
 }
 
 const WEEK_DAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
 
-function MiniMonth({ month, appointments }: { month: Date; appointments: Appointment[] }) {
+function MiniMonth({ month, appointments, missedAppointmentIds }: { month: Date; appointments: Appointment[]; missedAppointmentIds?: Set<string> }) {
   const monthStart = startOfMonth(month);
   const monthEnd = endOfMonth(month);
   const calStart = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -40,7 +41,9 @@ function MiniMonth({ month, appointments }: { month: Date; appointments: Appoint
         {days.map((day, i) => {
           const inMonth = isSameMonth(day, month);
           const today = isToday(day);
-          const hasApt = inMonth && appointments.some((a) => isSameDay(new Date(a.date + "T00:00:00"), day));
+          const dayApts = inMonth ? appointments.filter((a) => isSameDay(new Date(a.date + "T00:00:00"), day)) : [];
+          const hasApt = dayApts.length > 0;
+          const hasMissed = dayApts.some((a) => missedAppointmentIds?.has(a.id));
 
           return (
             <div
@@ -54,7 +57,7 @@ function MiniMonth({ month, appointments }: { month: Date; appointments: Appoint
             >
               {format(day, "d")}
               {hasApt && !today && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-400 rounded-full" />
+                <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${hasMissed ? "bg-red-400" : "bg-blue-400"}`} />
               )}
             </div>
           );
@@ -64,7 +67,7 @@ function MiniMonth({ month, appointments }: { month: Date; appointments: Appoint
   );
 }
 
-export function YearView({ currentDate, appointments }: YearViewProps) {
+export function YearView({ currentDate, appointments, missedAppointmentIds }: YearViewProps) {
   const months = eachMonthOfInterval({
     start: startOfYear(currentDate),
     end: endOfYear(currentDate),
@@ -74,7 +77,7 @@ export function YearView({ currentDate, appointments }: YearViewProps) {
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
       <div className="grid grid-cols-4 divide-x divide-y divide-gray-100 dark:divide-gray-800">
         {months.map((month, i) => (
-          <MiniMonth key={i} month={month} appointments={appointments} />
+          <MiniMonth key={i} month={month} appointments={appointments} missedAppointmentIds={missedAppointmentIds} />
         ))}
       </div>
     </div>

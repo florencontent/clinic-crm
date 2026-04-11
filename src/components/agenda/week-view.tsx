@@ -9,6 +9,7 @@ interface WeekViewProps {
   currentDate: Date;
   appointments: Appointment[];
   onSelectAppointment: (appointment: Appointment) => void;
+  missedAppointmentIds?: Set<string>;
 }
 
 const hours = Array.from({ length: 11 }, (_, i) => i + 8); // 8h–18h
@@ -21,7 +22,7 @@ const APT_GRADIENTS = [
   "from-rose-500 to-pink-500",
 ];
 
-export function WeekView({ currentDate, appointments, onSelectAppointment }: WeekViewProps) {
+export function WeekView({ currentDate, appointments, onSelectAppointment, missedAppointmentIds }: WeekViewProps) {
   const weekStart = startOfWeek(currentDate, { locale: ptBR });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -82,19 +83,22 @@ export function WeekView({ currentDate, appointments, onSelectAppointment }: Wee
                     today && "bg-blue-50/20 dark:bg-blue-900/10"
                   )}
                 >
-                  {apts.map((apt, aptIdx) => (
+                  {apts.map((apt, aptIdx) => {
+                    const isMissed = missedAppointmentIds?.has(apt.id) ?? false;
+                    return (
                     <button
                       key={apt.id}
                       onClick={() => onSelectAppointment(apt)}
                       className={cn(
                         "w-full text-left text-white rounded-xl px-2.5 py-2 text-[11px] mb-1 transition-all hover:opacity-90 hover:shadow-md bg-gradient-to-b",
-                        APT_GRADIENTS[aptIdx % APT_GRADIENTS.length]
+                        isMissed ? "from-red-500 to-red-600" : APT_GRADIENTS[aptIdx % APT_GRADIENTS.length]
                       )}
                     >
-                      <p className="font-semibold truncate">{apt.leadName.split(" ")[0]}</p>
+                      <p className="font-semibold truncate">{isMissed ? "⚠ " : ""}{apt.leadName.split(" ")[0]}</p>
                       <p className="opacity-80 text-[10px] truncate mt-0.5">{apt.time} · {apt.procedure}</p>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })}

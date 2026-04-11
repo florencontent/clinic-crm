@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { Draggable } from "@hello-pangea/dnd";
-import { Phone, Globe, Instagram, Bell, UserX, Headphones } from "lucide-react";
+import { Phone, Globe, Instagram, Bell, UserX, Headphones, RefreshCw } from "lucide-react";
 import { Lead, reminderColors } from "@/data/mock-data";
 import { useLanguage } from "@/lib/language-context";
 
@@ -57,6 +57,8 @@ export function KanbanCard({ lead, index, onOpenProfile, highlighted, isPastAppo
                 ? "shadow-lg ring-2 ring-blue-200 dark:ring-blue-700 border-gray-100 dark:border-gray-700"
                 : highlighted
                 ? "border-blue-400 dark:border-blue-500 ring-2 ring-blue-300 dark:ring-blue-600 ring-offset-1 shadow-md animate-pulse"
+                : lead.inRescheduling
+                ? "border-orange-400 dark:border-orange-500 ring-2 ring-orange-200 dark:ring-orange-800/50 ring-offset-1 bg-orange-50/30 dark:bg-orange-900/10"
                 : isPastAppointment && lead.status === "agendado"
                 ? "border-red-400 dark:border-red-500 ring-2 ring-red-200 dark:ring-red-800/50 ring-offset-1 bg-red-50/30 dark:bg-red-900/10"
                 : lead.status === "nao_compareceu"
@@ -114,6 +116,13 @@ export function KanbanCard({ lead, index, onOpenProfile, highlighted, isPastAppo
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
               <UserX className="h-2.5 w-2.5" />
               Não compareceu
+            </span>
+          )}
+
+          {lead.inRescheduling && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400">
+              <RefreshCw className="h-2.5 w-2.5" />
+              Em reagendamento
             </span>
           )}
 

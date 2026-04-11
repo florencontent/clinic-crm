@@ -42,6 +42,7 @@ export interface Lead {
   followUpStage?: number;
   doctor?: string;
   isPinned?: boolean;
+  inRescheduling?: boolean;
 }
 
 export interface Message {

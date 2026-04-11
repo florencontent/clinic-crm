@@ -30,6 +30,11 @@ export default function ConversasPage() {
     );
   }, [appointments, patients]);
 
+  const inReschedulingLeadIds = useMemo(
+    () => new Set(patients.filter((p) => p.inRescheduling).map((p) => p.id)),
+    [patients]
+  );
+
   const handleSendMessage = (leadId: string, text: string) => {
     const conv = conversations.find((c) => c.leadId === leadId);
     setConversations((prev) =>
@@ -83,6 +88,7 @@ export default function ConversasPage() {
         onSelect={setSelectedId}
         onPinContact={handlePinContact}
         missedAppointmentLeadIds={missedAppointmentLeadIds}
+        inReschedulingLeadIds={inReschedulingLeadIds}
       />
       <ChatWindow
         conversation={selectedConversation}

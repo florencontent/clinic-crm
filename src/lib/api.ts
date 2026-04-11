@@ -96,6 +96,7 @@ export async function fetchPatients(): Promise<Lead[]> {
     followUpStage: p.follow_up_stage ?? 0,
     doctor: p.doctor || undefined,
     isPinned: p.is_pinned ?? false,
+    inRescheduling: p.in_rescheduling ?? false,
   }));
 }
 
@@ -117,6 +118,17 @@ export async function updatePatientStatus(
   if (error) {
     console.error("Error updating patient status:", error);
   }
+}
+
+// ── Mark lead as in rescheduling ──
+
+export async function markInRescheduling(patientId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("patients")
+    .update({ in_rescheduling: true, updated_at: new Date().toISOString() })
+    .eq("id", patientId);
+  if (error) console.error("Error marking in_rescheduling:", error);
+  return !error;
 }
 
 // ── Mark human attendant as resolved ──
@@ -371,17 +383,25 @@ export async function importPatients(
     notes?: string;
   }>
 ): Promise<number> {
-  const rows = leads.map((l) => ({
-    name: l.name,
-    phone: l.phone,
-    email: l.email || null,
-    procedure_interest: l.procedure || "",
-    source: l.source || "site",
-    notes: l.notes || null,
-    status: "em_contato",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }));
+  const rows = leads.map((l) => {
+    const rawSource = (l.source || "").toLowerCase().trim();
+    let normalizedSource = "site";
+    if (rawSource.includes("meta") || rawSource.includes("ads")) normalizedSource = "meta_ads";
+    else if (rawSource.includes("org") || rawSource.includes("insta") || rawSource.includes("natural")) normalizedSource = "organico";
+    else if (rawSource.includes("indica") || rawSource.includes("referr") || rawSource.includes("referência")) normalizedSource = "indicacao";
+    else if (rawSource === "meta_ads" || rawSource === "organico" || rawSource === "indicacao" || rawSource === "site") normalizedSource = rawSource;
+    return {
+      name: l.name,
+      phone: l.phone,
+      email: l.email || null,
+      procedure_interest: l.procedure || "",
+      source: normalizedSource,
+      notes: l.notes || null,
+      status: "em_contato",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  });
 
   const { data, error } = await supabase
     .from("patients")

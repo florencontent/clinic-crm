@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   format, addDays, subDays, addWeeks, subWeeks, addMonths, subMonths, addYears, subYears,
   isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear,
@@ -55,6 +55,19 @@ export default function AgendaPage() {
   const { appointments, loading, setAppointments } = useAppointments();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [newAptDate, setNewAptDate] = useState<string | null>(null);
+
+  // Appointments with date+time > 24h ago that are still "agendado" = missed
+  const missedAppointmentIds = useMemo(() => {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return new Set(
+      appointments
+        .filter((a) => {
+          if (a.status && a.status !== "agendado") return false;
+          return new Date(a.date + "T" + (a.time || "00:00")) < cutoff;
+        })
+        .map((a) => a.id)
+    );
+  }, [appointments]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -224,6 +237,7 @@ export default function AgendaPage() {
           appointments={appointments}
           onSelectAppointment={setSelectedAppointment}
           onNewAppointment={(date) => setNewAptDate(date)}
+          missedAppointmentIds={missedAppointmentIds}
         />
       )}
       {viewMode === "week" && (
@@ -231,6 +245,7 @@ export default function AgendaPage() {
           currentDate={currentDate}
           appointments={appointments}
           onSelectAppointment={setSelectedAppointment}
+          missedAppointmentIds={missedAppointmentIds}
         />
       )}
       {viewMode === "day" && (
@@ -238,6 +253,7 @@ export default function AgendaPage() {
           currentDate={currentDate}
           appointments={appointments}
           onSelectAppointment={setSelectedAppointment}
+          missedAppointmentIds={missedAppointmentIds}
         />
       )}
       {viewMode === "year" && (
@@ -245,6 +261,7 @@ export default function AgendaPage() {
           currentDate={currentDate}
           appointments={appointments}
           onSelectAppointment={setSelectedAppointment}
+          missedAppointmentIds={missedAppointmentIds}
         />
       )}
 

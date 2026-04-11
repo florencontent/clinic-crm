@@ -133,11 +133,17 @@ export function PatientModal({
   };
 
   const handleTriggerReagendamento = async () => {
+    if (lead.inRescheduling) return;
     setReagendando(true);
     try {
-      await fetch(`/api/leads/${lead.id}/trigger-reagendamento`, { method: "POST" });
-      setReagendadoOk(true);
-      setTimeout(() => setReagendadoOk(false), 3000);
+      const res = await fetch(`/api/leads/${lead.id}/trigger-reagendamento`, { method: "POST" });
+      if (res.ok) {
+        const updated = { ...lead, inRescheduling: true };
+        setLead(updated);
+        onLeadUpdate?.(updated);
+        setReagendadoOk(true);
+        setTimeout(() => setReagendadoOk(false), 3000);
+      }
     } finally {
       setReagendando(false);
     }
@@ -374,14 +380,18 @@ export function PatientModal({
                 </div>
 
                 {/* Reagendamento — para agendados com consulta 24h+ passada */}
-                {(isPastMissedAppointment || lead.status === "nao_compareceu") && (
+                {(isPastMissedAppointment || lead.status === "nao_compareceu" || lead.inRescheduling) && (
                   <button
                     onClick={handleTriggerReagendamento}
-                    disabled={reagendando}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold border bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700/50 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors disabled:opacity-60"
+                    disabled={reagendando || lead.inRescheduling}
+                    className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold border transition-colors disabled:opacity-60 ${
+                      lead.inRescheduling
+                        ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-700/50 cursor-not-allowed"
+                        : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700/50 hover:bg-red-100 dark:hover:bg-red-900/40"
+                    }`}
                   >
                     <RefreshCw className={`h-3.5 w-3.5 ${reagendando ? "animate-spin" : ""}`} />
-                    {reagendadoOk ? "Fluxo iniciado!" : reagendando ? "Iniciando..." : "Iniciar reagendamento"}
+                    {lead.inRescheduling ? "Em reagendamento" : reagendadoOk ? "Fluxo iniciado!" : reagendando ? "Iniciando..." : "Iniciar reagendamento"}
                   </button>
                 )}
 
