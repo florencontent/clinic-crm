@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Floren Manage",
   description: "Gestão de vendas e relacionamento — Clínica Floren Odonto",
   icons: {
-    icon: "/logo-floren.jpg",
+    icon: "/little-logo.png",
   },
 };
 

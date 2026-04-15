@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, User, Stethoscope, Clock, CalendarDays, UserCog, FileText, Save, Check, Trash2, AlertTriangle, DollarSign } from "lucide-react";
 import { Appointment, reminderLabels, reminderColors } from "@/data/mock-data";
-import { deleteAppointmentWithCalendar, updatePatient, updateAppointmentDoctor } from "@/lib/api";
+import { deleteAppointmentWithCalendar, deletePatient, updatePatient, updateAppointmentDoctor } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useDoctors } from "@/lib/doctors-context";
 import { useLanguage } from "@/lib/language-context";
@@ -13,6 +13,7 @@ interface AppointmentModalProps {
   onClose: () => void;
   onSave: (updated: Appointment) => void;
   onDelete?: (id: string) => void;
+  onDeleteLead?: (patientId: string) => void;
 }
 
 function formatDate(dateStr: string) {
@@ -31,7 +32,7 @@ function formatEndTime(time: string, duration: number) {
 const inputClass =
   "w-full px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-500";
 
-export function AppointmentModal({ appointment, onClose, onSave, onDelete }: AppointmentModalProps) {
+export function AppointmentModal({ appointment, onClose, onSave, onDelete, onDeleteLead }: AppointmentModalProps) {
   const { t } = useLanguage();
   const { doctorNames: DOUTORES } = useDoctors();
   const procedure = appointment.procedure;
@@ -43,6 +44,8 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
   const [saved, setSaved] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteLead, setConfirmDeleteLead] = useState(false);
+  const [deletingLead, setDeletingLead] = useState(false);
 
   const endTime = formatEndTime(appointment.time, appointment.duration);
 
@@ -70,6 +73,17 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
     setDeleting(false);
     if (ok) {
       onDelete(appointment.id);
+      onClose();
+    }
+  };
+
+  const handleDeleteLead = async () => {
+    if (!onDeleteLead || !appointment.patientId) return;
+    setDeletingLead(true);
+    const ok = await deletePatient(appointment.patientId);
+    setDeletingLead(false);
+    if (ok) {
+      onDeleteLead(appointment.patientId);
       onClose();
     }
   };
@@ -249,7 +263,37 @@ export function AppointmentModal({ appointment, onClose, onSave, onDelete }: App
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 space-y-3">
+          {confirmDeleteLead ? (
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 flex-1">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                Excluir lead e todos os dados?
+              </div>
+              <button
+                onClick={() => setConfirmDeleteLead(false)}
+                className="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteLead}
+                disabled={deletingLead}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+                {deletingLead ? "Excluindo..." : "Confirmar"}
+              </button>
+            </div>
+          ) : onDeleteLead && appointment.patientId ? (
+            <button
+              onClick={() => setConfirmDeleteLead(true)}
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-red-400 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 border border-dashed border-red-200 dark:border-red-800/50 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Excluir Lead
+            </button>
+          ) : null}
           {confirmDelete ? (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 flex-1">

@@ -9,7 +9,7 @@ import {
 } from "@/lib/api";
 import type { Lead, Conversation, Appointment } from "@/data/mock-data";
 
-const POLL_INTERVAL = 30_000; // 30 seconds
+const POLL_INTERVAL = 15_000; // 15 seconds
 
 // ── usePatients ──
 

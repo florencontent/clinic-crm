@@ -84,6 +84,7 @@ export default function ConversasPage() {
       <ConversationList
         conversations={conversations}
         patients={patients}
+        appointments={appointments}
         selectedId={selectedId}
         onSelect={setSelectedId}
         onPinContact={handlePinContact}

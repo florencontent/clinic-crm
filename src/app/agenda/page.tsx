@@ -52,7 +52,7 @@ export default function AgendaPage() {
   const [showViewSelect, setShowViewSelect] = useState(false);
   const viewSelectRef = useRef<HTMLDivElement>(null);
 
-  const { appointments, loading, setAppointments } = useAppointments();
+  const { appointments, loading, setAppointments, refresh: refreshAppointments } = useAppointments();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [newAptDate, setNewAptDate] = useState<string | null>(null);
 
@@ -274,6 +274,10 @@ export default function AgendaPage() {
             setAppointments((prev) => prev.filter((a) => a.id !== id));
             setSelectedAppointment(null);
           }}
+          onDeleteLead={(patientId) => {
+            setAppointments((prev) => prev.filter((a) => a.patientId !== patientId));
+            setSelectedAppointment(null);
+          }}
         />
       )}
 
@@ -284,6 +288,7 @@ export default function AgendaPage() {
           onCreated={(apt) => {
             setAppointments((prev) => [...prev, apt]);
             setNewAptDate(null);
+            refreshAppointments();
           }}
         />
       )}

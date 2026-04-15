@@ -598,6 +598,87 @@ export async function createAppointment(data: {
   return result?.id || null;
 }
 
+// ── Check Appointment Conflict ──
+
+export interface ConflictInfo {
+  patientName: string;
+  startTime: string; // HH:MM
+  endTime: string;   // HH:MM
+  procedure: string;
+}
+
+export interface ConflictCheckResult {
+  hasConflict: boolean;
+  conflict?: ConflictInfo;
+  suggestions: string[]; // free HH:MM slots for that day given the duration
+}
+
+export async function checkAppointmentConflict(
+  date: string,
+  startTime: string,
+  duration: number,
+  excludeAppointmentId?: string
+): Promise<ConflictCheckResult> {
+  const [h, m] = startTime.split(":").map(Number);
+  const totalMin = h * 60 + m + duration;
+  const endTime = `${String(Math.floor(totalMin / 60)).padStart(2, "0")}:${String(totalMin % 60).padStart(2, "0")}`;
+
+  // Find overlapping appointments on that date
+  let query = supabase
+    .from("appointments")
+    .select(`id, start_time, end_time, patients ( name ), procedures ( name )`)
+    .eq("date", date)
+    .in("status", ["agendado", "confirmado", "compareceu"])
+    .lt("start_time", endTime)  // existing starts before our end
+    .gt("end_time", startTime); // existing ends after our start
+
+  if (excludeAppointmentId) query = query.neq("id", excludeAppointmentId);
+
+  const { data: conflicts } = await query;
+
+  if (conflicts && conflicts.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const apt = conflicts[0] as any;
+    return {
+      hasConflict: true,
+      conflict: {
+        patientName: apt.patients?.name || "Paciente",
+        startTime: (apt.start_time as string)?.substring(0, 5) ?? "",
+        endTime: (apt.end_time as string)?.substring(0, 5) ?? "",
+        procedure: apt.procedures?.name || "",
+      },
+      suggestions: [],
+    };
+  }
+
+  // Compute free slot suggestions for that day
+  const dayOfWeek = new Date(date + "T12:00:00").getDay();
+  if (dayOfWeek === 0) return { hasConflict: false, suggestions: [] }; // Sunday
+  const allSlots = dayOfWeek === 6
+    ? ["09:00", "10:00", "11:00"]
+    : ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
+
+  const { data: dayApts } = await supabase
+    .from("appointments")
+    .select("start_time, end_time")
+    .eq("date", date)
+    .in("status", ["agendado", "confirmado", "compareceu"]);
+
+  const freeSlots = allSlots.filter((slot) => {
+    if (slot === startTime) return false; // skip the chosen slot itself
+    const [sh, sm] = slot.split(":").map(Number);
+    const slotEndMin = sh * 60 + sm + duration;
+    const slotEnd = `${String(Math.floor(slotEndMin / 60)).padStart(2, "0")}:${String(slotEndMin % 60).padStart(2, "0")}`;
+    return !(dayApts ?? []).some((a) => {
+      const aStart = (a.start_time as string)?.substring(0, 5) ?? "";
+      const aEnd = (a.end_time as string)?.substring(0, 5) ?? "";
+      return aStart < slotEnd && aEnd > slot;
+    });
+  });
+
+  return { hasConflict: false, suggestions: freeSlots };
+}
+
 // ── Delete Appointment ──
 
 export async function deleteAppointment(id: string): Promise<boolean> {
@@ -612,6 +693,7 @@ async function triggerGoogleCalendarDelete(data: {
   procedure?: string;
   date: string;
   time: string;
+  google_event_id?: string;
 }): Promise<void> {
   const webhookUrl = process.env.NEXT_PUBLIC_N8N_CALENDAR_DELETE_WEBHOOK;
   if (!webhookUrl) return;
@@ -628,10 +710,16 @@ async function triggerGoogleCalendarDelete(data: {
 
 export async function deleteAppointmentWithCalendar(
   id: string,
-  eventData: { leadName: string; procedure?: string; date: string; time: string }
+  eventData: { leadName: string; procedure?: string; date: string; time: string; google_event_id?: string }
 ): Promise<boolean> {
+  // Fetch google_event_id from DB before deleting if not provided
+  let googleEventId = eventData.google_event_id;
+  if (!googleEventId) {
+    const { data } = await supabase.from("appointments").select("google_event_id").eq("id", id).single();
+    googleEventId = data?.google_event_id || undefined;
+  }
   const ok = await deleteAppointment(id);
-  if (ok) triggerGoogleCalendarDelete(eventData);
+  if (ok) triggerGoogleCalendarDelete({ ...eventData, google_event_id: googleEventId });
   return ok;
 }
 
@@ -864,29 +952,61 @@ export async function fetchDashboardMetrics(): Promise<DashboardData> {
 export async function deletePatient(patientId: string): Promise<boolean> {
   // Fetch data needed for Google Calendar cleanup before deleting
   const { data: patient } = await supabase.from("patients").select("name").eq("id", patientId).single();
-  const { data: appts } = await supabase.from("appointments").select("id, date, time, procedure").eq("patient_id", patientId);
+  const { data: appts } = await supabase.from("appointments").select("id, date, start_time, google_event_id").eq("patient_id", patientId);
 
-  // Delete in FK order
-  await supabase.from("messages").delete().in("conversation_id",
-    (await supabase.from("conversations").select("id").eq("patient_id", patientId)).data?.map((c: { id: string }) => c.id) || []
-  );
+  // Step 1: messages — delete by conversation_id AND by patient_id
+  // (messages table has a denormalized patient_id column added directly in Supabase)
+  const { data: convs } = await supabase.from("conversations").select("id").eq("patient_id", patientId);
+  const convIds = convs?.map((c: { id: string }) => c.id) || [];
+  if (convIds.length > 0) {
+    await supabase.from("messages").delete().in("conversation_id", convIds);
+  }
+  await supabase.from("messages").delete().eq("patient_id", patientId);
+
+  // Step 2: conversations
   await supabase.from("conversations").delete().eq("patient_id", patientId);
-  await supabase.from("appointment_reminders").delete().in("appointment_id",
-    (appts || []).map((a: { id: string }) => a.id)
-  );
+
+  // Step 3: patient_procedures — must go before appointments (references both)
+  await supabase.from("patient_procedures").delete().eq("patient_id", patientId);
+
+  // Step 4: appointment_reminders — fetch apptIds fresh if initial query failed
+  let apptIds = appts?.map((a: { id: string }) => a.id) || [];
+  if (apptIds.length === 0) {
+    const { data: freshAppts } = await supabase.from("appointments").select("id").eq("patient_id", patientId);
+    apptIds = freshAppts?.map((a: { id: string }) => a.id) || [];
+  }
+  if (apptIds.length > 0) {
+    await supabase.from("appointment_reminders").delete().in("appointment_id", apptIds);
+  }
+
+  // Step 5: appointments
   await supabase.from("appointments").delete().eq("patient_id", patientId);
+
+  // Step 6: remaining patient-linked tables
+  await supabase.from("follow_up_messages").delete().eq("patient_id", patientId);
   await supabase.from("lead_status_history").delete().eq("patient_id", patientId);
+
+  // Step 7: patient
   const { error } = await supabase.from("patients").delete().eq("id", patientId);
 
+  if (error) {
+    console.error("[deletePatient] Failed:", patientId, error.message, error.details);
+  }
+
   // Trigger Google Calendar cleanup for all appointments
-  if (!error && patient && appts) {
+  if (!error && patient) {
     const webhookUrl = process.env.NEXT_PUBLIC_N8N_CALENDAR_DELETE_WEBHOOK;
-    if (webhookUrl) {
+    if (webhookUrl && appts?.length) {
       for (const apt of appts) {
         fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ leadName: patient.name, procedure: apt.procedure, date: apt.date, time: apt.time }),
+          body: JSON.stringify({
+            leadName: patient.name,
+            date: apt.date,
+            time: apt.start_time,
+            google_event_id: apt.google_event_id || undefined,
+          }),
         }).catch(() => {});
       }
     }

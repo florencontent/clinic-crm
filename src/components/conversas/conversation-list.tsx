@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, MessageCircle, Bell, Pin, PinOff, UserX, Headphones, AlertTriangle, RefreshCw } from "lucide-react";
-import { Conversation, Lead, LeadStatus, statusColors, reminderColors } from "@/data/mock-data";
+import { Search, MessageCircle, Bell, Pin, PinOff, UserX, Headphones, AlertTriangle, RefreshCw, CalendarDays } from "lucide-react";
+import { Conversation, Lead, LeadStatus, Appointment, statusColors, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language-context";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface ConversationListProps {
   conversations: Conversation[];
   patients: Lead[];
+  appointments?: Appointment[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   onPinContact: (leadId: string, pinned: boolean) => void;
@@ -16,7 +19,7 @@ interface ConversationListProps {
   inReschedulingLeadIds?: Set<string>;
 }
 
-export function ConversationList({ conversations, patients, selectedId, onSelect, onPinContact, missedAppointmentLeadIds, inReschedulingLeadIds }: ConversationListProps) {
+export function ConversationList({ conversations, patients, appointments, selectedId, onSelect, onPinContact, missedAppointmentLeadIds, inReschedulingLeadIds }: ConversationListProps) {
   const { t } = useLanguage();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<LeadStatus | "all">("all");
@@ -35,6 +38,20 @@ export function ConversationList({ conversations, patients, selectedId, onSelect
 
   const pinnedIds = useMemo(() => new Set(patients.filter((p) => p.isPinned).map((p) => p.id)), [patients]);
   const wantsHumanIds = useMemo(() => new Set(patients.filter((p) => p.wantsHuman).map((p) => p.id)), [patients]);
+
+  // Map leadId → próxima consulta futura
+  const nextAptByLead = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const map = new Map<string, Appointment>();
+    (appointments || [])
+      .filter((a) => a.patientId && new Date(a.date + "T00:00:00") >= today)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+      .forEach((a) => {
+        if (a.patientId && !map.has(a.patientId)) map.set(a.patientId, a);
+      });
+    return map;
+  }, [appointments]);
 
   const filtered = useMemo(() => {
     return conversations.filter((conv) => {
@@ -55,6 +72,7 @@ export function ConversationList({ conversations, patients, selectedId, onSelect
     const wantsHuman = wantsHumanIds.has(conv.leadId);
     const isMissed = missedAppointmentLeadIds?.has(conv.leadId) ?? false;
     const isRescheduling = inReschedulingLeadIds?.has(conv.leadId) ?? false;
+    const nextApt = nextAptByLead.get(conv.leadId);
     return (
       <div
         key={conv.leadId}
@@ -135,6 +153,12 @@ export function ConversationList({ conversations, patients, selectedId, onSelect
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
                     <Headphones className="h-2.5 w-2.5" />
                     Quer atendente
+                  </span>
+                )}
+                {nextApt && !isMissed && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                    <CalendarDays className="h-2.5 w-2.5" />
+                    {format(new Date(nextApt.date + "T12:00:00"), "dd/MM", { locale: ptBR })} às {nextApt.time}
                   </span>
                 )}
               </div>
