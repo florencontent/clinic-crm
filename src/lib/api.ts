@@ -598,6 +598,105 @@ export async function createAppointment(data: {
   return result?.id || null;
 }
 
+// ── Available Slots ──
+
+export interface SlotStatus {
+  time: string;   // "HH:MM"
+  available: boolean;
+  conflict?: {
+    patientName: string;
+    procedure?: string;
+    source: "supabase" | "gcal";
+  };
+}
+
+export async function getAvailableSlots(
+  date: string,
+  duration: number
+): Promise<SlotStatus[]> {
+  const dayOfWeek = new Date(date + "T12:00:00").getDay();
+  if (dayOfWeek === 0) return []; // Sunday — closed
+
+  const standardSlots =
+    dayOfWeek === 6
+      ? ["09:00", "10:00", "11:00"]
+      : ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00"];
+
+  // Fetch Supabase appointments + GCal busy slots in parallel
+  const [dbResult, gcalBusy] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("start_time, end_time, patients(name), procedures(name)")
+      .eq("date", date)
+      .in("status", ["agendado", "confirmado", "compareceu"]),
+    (async (): Promise<{ start: string; end: string; title?: string }[]> => {
+      const webhookUrl = process.env.NEXT_PUBLIC_N8N_CALENDAR_CHECK_WEBHOOK;
+      if (!webhookUrl) return [];
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      try {
+        const res = await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date }),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const data = await res.json();
+          return (data.busySlots ?? []) as { start: string; end: string; title?: string }[];
+        }
+      } catch {
+        clearTimeout(timer);
+      }
+      return [];
+    })(),
+  ]);
+
+  const dayApts = dbResult.data ?? [];
+
+  return standardSlots.map((slot) => {
+    const [sh, sm] = slot.split(":").map(Number);
+    const slotEndMin = sh * 60 + sm + duration;
+    const slotEnd = `${String(Math.floor(slotEndMin / 60)).padStart(2, "0")}:${String(slotEndMin % 60).padStart(2, "0")}`;
+
+    // Supabase conflict check
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dbConflict = (dayApts as any[]).find((apt) => {
+      const aStart = (apt.start_time as string)?.substring(0, 5) ?? "";
+      const aEnd = (apt.end_time as string)?.substring(0, 5) ?? "";
+      return aStart < slotEnd && aEnd > slot;
+    });
+    if (dbConflict) {
+      return {
+        time: slot,
+        available: false,
+        conflict: {
+          patientName: dbConflict.patients?.name ?? "Paciente",
+          procedure: dbConflict.procedures?.name ?? undefined,
+          source: "supabase" as const,
+        },
+      };
+    }
+
+    // GCal conflict check
+    const gcalConflict = gcalBusy.find((b) => b.start < slotEnd && b.end > slot);
+    if (gcalConflict) {
+      return {
+        time: slot,
+        available: false,
+        conflict: {
+          patientName: gcalConflict.title ?? "Evento Google Agenda",
+          procedure: undefined,
+          source: "gcal" as const,
+        },
+      };
+    }
+
+    return { time: slot, available: true };
+  });
+}
+
 // ── Check Appointment Conflict ──
 
 export interface ConflictInfo {
