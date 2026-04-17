@@ -75,7 +75,7 @@ export async function POST(
   }
 
   // Schedule remaining messages via n8n reagendamento workflow
-  const N8N_WEBHOOK = process.env.NEXT_PUBLIC_N8N_REAGENDAMENTO_WEBHOOK;
+  const N8N_WEBHOOK = process.env.N8N_REAGENDAMENTO_WEBHOOK;
   if (N8N_WEBHOOK) {
     // Send payload to n8n to handle D+1 and D+2 messages + auto-perdido after D+3
     fetch(N8N_WEBHOOK, {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle, Stethoscope } from "lucide-react";
+import { ChevronLeft, ChevronRight, Phone, Mail, CalendarDays, Tag, PauseCircle, PlayCircle, Stethoscope, RefreshCw } from "lucide-react";
 import { Lead, Appointment, statusColors, reminderColors } from "@/data/mock-data";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -123,6 +123,12 @@ export function LeadSidebar({ lead, appointments, onLeadUpdate }: LeadSidebarPro
                   {lead.status === "agendado" && lead.reminderStatus && (
                     <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full", reminderColors[lead.reminderStatus])}>
                       {t.reminder[lead.reminderStatus]}
+                    </span>
+                  )}
+                  {lead.inRescheduling && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400">
+                      <RefreshCw className="h-2.5 w-2.5" />
+                      Em reagendamento
                     </span>
                   )}
                 </div>
