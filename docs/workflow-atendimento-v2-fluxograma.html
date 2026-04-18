@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fluxograma — Workflow Atendimento WPP V2 — Floren Odonto</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      color: #1a1a2e;
+    }
+    .header {
+      background: linear-gradient(135deg, #0d47a1, #1a73e8);
+      color: white;
+      text-align: center;
+      padding: 32px 20px 28px;
+    }
+    .header h1 { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+    .header p { font-size: 14px; opacity: 0.85; }
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      background: #fff;
+      padding: 14px 20px;
+      border-bottom: 1px solid #e0e7ef;
+      font-size: 12px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot {
+      width: 14px; height: 14px; border-radius: 3px;
+    }
+    .canvas {
+      padding: 40px 20px 60px;
+      min-width: 1100px;
+      overflow-x: auto;
+    }
+    svg {
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* NODE STYLES */
+    .node-trigger { fill: #1a73e8; }
+    .node-filter { fill: #5c6bc0; }
+    .node-data { fill: #0288d1; }
+    .node-db { fill: #00897b; }
+    .node-ai { fill: #7b1fa2; }
+    .node-decision { fill: #f57c00; }
+    .node-action { fill: #388e3c; }
+    .node-end { fill: #546e7a; }
+    .node-stop { fill: #c62828; }
+
+    .node-label {
+      fill: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .node-sublabel {
+      fill: rgba(255,255,255,0.8);
+      font-size: 9px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .arrow {
+      fill: none;
+      stroke: #90a4ae;
+      stroke-width: 1.5;
+      marker-end: url(#arrow);
+    }
+    .arrow-label {
+      fill: #546e7a;
+      font-size: 10px;
+      font-weight: 600;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .section-label {
+      fill: #90a4ae;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .section-bg {
+      fill: none;
+      stroke: #e0e7ef;
+      stroke-width: 1.5;
+      stroke-dasharray: 6 4;
+      rx: 12; ry: 12;
+    }
+  </style>
+</head>
+<body>
+<div class="header">
+  <h1>Fluxograma — Workflow Atendimento WhatsApp V2</h1>
+  <p>Floren Odonto &nbsp;|&nbsp; N8N + Claude API + Supabase + Google Calendar &nbsp;|&nbsp; Abril 2026</p>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#1a73e8"></div> Trigger / Webhook</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#5c6bc0"></div> Filtro / Validação</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#0288d1"></div> Extração / Dados</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#00897b"></div> Banco de Dados (Supabase)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7b1fa2"></div> Agente IA (Claude)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f57c00"></div> Decisão / Roteador</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#388e3c"></div> Ação (Calendar / Z-API)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c62828"></div> Encerrar (sem resposta)</div>
+</div>
+
+<div class="canvas">
+<svg width="1060" height="2080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#90a4ae"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#388e3c"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c62828"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7b1fa2"/>
+    </marker>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0003"/>
+    </filter>
+  </defs>
+
+  <!-- ===================== BLOCO A: ENTRADA E IDENTIFICAÇÃO ===================== -->
+  <rect x="30" y="30" width="400" height="760" rx="12" class="section-bg"/>
+  <text x="52" y="56" class="section-label">A — Entrada e Identificação</text>
+
+  <!-- NÓ 1: WEBHOOK -->
+  <rect x="80" y="70" width="300" height="56" rx="10" class="node-trigger" filter="url(#shadow)"/>
+  <text x="230" y="93" class="node-label">① WEBHOOK ENTRADA</text>
+  <text x="230" y="109" class="node-sublabel">Z-API → N8N · POST /webhook/atendimento-v2</text>
+
+  <!-- ARROW 1→2 -->
+  <line x1="230" y1="126" x2="230" y2="155" class="arrow"/>
+
+  <!-- NÓ 2: FILTRO -->
+  <rect x="80" y="155" width="300" height="56" rx="10" class="node-filter" filter="url(#shadow)"/>
+  <text x="230" y="178" class="node-label">② FILTRO DE MENSAGEM</text>
+  <text x="230" y="194" class="node-sublabel">Tipo texto · não de grupo · não enviada pela clínica</text>
+
+  <!-- ARROW filtro fail → STOP -->
+  <line x1="380" y1="183" x2="520" y2="183" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <text x="520" y="177" class="arrow-label" fill="#c62828">falhou</text>
+  <!-- STOP node (side) -->
+  <rect x="520" y="163" width="120" height="40" rx="8" class="node-stop" filter="url(#shadow)"/>
+  <text x="580" y="183" class="node-label" font-size="10">ENCERRAR</text>
+
+  <!-- ARROW 2→3 -->
+  <line x1="230" y1="211" x2="230" y2="240" class="arrow"/>
+  <text x="238" y="228" class="arrow-label">passou</text>
+
+  <!-- NÓ 3: EXTRAIR -->
+  <rect x="80" y="240" width="300" height="56" rx="10" class="node-data" filter="url(#shadow)"/>
+  <text x="230" y="263" class="node-label">③ EXTRAIR E NORMALIZAR DADOS</text>
+  <text x="230" y="279" class="node-sublabel">phone · messageText · timestamp</text>
+
+  <!-- ARROW 3→4 -->
+  <line x1="230" y1="296" x2="230" y2="325" class="arrow"/>
+
+  <!-- NÓ 4: BUSCA SUPABASE -->
+  <rect x="80" y="325" width="300" height="56" rx="10" class="node-db" filter="url(#shadow)"/>
+  <text x="230" y="348" class="node-label">④ BUSCAR PACIENTE — SUPABASE</text>
+  <text x="230" y="364" class="node-sublabel">GET /patients?phone=eq.&#123;phone&#125;</text>
+
+  <!-- ARROW 4→5 -->
+  <line x1="230" y1="381" x2="230" y2="410" class="arrow"/>
+
+  <!-- NÓ 5: ROTEADOR NOVO/EXISTENTE (diamond) -->
+  <polygon points="230,410 330,450 230,490 130,450" fill="#f57c00" filter="url(#shadow)"/>
+  <text x="230" y="447" class="node-label" font-size="10">Novo ou</text>
+  <text x="230" y="460" class="node-label" font-size="10">Existente?</text>
+
+  <!-- branch NOVO (esquerda) -->
+  <line x1="130" y1="450" x2="80" y2="450" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="80" y1="450" x2="80" y2="530" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="54" y="445" class="arrow-label">novo</text>
+
+  <!-- NÓ 6a: CRIAR PACIENTE -->
+  <rect x="30" y="530" width="160" height="56" rx="10" class="node-db" filter="url(#shadow)"/>
+  <text x="110" y="553" class="node-label" font-size="10">⑥a CRIAR PACIENTE</text>
+  <text x="110" y="567" class="node-sublabel">POST /patients · status: novo</text>
+
+  <!-- merge 6a back to 7 -->
+  <line x1="110" y1="586" x2="110" y2="630" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="110" y1="630" x2="200" y2="630" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- branch EXISTENTE (direita) -->
+  <line x1="330" y1="450" x2="380" y2="450" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="380" y1="450" x2="380" y2="530" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="335" y="445" class="arrow-label">existente</text>
+
+  <!-- NÓ 6b: AGENT PAUSED? -->
+  <polygon points="380,530 460,560 380,590 300,560" fill="#f57c00" filter="url(#shadow)"/>
+  <text x="380" y="557" class="node-label" font-size="10">agent_</text>
+  <text x="380" y="570" class="node-label" font-size="10">paused?</text>
+
+  <!-- paused = true → STOP -->
+  <line x1="460" y1="560" x2="520" y2="560" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <text x="462" y="554" class="arrow-label" fill="#c62828">true</text>
+  <rect x="520" y="540" width="120" height="40" rx="8" class="node-stop" filter="url(#shadow)"/>
+  <text x="580" y="560" class="node-label" font-size="10">IGNORAR</text>
+
+  <!-- paused = false → merge to 7 -->
+  <line x1="380" y1="590" x2="380" y2="630" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="380" y1="630" x2="300" y2="630" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="384" y="624" class="arrow-label">false</text>
+
+  <!-- NÓ 7: HISTÓRICO -->
+  <rect x="80" y="630" width="300" height="56" rx="10" class="node-db" filter="url(#shadow)"/>
+  <text x="230" y="653" class="node-label">⑦ BUSCAR HISTÓRICO — SUPABASE</text>
+  <text x="230" y="669" class="node-sublabel">GET /conversations · últimas 30 mensagens</text>
+
+  <!-- ARROW 7→8 -->
+  <line x1="230" y1="686" x2="230" y2="715" class="arrow"/>
+
+  <!-- NÓ 8: MONTAR CONTEXTO -->
+  <rect x="80" y="715" width="300" height="56" rx="10" class="node-data" filter="url(#shadow)"/>
+  <text x="230" y="738" class="node-label">⑧ MONTAR CONTEXTO CLAUDE</text>
+  <text x="230" y="754" class="node-sublabel">system prompt + histórico + mensagem + data/hora</text>
+
+  <!-- ARROW A→B (bloco) -->
+  <line x1="230" y1="771" x2="230" y2="810" class="arrow"/>
+
+  <!-- ===================== BLOCO B: AGENTE IA ===================== -->
+  <rect x="30" y="810" width="400" height="130" rx="12" class="section-bg"/>
+  <text x="52" y="836" class="section-label">B — Agente IA</text>
+
+  <!-- NÓ 9: CLAUDE -->
+  <rect x="60" y="848" width="340" height="72" rx="10" class="node-ai" filter="url(#shadow)"/>
+  <text x="230" y="872" class="node-label" font-size="13">⑨ AGENTE CLAUDE</text>
+  <text x="230" y="890" class="node-sublabel">claude-sonnet-4-6 · processa contexto completo</text>
+  <text x="230" y="904" class="node-sublabel">Retorna: message · action · action_data · patient_updates</text>
+
+  <!-- ARROW B→C -->
+  <line x1="230" y1="920" x2="230" y2="960" class="arrow"/>
+
+  <!-- ===================== BLOCO C: EXECUÇÃO DE AÇÃO ===================== -->
+  <rect x="30" y="960" width="1000" height="1050" rx="12" class="section-bg"/>
+  <text x="52" y="986" class="section-label">C — Execução da Ação</text>
+
+  <!-- NÓ 10: ROTEADOR DE AÇÃO -->
+  <polygon points="230,1000 400,1040 230,1080 60,1040" fill="#f57c00" filter="url(#shadow)"/>
+  <text x="230" y="1037" class="node-label" font-size="11">⑩ ROTEADOR DE AÇÃO</text>
+  <text x="230" y="1052" class="node-sublabel">action: reply | check_availability | book_appointment | pause_agent</text>
+
+  <!-- ====== BRANCH 1: REPLY ====== -->
+  <!-- arrow down-left to reply path -->
+  <line x1="140" y1="1040" x2="100" y2="1040" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="100" y1="1040" x2="100" y2="1110" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="60" y="1036" class="arrow-label">reply</text>
+
+  <!-- merge point for all branches going to SALVAR -->
+  <!-- reply goes directly to Salvar step (via 100,1110 → 100,1470) -->
+
+  <!-- ====== BRANCH 2: check_availability ====== -->
+  <line x1="230" y1="1080" x2="230" y2="1110" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="238" y="1098" class="arrow-label">check_avail.</text>
+
+  <!-- NÓ: GOOGLE CALENDAR FREEBUSY -->
+  <rect x="130" y="1110" width="200" height="56" rx="10" class="node-action" filter="url(#shadow)"/>
+  <text x="230" y="1132" class="node-label" font-size="10">GOOGLE CALENDAR</text>
+  <text x="230" y="1146" class="node-sublabel">FreeBusy · próximos 7 dias úteis</text>
+
+  <!-- NÓ: CLAUDE (2ª chamada com slots) -->
+  <line x1="230" y1="1166" x2="230" y2="1195" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+  <rect x="130" y="1195" width="200" height="56" rx="10" class="node-ai" filter="url(#shadow)"/>
+  <text x="230" y="1217" class="node-label" font-size="10">CLAUDE (reformula)</text>
+  <text x="230" y="1231" class="node-sublabel">recebe slots e sugere 3 opções</text>
+
+  <!-- arrow check_avail → salvar -->
+  <line x1="230" y1="1251" x2="230" y2="1290" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="230" y1="1290" x2="540" y2="1290" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="540" y1="1290" x2="540" y2="1470" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ====== BRANCH 3: book_appointment ====== -->
+  <line x1="320" y1="1040" x2="420" y2="1040" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="420" y1="1040" x2="420" y2="1110" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="330" y="1034" class="arrow-label">book</text>
+
+  <!-- NÓ: CRIAR SUPABASE -->
+  <rect x="340" y="1110" width="160" height="56" rx="10" class="node-db" filter="url(#shadow)"/>
+  <text x="420" y="1133" class="node-label" font-size="10">CRIAR AGEND.</text>
+  <text x="420" y="1147" class="node-sublabel">POST /appointments</text>
+
+  <!-- NÓ: CRIAR GOOGLE CAL EVENT -->
+  <line x1="420" y1="1166" x2="420" y2="1195" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="340" y="1195" width="160" height="56" rx="10" class="node-action" filter="url(#shadow)"/>
+  <text x="420" y="1218" class="node-label" font-size="10">CRIAR EVENTO</text>
+  <text x="420" y="1232" class="node-sublabel">Google Calendar</text>
+
+  <!-- book → salvar -->
+  <line x1="420" y1="1251" x2="420" y2="1290" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="420" y1="1290" x2="540" y2="1290" stroke="#90a4ae" stroke-width="1.5"/>
+
+  <!-- ====== BRANCH 4: pause_agent ====== -->
+  <line x1="400" y1="1040" x2="680" y2="1040" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <text x="430" y="1034" class="arrow-label" fill="#c62828">pause</text>
+
+  <!-- NÓ: UPDATE PAUSED -->
+  <rect x="600" y="1020" width="160" height="56" rx="10" class="node-stop" filter="url(#shadow)"/>
+  <text x="680" y="1043" class="node-label" font-size="10">UPDATE SUPABASE</text>
+  <text x="680" y="1057" class="node-sublabel">agent_paused = true</text>
+
+  <!-- pause → FIM -->
+  <line x1="760" y1="1048" x2="820" y2="1048" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <rect x="820" y="1028" width="120" height="40" rx="8" class="node-stop" filter="url(#shadow)"/>
+  <text x="880" y="1048" class="node-label" font-size="10">ENCERRAR</text>
+
+  <!-- ====== REPLY PATH continua ====== -->
+  <!-- reply: 100,1110 → 100,1470 → merge ao ATUALIZAR PACIENTE -->
+  <line x1="100" y1="1110" x2="100" y2="1470" stroke="#90a4ae" stroke-width="1.5"/>
+  <line x1="100" y1="1470" x2="200" y2="1470" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ====== ATUALIZAR PACIENTE (merge das 3 branches) ====== -->
+  <rect x="80" y="1450" width="420" height="56" rx="10" class="node-db" filter="url(#shadow)"/>
+  <text x="290" y="1473" class="node-label">⑪ ATUALIZAR PACIENTE — SUPABASE</text>
+  <text x="290" y="1489" class="node-sublabel">PATCH /patients · name · email · status (se patient_updates não vazio)</text>
+
+  <!-- check_avail/book merge to ATUALIZAR -->
+  <!-- 540,1470 already drawn above → needs connecting -->
+  <line x1="540" y1="1470" x2="500" y2="1470" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ARROW ATUALIZAR → SALVAR -->
+  <line x1="290" y1="1506" x2="290" y2="1535" class="arrow"/>
+
+  <!-- NÓ: SALVAR CONVERSA -->
+  <rect x="80" y="1535" width="420" height="56" rx="10" class="node-db" filter="url(#shadow)"/>
+  <text x="290" y="1558" class="node-label">⑫ SALVAR CONVERSA — SUPABASE</text>
+  <text x="290" y="1574" class="node-sublabel">POST /conversations · user message + assistant message</text>
+
+  <!-- ARROW SALVAR → ENVIAR -->
+  <line x1="290" y1="1591" x2="290" y2="1620" class="arrow"/>
+
+  <!-- NÓ: ENVIAR Z-API -->
+  <rect x="80" y="1620" width="420" height="56" rx="10" class="node-action" filter="url(#shadow)"/>
+  <text x="290" y="1643" class="node-label">⑬ ENVIAR MENSAGEM — Z-API</text>
+  <text x="290" y="1659" class="node-sublabel">POST send-text · &#123;phone, message&#125;</text>
+
+  <!-- ARROW ENVIAR → FIM -->
+  <line x1="290" y1="1676" x2="290" y2="1710" class="arrow"/>
+
+  <!-- FIM -->
+  <rect x="180" y="1710" width="220" height="44" rx="22" fill="#546e7a" filter="url(#shadow)"/>
+  <text x="290" y="1732" class="node-label" font-size="12">FIM — AGUARDAR PRÓXIMA MSG</text>
+
+</svg>
+</div>
+
+<!-- CONVERSATION FLOW TABLE -->
+<div style="max-width:900px; margin:0 auto 60px; padding:0 20px;">
+  <div style="background:#fff; border-radius:12px; box-shadow:0 2px 16px rgba(0,0,0,0.08); padding:36px 40px; margin-top:32px;">
+    <h2 style="font-size:18px; font-weight:800; color:#0d1b2a; margin-bottom:4px;">Fluxo da Conversa — Fases do Atendimento</h2>
+    <p style="font-size:13px; color:#78909c; margin-bottom:24px;">Como o Agente Claude conduz o atendimento, fase por fase</p>
+
+    <div style="display:flex; flex-direction:column; gap:0;">
+
+      <!-- FASE 1 -->
+      <div style="display:flex; gap:0; align-items:stretch;">
+        <div style="width:4px; background:linear-gradient(to bottom,#1a73e8,#5c6bc0); border-radius:4px 4px 0 0; flex-shrink:0;"></div>
+        <div style="flex:1; padding:20px 24px; border-bottom:1px solid #f0f4f8;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">1</div>
+            <strong style="font-size:14px; color:#0d1b2a;">Boas-Vindas e Identificação</strong>
+            <span style="font-size:11px; background:#e3f2fd; color:#1565c0; padding:2px 8px; border-radius:10px; font-weight:600;">status: em_contato</span>
+          </div>
+          <p style="font-size:13px; color:#546e7a; margin:0;">Lead novo: apresentação como "Ana da Floren" + perguntar o nome. Lead com histórico: retomar conversa naturalmente a partir do contexto anterior. Nunca re-apresentar.</p>
+        </div>
+      </div>
+
+      <!-- FASE 2 -->
+      <div style="display:flex; gap:0; align-items:stretch;">
+        <div style="width:4px; background:#f57c00; flex-shrink:0;"></div>
+        <div style="flex:1; padding:20px 24px; border-bottom:1px solid #f0f4f8;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#f57c00;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">2</div>
+            <strong style="font-size:14px; color:#0d1b2a;">Qualificação</strong>
+            <span style="font-size:11px; background:#fff3e0; color:#e65100; padding:2px 8px; border-radius:10px; font-weight:600;">status: qualificado</span>
+          </div>
+          <p style="font-size:13px; color:#546e7a; margin:0 0 8px;">Uma pergunta por vez, sem lista. Objetivo: entender problema, tempo de sofrimento, tratamentos anteriores e o que mais incomoda.</p>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <span style="font-size:11px; background:#f5f5f5; color:#37474f; padding:3px 9px; border-radius:8px;">Qual é o problema?</span>
+            <span style="font-size:11px; background:#f5f5f5; color:#37474f; padding:3px 9px; border-radius:8px;">Há quanto tempo?</span>
+            <span style="font-size:11px; background:#f5f5f5; color:#37474f; padding:3px 9px; border-radius:8px;">Tentou algum tratamento?</span>
+            <span style="font-size:11px; background:#f5f5f5; color:#37474f; padding:3px 9px; border-radius:8px;">O que mais incomoda?</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FASE 3 -->
+      <div style="display:flex; gap:0; align-items:stretch;">
+        <div style="width:4px; background:#7b1fa2; flex-shrink:0;"></div>
+        <div style="flex:1; padding:20px 24px; border-bottom:1px solid #f0f4f8;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#7b1fa2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">3</div>
+            <strong style="font-size:14px; color:#0d1b2a;">Oferta + Quebra de Objeções</strong>
+          </div>
+          <p style="font-size:13px; color:#546e7a; margin:0 0 8px;">Apresenta a consulta gratuita com Dr. Alfredo. Se o lead apresentar resistência, aciona respostas para cada objeção:</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div style="background:#ffebee; border-radius:6px; padding:8px 10px; font-size:12px; color:#c62828;"><strong>Preço:</strong> parcelas + consulta gratuita</div>
+            <div style="background:#e8f5e9; border-radius:6px; padding:8px 10px; font-size:12px; color:#1b5e20;"><strong>Dor:</strong> cirurgia minimamente invasiva</div>
+            <div style="background:#e3f2fd; border-radius:6px; padding:8px 10px; font-size:12px; color:#1565c0;"><strong>Tempo:</strong> depende do caso, avaliação define</div>
+            <div style="background:#fff8e1; border-radius:6px; padding:8px 10px; font-size:12px; color:#e65100;"><strong>Sem tempo:</strong> 40min, horários flexíveis</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FASE 4 -->
+      <div style="display:flex; gap:0; align-items:stretch;">
+        <div style="width:4px; background:#388e3c; flex-shrink:0;"></div>
+        <div style="flex:1; padding:20px 24px; border-bottom:1px solid #f0f4f8;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#388e3c;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">4</div>
+            <strong style="font-size:14px; color:#0d1b2a;">Agendamento</strong>
+            <span style="font-size:11px; background:#e8f5e9; color:#1b5e20; padding:2px 8px; border-radius:10px; font-weight:600;">status: agendado</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#37474f;"><span style="width:20px;height:20px;background:#388e3c;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">→</span>Claude dispara <code style="background:#f5f5f5;padding:1px 5px;border-radius:4px;">check_availability</code> → N8N consulta Google Calendar</div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#37474f;"><span style="width:20px;height:20px;background:#388e3c;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">→</span>Claude recebe slots e sugere ≥3 opções reais</div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#37474f;"><span style="width:20px;height:20px;background:#388e3c;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">→</span>Coleta nome completo + e-mail do lead</div>
+            <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#37474f;"><span style="width:20px;height:20px;background:#388e3c;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">→</span>Claude dispara <code style="background:#f5f5f5;padding:1px 5px;border-radius:4px;">book_appointment</code> → N8N confirma e cria evento</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FASE 5 -->
+      <div style="display:flex; gap:0; align-items:stretch;">
+        <div style="width:4px; background:#00897b; border-radius:0 0 4px 4px; flex-shrink:0;"></div>
+        <div style="flex:1; padding:20px 24px;">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#00897b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">5</div>
+            <strong style="font-size:14px; color:#0d1b2a;">Confirmação e Encerramento</strong>
+          </div>
+          <p style="font-size:13px; color:#546e7a; margin:0;">Mensagem de confirmação com nome, data, horário e endereço da clínica. Agradecimento e aviso de que lembretes serão enviados. Convite para tirar dúvidas. Workflow de lembretes separado assume a partir daqui.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

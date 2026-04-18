@@ -15,6 +15,9 @@ interface CampaignsTabProps {
   daily: MetaDailyMetric[];
   leadOrigins?: { whatsapp: number; site: number };
   datePreset?: string;
+  since?: string;
+  until?: string;
+  period?: string;
 }
 
 function fmt(val: number | undefined | null) {
@@ -31,7 +34,121 @@ function cplBadge(cpl: number) {
 type SortKey = "name" | "spend" | "leads" | "cpl" | "ctr" | "cpc" | "reach" | "cpm";
 type SortDir = "asc" | "desc";
 
-export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset }: CampaignsTabProps) {
+// ─── Date range helpers ──────────────────────────────────────────────────────
+
+function isoToDate(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function dateToIso(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function addDays(d: Date, n: number) {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
+/** Returns number of days between two ISO dates (inclusive) */
+function periodDays(sinceIso: string, untilIso: string) {
+  const ms = isoToDate(untilIso).getTime() - isoToDate(sinceIso).getTime();
+  return Math.round(ms / 86400000) + 1;
+}
+
+type Granularity = "day" | "week" | "month" | "halfyear";
+
+function getGranularity(days: number): Granularity {
+  if (days <= 31) return "day";
+  if (days <= 180) return "week";
+  if (days <= 1825) return "month"; // up to ~5 years
+  return "halfyear";
+}
+
+/** Generate all ISO dates from since to until inclusive */
+function generateDateRange(sinceIso: string, untilIso: string): string[] {
+  const dates: string[] = [];
+  let cur = isoToDate(sinceIso);
+  const end = isoToDate(untilIso);
+  while (cur <= end) {
+    dates.push(dateToIso(cur));
+    cur = addDays(cur, 1);
+  }
+  return dates;
+}
+
+/** Aggregate daily data into buckets based on granularity */
+function aggregateDaily(
+  daily: MetaDailyMetric[],
+  sinceIso: string,
+  untilIso: string,
+  granularity: Granularity
+): Array<{ date: string; spend: number; leads: number }> {
+  // Build lookup from ISO date → values (zero-fill all dates in range)
+  const lookup = new Map<string, { spend: number; leads: number }>();
+  for (const d of generateDateRange(sinceIso, untilIso)) {
+    lookup.set(d, { spend: 0, leads: 0 });
+  }
+  for (const row of daily) {
+    // row.date is already ISO (YYYY-MM-DD)
+    const key = row.date.length === 10 ? row.date : null;
+    if (key && lookup.has(key)) {
+      lookup.get(key)!.spend += row.spend;
+      lookup.get(key)!.leads += row.leads;
+    }
+  }
+
+  if (granularity === "day") {
+    return Array.from(lookup.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([iso, v]) => {
+        const [, m, d] = iso.split("-");
+        return { date: `${d}/${m}`, ...v };
+      });
+  }
+
+  // Group into buckets
+  const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const buckets = new Map<string, { spend: number; leads: number; label: string }>();
+
+  for (const [iso, v] of Array.from(lookup.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
+    const d = isoToDate(iso);
+    let key: string;
+    let label: string;
+
+    if (granularity === "week") {
+      // ISO week key: year + week number
+      const startOfYear = new Date(d.getFullYear(), 0, 1);
+      const weekNum = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+      key = `${d.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+      // Label: "S{weekNum} Mmm" — reset week count per month for readability
+      const dayOfMonth = d.getDate();
+      const weekOfMonth = Math.ceil(dayOfMonth / 7);
+      label = `S${weekOfMonth} ${MONTHS_PT[d.getMonth()]}`;
+    } else if (granularity === "month") {
+      key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      label = `${MONTHS_PT[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
+    } else {
+      // halfyear
+      const half = d.getMonth() < 6 ? 1 : 2;
+      key = `${d.getFullYear()}-H${half}`;
+      label = `${half}S/${String(d.getFullYear()).slice(2)}`;
+    }
+
+    if (!buckets.has(key)) buckets.set(key, { spend: 0, leads: 0, label });
+    buckets.get(key)!.spend += v.spend;
+    buckets.get(key)!.leads += v.leads;
+  }
+
+  return Array.from(buckets.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([, v]) => ({ date: v.label, spend: v.spend, leads: v.leads }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset, since, until, period }: CampaignsTabProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [sortKey, setSortKey] = useState<SortKey>("leads");
@@ -122,6 +239,35 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
     </th>
   );
 
+  // ── Compute chart date range ────────────────────────────────────────────────
+  const todayIso = new Date().toISOString().split("T")[0];
+  let chartSince: string;
+  let chartUntil: string;
+
+  if (period === "custom" && since && until) {
+    chartSince = since;
+    chartUntil = until;
+  } else if (datePreset === "last_7d") {
+    chartSince = dateToIso(addDays(new Date(), -7));
+    chartUntil = todayIso;
+  } else if (datePreset === "last_14d") {
+    chartSince = dateToIso(addDays(new Date(), -14));
+    chartUntil = todayIso;
+  } else if (datePreset === "last_30d") {
+    chartSince = dateToIso(addDays(new Date(), -30));
+    chartUntil = todayIso;
+  } else {
+    // maximum: use min/max of actual data
+    const dates = daily.map(d => d.date).filter(d => d.length === 10).sort();
+    chartSince = dates[0] ?? todayIso;
+    chartUntil = dates[dates.length - 1] ?? todayIso;
+  }
+
+  const days = periodDays(chartSince, chartUntil);
+  const granularity = getGranularity(days);
+  const chartData = aggregateDaily(daily, chartSince, chartUntil, granularity);
+  // ────────────────────────────────────────────────────────────────────────────
+
   const originsTotal = (leadOrigins?.whatsapp ?? 0) + (leadOrigins?.site ?? 0);
   const originsData = [
     { name: "WhatsApp", value: leadOrigins?.whatsapp ?? 0, color: "#22c55e" },
@@ -209,12 +355,18 @@ export function CampaignsTab({ campaigns, adsets, daily, leadOrigins, datePreset
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Investimento vs Leads</h3>
         <p className="text-xs text-gray-400 mb-4">
-            {datePreset === "maximum" ? "Evolução diária — últimos 30 dias" : "Evolução diária no período selecionado"}
-          </p>
+          {granularity === "day" ? "Evolução diária" : granularity === "week" ? "Evolução semanal" : granularity === "month" ? "Evolução mensal" : "Evolução semestral"}
+          {datePreset === "maximum" ? " — período total da conta" : " — período selecionado"}
+        </p>
         <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={daily} margin={{ left: 4, right: 16, bottom: 4 }}>
+          <LineChart data={chartData} margin={{ left: 4, right: 16, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="#e2e8f0" interval="preserveStartEnd" />
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 10 }}
+              stroke="#e2e8f0"
+              interval={chartData.length > 60 ? Math.floor(chartData.length / 20) : chartData.length > 30 ? Math.floor(chartData.length / 15) : "preserveStartEnd"}
+            />
             <YAxis yAxisId="spend" orientation="left" tick={{ fontSize: 10 }} stroke="#e2e8f0" tickFormatter={v => `R$${v}`} width={52} />
             <YAxis yAxisId="leads" orientation="right" tick={{ fontSize: 10 }} stroke="#e2e8f0" width={30} />
             <Tooltip

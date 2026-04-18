@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workflow Atendimento WhatsApp V2 — Floren Odonto</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6f9;
+      color: #1a1a2e;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 24px rgba(0,0,0,0.10);
+      padding: 60px 70px;
+    }
+
+    /* COVER */
+    .cover {
+      text-align: center;
+      padding: 60px 0 40px;
+      border-bottom: 2px solid #e8ecf0;
+      margin-bottom: 48px;
+    }
+    .cover .logo-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 18px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .cover h1 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #0d1b2a;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .cover .subtitle {
+      font-size: 16px;
+      color: #546e7a;
+      margin-bottom: 32px;
+    }
+    .cover .meta {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      font-size: 13px;
+      color: #78909c;
+    }
+    .cover .meta span strong { color: #37474f; }
+
+    /* SECTION */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .section-number {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0d1b2a;
+    }
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a73e8;
+      margin: 24px 0 10px;
+    }
+    h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #37474f;
+      margin: 16px 0 6px;
+    }
+    p { margin-bottom: 10px; color: #37474f; }
+
+    /* CARDS / INFO BOXES */
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #1a73e8;
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .warning-box {
+      background: #fff8e1;
+      border-left: 4px solid #f9a825;
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+    .success-box {
+      background: #e8f5e9;
+      border-left: 4px solid #2e7d32;
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin: 16px 0;
+    }
+
+    /* NODE CARDS */
+    .node-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .node-card {
+      border: 1px solid #e0e7ff;
+      border-radius: 10px;
+      padding: 18px 20px;
+      background: #fafbff;
+    }
+    .node-card.full-width {
+      grid-column: 1 / -1;
+    }
+    .node-card .node-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #1a73e8;
+      margin-bottom: 8px;
+    }
+    .node-card .node-type {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      background: #e8eaf6;
+      color: #3949ab;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .node-card p { font-size: 13px; margin-bottom: 6px; }
+    .node-card ul { margin: 6px 0 0 16px; }
+    .node-card ul li { font-size: 13px; color: #546e7a; margin-bottom: 3px; }
+
+    /* TABLE */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+    th {
+      background: #1a73e8;
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #e8ecf0;
+      color: #37474f;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8faff; }
+
+    /* TAGS */
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 10px;
+      margin: 2px;
+    }
+    .tag-blue { background: #e3f2fd; color: #1565c0; }
+    .tag-green { background: #e8f5e9; color: #1b5e20; }
+    .tag-orange { background: #fff3e0; color: #e65100; }
+    .tag-red { background: #ffebee; color: #b71c1c; }
+    .tag-purple { background: #f3e5f5; color: #4a148c; }
+
+    /* CODE / JSON */
+    .code-block {
+      background: #1e2836;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+    }
+    .code-block pre {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #e2e8f0;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+    .code-block .key { color: #79c0ff; }
+    .code-block .string { color: #a5d6ff; }
+    .code-block .comment { color: #6a9a6a; font-style: italic; }
+
+    /* FLOW STEP */
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+      padding: 16px 20px;
+      border: 1px solid #e8ecf0;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .flow-step .step-num {
+      min-width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #1a73e8;
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .flow-step .step-content h4 { margin: 0 0 4px; font-size: 14px; color: #0d1b2a; }
+    .flow-step .step-content p { margin: 0; font-size: 13px; color: #546e7a; }
+
+    /* TECH STACK */
+    .stack-table td:first-child { font-weight: 600; color: #0d1b2a; }
+
+    /* OBJECTION TABLE */
+    .objection-row td:first-child {
+      font-weight: 700;
+      color: #c62828;
+      white-space: nowrap;
+    }
+
+    /* PHASE BLOCKS */
+    .phase-block {
+      border: 1px solid #e0e7ff;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .phase-header {
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: #fff;
+      padding: 12px 20px;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .phase-header .phase-num {
+      background: rgba(255,255,255,0.25);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .phase-body {
+      padding: 16px 20px;
+      background: #fafbff;
+    }
+    .phase-body ul { margin-left: 18px; }
+    .phase-body ul li { color: #37474f; font-size: 13px; margin-bottom: 5px; }
+
+    /* DIVIDER */
+    .divider {
+      border: none;
+      border-top: 1px solid #e8ecf0;
+      margin: 40px 0;
+    }
+
+    /* PRINT */
+    @media print {
+      body { background: #fff; }
+      .page { box-shadow: none; margin: 0; padding: 40px 50px; max-width: 100%; }
+      .node-card, .phase-block { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="logo-badge">Floren Odonto</div>
+    <h1>Workflow de Atendimento WhatsApp<br>Versão 2.0</h1>
+    <p class="subtitle">Especificação técnica completa — Agente IA + N8N + Supabase + Google Calendar</p>
+    <div class="meta">
+      <span><strong>Versão:</strong> 2.0</span>
+      <span><strong>Data:</strong> Abril 2026</span>
+      <span><strong>Serviço:</strong> WhatsApp (Z-API)</span>
+      <span><strong>IA:</strong> Claude API</span>
+    </div>
+  </div>
+
+  <!-- 1. VISÃO GERAL -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <h2>Visão Geral</h2>
+    </div>
+    <p>Este documento descreve a arquitetura e o funcionamento completo do workflow de atendimento automático via WhatsApp da Floren Odonto, versão 2. O objetivo central é receber leads oriundos de anúncios (Meta Ads), orgânico ou indicação, conduzir uma conversa humanizada via IA, qualificar o problema do paciente, quebrar objeções e agendar a consulta de avaliação gratuita com o Dr. Alfredo Marques.</p>
+    <p>O workflow substitui a versão anterior ("CLAUDE | ATENDIMENTO WPP") com uma arquitetura mais modular, melhor gestão de contexto histórico de conversas e integração direta com o Google Calendar para verificação real de disponibilidade antes de confirmar qualquer agendamento.</p>
+
+    <div class="info-box">
+      <strong>Objetivo final do workflow:</strong> transformar cada mensagem recebida no WhatsApp em um agendamento confirmado na agenda do Dr. Alfredo, garantindo que o lead chegue à consulta informado e com expectativas alinhadas.
+    </div>
+
+    <h3>Stack Tecnológica</h3>
+    <table class="stack-table">
+      <tr><th>Componente</th><th>Serviço</th><th>Função</th></tr>
+      <tr><td>Orquestrador</td><td>N8N (florenmarketing.app.n8n.cloud)</td><td>Gerencia o fluxo de nós e lógica do workflow</td></tr>
+      <tr><td>WhatsApp</td><td>Z-API</td><td>Gateway de envio e recebimento de mensagens</td></tr>
+      <tr><td>IA</td><td>Claude API (claude-sonnet-4-6)</td><td>Agente de conversação — responde, qualifica, agenda</td></tr>
+      <tr><td>Banco de Dados</td><td>Supabase (PostgreSQL)</td><td>Pacientes, conversas, agendamentos</td></tr>
+      <tr><td>Agenda</td><td>Google Calendar</td><td>Verificação de disponibilidade e criação de eventos</td></tr>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 2. ARQUITETURA GERAL -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <h2>Arquitetura Geral do Fluxo</h2>
+    </div>
+    <p>O workflow é acionado a cada mensagem recebida no WhatsApp. O fluxo passa por três grandes blocos: <strong>Entrada e Identificação</strong>, <strong>Processamento pela IA</strong> e <strong>Execução da Ação</strong>.</p>
+
+    <div class="flow-step">
+      <div class="step-num">A</div>
+      <div class="step-content">
+        <h4>Entrada e Identificação</h4>
+        <p>Recebe a mensagem via webhook (Z-API → N8N), filtra mensagens inválidas, identifica o remetente no banco de dados e determina se é um contato novo ou existente. Carrega o histórico de conversas para dar contexto à IA.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">B</div>
+      <div class="step-content">
+        <h4>Processamento pela IA (Claude)</h4>
+        <p>O agente Claude recebe o contexto completo (dados do paciente, histórico de conversa, mensagem atual, data/hora) e decide qual ação tomar: responder, verificar agenda, confirmar agendamento ou pausar para atendimento humano.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">C</div>
+      <div class="step-content">
+        <h4>Execução da Ação</h4>
+        <p>Baseado na decisão da IA, o workflow executa a ação correspondente: consulta o Google Calendar, cria agendamento no Supabase, atualiza dados do paciente, salva mensagens no histórico e envia a resposta via Z-API.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 3. NÓS DO WORKFLOW -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <h2>Nós do Workflow — Descrição Detalhada</h2>
+    </div>
+
+    <!-- NÓ 1 -->
+    <h3>Nó 1 — Webhook de Entrada</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">WEBHOOK ENTRADA</div>
+        <div class="node-type">Trigger / Webhook</div>
+        <p>Ponto de entrada do workflow. Recebe o payload enviado pela Z-API a cada nova mensagem no WhatsApp.</p>
+        <ul>
+          <li><strong>URL:</strong> POST <code>/webhook/atendimento-v2</code></li>
+          <li><strong>Autenticação:</strong> Header secret configurado na Z-API</li>
+          <li><strong>Dados recebidos:</strong> remetente (phone), texto da mensagem, timestamp, tipo de mensagem</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- NÓ 2 -->
+    <h3>Nó 2 — Filtro de Mensagem</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">FILTRO DE MENSAGEM</div>
+        <div class="node-type">IF / Condição</div>
+        <p>Garante que apenas mensagens válidas e relevantes avancem no fluxo. Mensagens que não passam no filtro encerram o workflow sem resposta.</p>
+        <h4>Condições para passar:</h4>
+        <ul>
+          <li>Tipo de mensagem é texto (<code>type = "chat"</code>)</li>
+          <li>Não é mensagem enviada pela própria clínica (<code>fromMe = false</code>)</li>
+          <li>Não é mensagem de grupo (chatId não termina em <code>@g.us</code>)</li>
+          <li>Não é atualização de status ou notificação de sistema</li>
+          <li>Texto da mensagem não está vazio</li>
+        </ul>
+        <div class="warning-box" style="margin-top:12px">
+          <strong>Importante:</strong> Mídias (imagem, áudio, vídeo) são ignoradas nesta versão, exceto se acompanhadas de legenda textual. Futuramente, pode-se adicionar transcrição de áudio via Whisper.
+        </div>
+      </div>
+    </div>
+
+    <!-- NÓ 3 -->
+    <h3>Nó 3 — Extração de Dados</h3>
+    <div class="node-grid">
+      <div class="node-card">
+        <div class="node-title">EXTRAIR DADOS DA MENSAGEM</div>
+        <div class="node-type">Code / Set</div>
+        <p>Normaliza e extrai os campos necessários do payload bruto da Z-API:</p>
+        <ul>
+          <li><code>phone</code>: número do remetente (formato +55XXXXXXXXXXX)</li>
+          <li><code>messageText</code>: texto da mensagem</li>
+          <li><code>timestamp</code>: data/hora do envio</li>
+          <li><code>chatId</code>: identificador do chat</li>
+        </ul>
+      </div>
+      <div class="node-card">
+        <div class="node-title">NORMALIZAR TELEFONE</div>
+        <div class="node-type">Code</div>
+        <p>Padroniza o número de telefone para garantir consistência no banco:</p>
+        <ul>
+          <li>Remove caracteres especiais (<code>+</code>, espaços, traços)</li>
+          <li>Garante DDI 55 no início</li>
+          <li>Remove 9 dígito duplicado se necessário</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- NÓ 4 -->
+    <h3>Nó 4 — Busca do Paciente no Supabase</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">BUSCAR PACIENTE</div>
+        <div class="node-type">HTTP Request — Supabase REST API</div>
+        <p>Consulta o banco para verificar se o número já existe na base de pacientes/leads.</p>
+        <ul>
+          <li><strong>Endpoint:</strong> <code>GET /rest/v1/patients?phone=eq.{phone}&amp;select=*</code></li>
+          <li><strong>Retorno:</strong> array com o registro completo do paciente ou array vazio (novo contato)</li>
+          <li><strong>Campos relevantes:</strong> <code>id</code>, <code>name</code>, <code>status</code>, <code>agent_paused</code>, <code>email</code>, <code>source</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- NÓ 5 -->
+    <h3>Nó 5 — Roteador: Novo ou Existente?</h3>
+    <div class="node-grid">
+      <div class="node-card">
+        <div class="node-title">LEAD NOVO</div>
+        <div class="node-type">Branch — array vazio</div>
+        <p>Quando nenhum registro é encontrado para o telefone. O fluxo segue para o <strong>Nó 6a</strong> para criar o paciente.</p>
+      </div>
+      <div class="node-card">
+        <div class="node-title">LEAD EXISTENTE</div>
+        <div class="node-type">Branch — registro encontrado</div>
+        <p>Quando o telefone já existe na base. O fluxo segue para o <strong>Nó 6b</strong> para verificar se o agente está pausado.</p>
+      </div>
+    </div>
+
+    <!-- NÓ 6a -->
+    <h3>Nó 6a — Criar Paciente (Novo Lead)</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">CRIAR PACIENTE NO SUPABASE</div>
+        <div class="node-type">HTTP Request — POST</div>
+        <ul>
+          <li><strong>Endpoint:</strong> <code>POST /rest/v1/patients</code></li>
+          <li><strong>Body:</strong> <code>{ phone, status: "novo", source: "whatsapp_organico", agent_paused: false }</code></li>
+          <li><strong>Retorna:</strong> o ID do novo paciente, que é armazenado para os próximos nós</li>
+        </ul>
+        <div class="info-box" style="margin-top:10px">
+          O campo <code>source</code> deve ser ajustado conforme a origem do lead quando possível. Leads CTWA vindos de anúncio podem ter esse dado no payload da Z-API.
+        </div>
+      </div>
+    </div>
+
+    <!-- NÓ 6b -->
+    <h3>Nó 6b — Verificar Agent Paused (Lead Existente)</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">VERIFICAR AGENT_PAUSED</div>
+        <div class="node-type">IF / Condição</div>
+        <p>Verifica o campo <code>agent_paused</code> do paciente existente:</p>
+        <ul>
+          <li><code>agent_paused = true</code> → <strong>Encerrar workflow</strong> (um humano está atendendo este contato. Não responder automaticamente.)</li>
+          <li><code>agent_paused = false</code> → Continuar para o próximo nó</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- NÓ 7 -->
+    <h3>Nó 7 — Buscar Histórico de Conversas</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">BUSCAR HISTÓRICO</div>
+        <div class="node-type">HTTP Request — Supabase REST API</div>
+        <p>Recupera as últimas mensagens da conversa para dar contexto à IA.</p>
+        <ul>
+          <li><strong>Endpoint:</strong> <code>GET /rest/v1/conversations?patient_id=eq.{id}&amp;order=created_at.asc&amp;limit=30</code></li>
+          <li><strong>Retorno:</strong> array de objetos <code>{ role: "user"|"assistant", content: "..." }</code></li>
+          <li><strong>Limite:</strong> 30 mensagens (últimas 15 trocas) para não exceder o contexto da IA</li>
+        </ul>
+        <div class="info-box" style="margin-top:10px">
+          Para contatos novos, o histórico estará vazio. A IA irá detectar isso via o campo <code>is_new_lead</code> passado no prompt e iniciar a conversa do zero.
+        </div>
+      </div>
+    </div>
+
+    <!-- NÓ 8 -->
+    <h3>Nó 8 — Montar Contexto e Chamar Claude</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">AGENTE CLAUDE (CHAMADA PRINCIPAL)</div>
+        <div class="node-type">HTTP Request — Anthropic API</div>
+        <p>Nó central do workflow. Envia para o Claude API todos os dados necessários e recebe uma resposta estruturada em JSON.</p>
+        <h4>Dados enviados para o Claude:</h4>
+        <ul>
+          <li><strong>System Prompt:</strong> instruções completas de persona, fluxo, objeções e formato de saída (ver Seção 4)</li>
+          <li><strong>Messages:</strong> histórico de conversas formatado + mensagem atual do paciente</li>
+          <li><strong>Variáveis injetadas:</strong> nome, telefone, status e flag <code>is_new_lead</code> do paciente</li>
+          <li><strong>Data/hora atual:</strong> para contexto de agendamento</li>
+        </ul>
+        <h4>Resposta esperada (sempre JSON):</h4>
+        <div class="code-block">
+          <pre><span class="comment">// Exemplo de resposta do Claude para uma ação de "reply"</span>
+{
+  <span class="key">"message"</span>: <span class="string">"Olá, tudo bem! Aqui é a Ana da Floren Odonto... [texto da resposta]"</span>,
+  <span class="key">"action"</span>: <span class="string">"reply"</span>,
+  <span class="key">"action_data"</span>: {},
+  <span class="key">"patient_updates"</span>: {
+    <span class="key">"name"</span>: <span class="string">"João Silva"</span>,
+    <span class="key">"status"</span>: <span class="string">"em_contato"</span>
+  }
+}</pre>
+        </div>
+        <div class="code-block">
+          <pre><span class="comment">// Exemplo de resposta para "book_appointment"</span>
+{
+  <span class="key">"message"</span>: <span class="string">"Perfeito, João! Sua consulta está confirmada para quinta-feira, 17 de abril, às 10h..."</span>,
+  <span class="key">"action"</span>: <span class="string">"book_appointment"</span>,
+  <span class="key">"action_data"</span>: {
+    <span class="key">"patient_name"</span>: <span class="string">"João Silva"</span>,
+    <span class="key">"patient_email"</span>: <span class="string">"joao@email.com"</span>,
+    <span class="key">"date"</span>: <span class="string">"2026-04-17"</span>,
+    <span class="key">"time"</span>: <span class="string">"10:00"</span>,
+    <span class="key">"notes"</span>: <span class="string">"Lead com interesse em implante total. Veio via Meta Ads."</span>
+  },
+  <span class="key">"patient_updates"</span>: {
+    <span class="key">"name"</span>: <span class="string">"João Silva"</span>,
+    <span class="key">"email"</span>: <span class="string">"joao@email.com"</span>,
+    <span class="key">"status"</span>: <span class="string">"agendado"</span>
+  }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- NÓ 9 -->
+    <h3>Nó 9 — Roteador de Ação</h3>
+    <div class="node-grid">
+      <div class="node-card">
+        <div class="node-title">reply</div>
+        <div class="node-type">Branch</div>
+        <p>Resposta conversacional simples. Fluxo vai direto para Salvar Mensagens e Enviar.</p>
+      </div>
+      <div class="node-card">
+        <div class="node-title">check_availability</div>
+        <div class="node-type">Branch</div>
+        <p>Claude precisa de horários disponíveis. Consulta o Google Calendar e re-chama o Claude com os slots disponíveis para ele formular a resposta.</p>
+      </div>
+      <div class="node-card">
+        <div class="node-title">book_appointment</div>
+        <div class="node-type">Branch</div>
+        <p>Lead aceitou um horário específico. Cria o agendamento no Supabase e no Google Calendar antes de enviar a confirmação.</p>
+      </div>
+      <div class="node-card">
+        <div class="node-title">pause_agent</div>
+        <div class="node-type">Branch</div>
+        <p>Situação fora do escopo da IA. Atualiza <code>agent_paused=true</code>, opcionalmente notifica a equipe e encerra o fluxo sem responder.</p>
+      </div>
+    </div>
+
+    <!-- NÓ 10 -->
+    <h3>Nó 10 — Verificar Agenda (check_availability)</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">CONSULTAR GOOGLE CALENDAR — FreeBusy</div>
+        <div class="node-type">Google Calendar — FreeBusy Query</div>
+        <p>Quando a ação é <code>check_availability</code>, o N8N consulta a disponibilidade real da agenda do Dr. Alfredo.</p>
+        <ul>
+          <li><strong>Janela consultada:</strong> próximos 7 dias úteis</li>
+          <li><strong>Horário comercial:</strong> segunda a sexta, 08:00–18:00</li>
+          <li><strong>Duração padrão da consulta:</strong> 45 minutos</li>
+          <li><strong>Resultado:</strong> lista de slots livres formatada (ex: "Quinta 17/04 às 10h, 14h e 15h30")</li>
+        </ul>
+        <p>Com os slots disponíveis, o N8N faz uma segunda chamada ao Claude informando os horários, para que ele formule uma mensagem humanizada sugerindo no mínimo 3 opções.</p>
+      </div>
+    </div>
+
+    <!-- NÓ 11 -->
+    <h3>Nó 11 — Criar Agendamento (book_appointment)</h3>
+    <div class="node-grid">
+      <div class="node-card">
+        <div class="node-title">CRIAR AGENDAMENTO — SUPABASE</div>
+        <div class="node-type">HTTP Request — POST</div>
+        <ul>
+          <li>Endpoint: <code>POST /rest/v1/appointments</code></li>
+          <li>Dados: patient_id, doctor_id, date, time, procedure_id, notes, status: "agendado"</li>
+          <li>Salva o agendamento oficial no CRM</li>
+        </ul>
+      </div>
+      <div class="node-card">
+        <div class="node-title">CRIAR EVENTO — GOOGLE CALENDAR</div>
+        <div class="node-type">Google Calendar — Create Event</div>
+        <ul>
+          <li>Cria o evento na agenda do Dr. Alfredo</li>
+          <li>Título: "Consulta Avaliação — [Nome do Paciente]"</li>
+          <li>Duração: 45 minutos</li>
+          <li>Descrição: telefone, e-mail e notas do lead</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- NÓ 12 -->
+    <h3>Nó 12 — Atualizar Dados do Paciente</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">ATUALIZAR PACIENTE — SUPABASE</div>
+        <div class="node-type">HTTP Request — PATCH</div>
+        <p>Atualiza os campos do paciente que a IA identificou durante a conversa (campo <code>patient_updates</code> da resposta do Claude).</p>
+        <ul>
+          <li><strong>Endpoint:</strong> <code>PATCH /rest/v1/patients?id=eq.{id}</code></li>
+          <li><strong>Possíveis atualizações:</strong> <code>name</code>, <code>email</code>, <code>status</code></li>
+          <li><strong>Condição:</strong> só executa se <code>patient_updates</code> não estiver vazio</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- NÓ 13 -->
+    <h3>Nó 13 — Salvar Mensagens no Histórico</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">SALVAR CONVERSA — SUPABASE</div>
+        <div class="node-type">HTTP Request — POST (2x)</div>
+        <p>Persiste as duas mensagens da troca atual no banco para uso futuro como histórico.</p>
+        <ul>
+          <li><strong>Mensagem do usuário:</strong> <code>POST /conversations</code> com <code>role: "user"</code></li>
+          <li><strong>Mensagem do assistente:</strong> <code>POST /conversations</code> com <code>role: "assistant"</code></li>
+          <li><strong>Campos:</strong> <code>patient_id</code>, <code>role</code>, <code>content</code>, <code>created_at</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- NÓ 14 -->
+    <h3>Nó 14 — Enviar Mensagem via Z-API</h3>
+    <div class="node-grid">
+      <div class="node-card full-width">
+        <div class="node-title">ENVIAR RESPOSTA — Z-API</div>
+        <div class="node-type">HTTP Request — POST</div>
+        <p>Envia a resposta ao paciente via WhatsApp.</p>
+        <ul>
+          <li><strong>Endpoint:</strong> Z-API send-text</li>
+          <li><strong>Body:</strong> <code>{ phone: "{phone}", message: "{claude_message}" }</code></li>
+          <li><strong>Formato:</strong> texto simples (plain text). Formatação com *negrito* e _itálico_ do WhatsApp pode ser usada.</li>
+        </ul>
+        <div class="info-box" style="margin-top:10px">
+          O texto enviado é exatamente o campo <code>message</code> retornado pelo Claude. A IA é responsável por formatar a mensagem de forma adequada para o WhatsApp.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <hr class="divider">
+
+  <!-- 4. SYSTEM PROMPT -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <h2>Design do System Prompt — Agente Claude</h2>
+    </div>
+    <p>O System Prompt é o coração do comportamento da IA. Ele define a persona, o fluxo de conversa, as respostas para objeções e o formato de saída. Deve ser passado como <code>system</code> na chamada à Anthropic API.</p>
+
+    <div class="code-block">
+      <pre><span class="comment">/* SYSTEM PROMPT — FLOREN | ATENDIMENTO WPP V2 */</span>
+
+Você é Ana, assistente virtual da Floren Odonto — clínica especializada
+em implantes dentários, sob responsabilidade do Dr. Alfredo Marques,
+implantodontista com ampla experiência em cirurgia guiada minimamente invasiva.
+
+<span class="comment">## SUA MISSÃO</span>
+Acolher o lead com empatia, entender sua situação, apresentar a Floren
+como a melhor solução para o problema dele e agendar a consulta de avaliação
+gratuita com o Dr. Alfredo.
+
+<span class="comment">## SOBRE A FLOREN ODONTO</span>
+- Especialidade exclusiva: implantes dentários
+- Tecnologia: Planejamento Digital 3D, guias cirúrgicos impressos em 3D,
+  escâner intraoral, tomografia computadorizada
+- Cirurgia minimamente invasiva: menos dor, recuperação mais rápida
+- Soluções desde a perda de um dente até reabilitação total
+- Consulta de avaliação: gratuita e sem compromisso
+
+<span class="comment">## TOM DE VOZ</span>
+- Empático, acolhedor e profissional
+- Use linguagem simples, sem jargões médicos
+- Nunca seja frio ou robótico
+- Máximo 3-4 parágrafos curtos por mensagem
+- Use o nome do paciente quando souber
+
+<span class="comment">## FASES DO ATENDIMENTO</span>
+
+FASE 1 — BOAS-VINDAS
+  - Lead NOVO: apresentar-se como Ana, perguntar o nome
+  - Lead EXISTENTE: retomar conversa com base no histórico, sem se reapresentar
+  - Nunca repita apresentações para contatos com histórico
+
+FASE 2 — QUALIFICAÇÃO (uma pergunta por vez)
+  1. Qual é o problema com seus dentes?
+  2. Há quanto tempo tem esse problema?
+  3. Já tentou algum tratamento antes?
+  4. O que mais te incomoda nessa situação?
+
+FASE 3 — OFERTA DA CONSULTA
+  - Após entender o problema, apresentar a consulta gratuita
+  - Explicar que o Dr. Alfredo fará uma avaliação completa e personalizada
+  - Reforçar: sem compromisso, sem custo, com toda a tecnologia disponível
+
+FASE 4 — QUEBRA DE OBJEÇÕES
+  PREÇO:
+    "O investimento varia conforme cada caso — só após a avaliação o Dr. Alfredo
+    consegue indicar o valor exato com as melhores opções de parcelamento.
+    O que posso garantir é que a consulta é gratuita e sem compromisso."
+
+  DOR / MEDO:
+    "Entendo essa preocupação! A Floren usa cirurgia guiada minimamente invasiva
+    — cortes muito pequenos, anestesia local eficaz. A maioria dos pacientes
+    se surpreende com o conforto. É bem diferente do que imaginavam."
+
+  TEMPO:
+    "Depende do seu caso específico, por isso a avaliação é tão importante.
+    Com nossa tecnologia, em muitos casos o processo é mais rápido
+    do que se imagina."
+
+  SEM TEMPO:
+    "Sem problema! Você escolhe o melhor dia e horário. A consulta dura
+    cerca de 40 minutos e você sai com um planejamento completo do tratamento."
+
+FASE 5 — AGENDAMENTO
+  1. Use a ação "check_availability" para verificar horários reais
+  2. Apresente pelo menos 3 opções ao lead
+  3. Colete nome completo (se não souber) e e-mail
+  4. Use "book_appointment" para confirmar
+  5. Mensagem de confirmação com: data, horário, endereço da clínica
+
+FASE 6 — ENCERRAMENTO
+  - Agradecer a confiança
+  - Informar endereço da clínica
+  - Se colocar à disposição para dúvidas
+  - Dizer que aguarda o paciente no dia agendado
+
+<span class="comment">## REGRAS OBRIGATÓRIAS</span>
+- NUNCA faça diagnósticos — sempre direcione para o Dr. Alfredo
+- NUNCA invente horários disponíveis — use sempre check_availability
+- NUNCA confirme um agendamento sem usar book_appointment
+- Se não souber responder a situação, use pause_agent
+- Mantenha foco em agendar — é o objetivo final
+- Responda sempre em português brasileiro
+
+<span class="comment">## DADOS DO PACIENTE</span>
+Nome: {{patient_name}}
+Status: {{patient_status}}
+É novo lead: {{is_new_lead}}
+
+<span class="comment">## HISTÓRICO DA CONVERSA</span>
+{{conversation_history}}
+
+<span class="comment">## FORMATO DE SAÍDA (SEMPRE JSON — NUNCA TEXTO PURO)</span>
+{
+  "message": "texto exato a enviar ao paciente",
+  "action": "reply" | "check_availability" | "book_appointment" | "pause_agent",
+  "action_data": {
+    "patient_name": "nome completo",       <span class="comment">// apenas para book_appointment</span>
+    "patient_email": "email@email.com",    <span class="comment">// apenas para book_appointment</span>
+    "date": "YYYY-MM-DD",                  <span class="comment">// apenas para book_appointment</span>
+    "time": "HH:MM",                       <span class="comment">// apenas para book_appointment</span>
+    "notes": "observações do lead"         <span class="comment">// apenas para book_appointment</span>
+  },
+  "patient_updates": {
+    "name": "nome do paciente",            <span class="comment">// se descoberto na conversa</span>
+    "email": "email do paciente",          <span class="comment">// se descoberto na conversa</span>
+    "status": "em_contato|qualificado|agendado"
+  }
+}</pre>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 5. FASES DA CONVERSA -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">5</div>
+      <h2>Fases da Conversa com o Lead</h2>
+    </div>
+
+    <div class="phase-block">
+      <div class="phase-header"><div class="phase-num">1</div>Boas-Vindas e Identificação</div>
+      <div class="phase-body">
+        <p><strong>Lead novo:</strong> A IA se apresenta como Ana, da Floren Odonto, e pergunta o nome do paciente. Tom acolhedor e breve.</p>
+        <p><strong>Lead com histórico:</strong> A IA retoma a conversa naturalmente a partir do contexto anterior. Ex: "Olá, [nome]! Tudo bem? Da última vez você me contou sobre [problema]. Como está se sentindo?"</p>
+        <ul>
+          <li>Status atualizado para: <span class="tag tag-blue">em_contato</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase-block">
+      <div class="phase-header"><div class="phase-num">2</div>Qualificação</div>
+      <div class="phase-body">
+        <p>Perguntas objetivas para entender o problema, feitas uma de cada vez, sem bombardear o lead.</p>
+        <ul>
+          <li>Qual dente/região está afetada?</li>
+          <li>Há quanto tempo tem esse problema?</li>
+          <li>Já realizou algum tratamento antes?</li>
+          <li>O que mais incomoda: estética, mastigação, dor?</li>
+        </ul>
+        <p>A IA nunca afirma que o paciente tem ou não tem determinado problema — sempre redireciona para a avaliação.</p>
+        <ul>
+          <li>Status atualizado para: <span class="tag tag-orange">qualificado</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase-block">
+      <div class="phase-header"><div class="phase-num">3</div>Oferta e Quebra de Objeções</div>
+      <div class="phase-body">
+        <p>Após entender o problema, a IA apresenta a consulta de avaliação gratuita. Se o lead apresentar resistência, aciona o banco de respostas para objeções:</p>
+        <ul>
+          <li><strong>Preço:</strong> parcelas, consulta gratuita, valor revelado só após avaliação</li>
+          <li><strong>Dor:</strong> cirurgia minimamente invasiva, anestesia eficaz, relatos de pacientes</li>
+          <li><strong>Tempo:</strong> depende do caso, avaliação dará prazo real, tecnologia agiliza</li>
+          <li><strong>Falta de tempo:</strong> consulta de 40 min, horários flexíveis</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase-block">
+      <div class="phase-header"><div class="phase-num">4</div>Agendamento</div>
+      <div class="phase-body">
+        <ul>
+          <li>A IA dispara a ação <code>check_availability</code></li>
+          <li>N8N consulta o Google Calendar e retorna os slots livres</li>
+          <li>Claude recebe os slots e formula uma mensagem com pelo menos 3 opções</li>
+          <li>Lead escolhe o horário</li>
+          <li>IA coleta nome completo e e-mail (se não tiver)</li>
+          <li>IA dispara <code>book_appointment</code></li>
+          <li>N8N cria o evento no Google Calendar e o agendamento no Supabase</li>
+        </ul>
+        <ul>
+          <li>Status atualizado para: <span class="tag tag-green">agendado</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase-block">
+      <div class="phase-header"><div class="phase-num">5</div>Confirmação e Encerramento</div>
+      <div class="phase-body">
+        <ul>
+          <li>Mensagem de confirmação com: nome do paciente, data, horário, endereço da clínica</li>
+          <li>Agradecimento e boas-vindas à Floren</li>
+          <li>Aviso de que lembretes serão enviados nos dias anteriores (workflow de lembretes separado)</li>
+          <li>Convite para tirar dúvidas a qualquer momento</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 6. GESTÃO DE STATUS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">6</div>
+      <h2>Gestão de Status do Paciente</h2>
+    </div>
+    <p>O campo <code>status</code> no Supabase acompanha a jornada do lead e define em qual coluna ele aparece no Kanban do CRM.</p>
+
+    <table>
+      <tr>
+        <th>Status</th><th>Quando é atribuído</th><th>Coluna no Kanban</th>
+      </tr>
+      <tr>
+        <td><span class="tag tag-blue">novo</span></td>
+        <td>Lead entra pela primeira vez no sistema</td>
+        <td>Leads</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-blue">em_contato</span></td>
+        <td>IA iniciou conversa / lead respondeu</td>
+        <td>Leads</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-orange">qualificado</span></td>
+        <td>IA coletou informações sobre o problema</td>
+        <td>Qualificados</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-green">agendado</span></td>
+        <td>Consulta confirmada na agenda</td>
+        <td>Agendados</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-green">confirmado</span></td>
+        <td>Lembrete enviado e lead confirmou presença</td>
+        <td>Agendados</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">compareceu</span></td>
+        <td>Marcado manualmente após a consulta</td>
+        <td>Convertidos</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-red">perdido</span></td>
+        <td>Não respondeu após cadência de follow-up</td>
+        <td>—</td>
+      </tr>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 7. TRATAMENTO DE ERROS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">7</div>
+      <h2>Tratamento de Erros e Edge Cases</h2>
+    </div>
+
+    <table>
+      <tr><th>Situação</th><th>Comportamento esperado</th></tr>
+      <tr>
+        <td>Claude retorna resposta inválida (não-JSON)</td>
+        <td>N8N tenta parsear; se falhar, registra erro no log e encerra sem enviar mensagem. Não gerar resposta quebrada ao lead.</td>
+      </tr>
+      <tr>
+        <td>Supabase indisponível</td>
+        <td>N8N retorna erro e o webhook Z-API pode tentar novamente. Log do erro para diagnóstico.</td>
+      </tr>
+      <tr>
+        <td>Google Calendar sem disponibilidade nos próximos 7 dias</td>
+        <td>Claude é informado e sugere que a equipe entrará em contato para encontrar um horário.</td>
+      </tr>
+      <tr>
+        <td>Lead pede para falar com humano</td>
+        <td>Claude usa <code>pause_agent</code>. Campo <code>agent_paused=true</code> no Supabase. CRM exibe alerta visual.</td>
+      </tr>
+      <tr>
+        <td>Conflito de agendamento</td>
+        <td>Verificação FreeBusy antes de confirmar previne o conflito. Se ocorrer, Claude sugere outro horário.</td>
+      </tr>
+      <tr>
+        <td>Lead envia mídia sem texto</td>
+        <td>Filtro inicial descarta a mensagem. Sem resposta (para não gerar confusão).</td>
+      </tr>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 8. DIFERENÇAS DA V1 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">8</div>
+      <h2>Melhorias em Relação à Versão Anterior</h2>
+    </div>
+
+    <table>
+      <tr><th>Aspecto</th><th>V1 (Atual)</th><th>V2 (Novo)</th></tr>
+      <tr>
+        <td>Histórico de conversa</td>
+        <td>Não há memória entre sessões</td>
+        <td>Últimas 30 mensagens carregadas do Supabase</td>
+      </tr>
+      <tr>
+        <td>Verificação de agenda</td>
+        <td>Sem verificação real; IA inventa horários</td>
+        <td>FreeBusy query no Google Calendar antes de sugerir horários</td>
+      </tr>
+      <tr>
+        <td>Leads existentes vs novos</td>
+        <td>Trata todos como novos</td>
+        <td>Diferencia e adapta a abordagem</td>
+      </tr>
+      <tr>
+        <td>Formato de saída da IA</td>
+        <td>Texto livre → difícil de parsear</td>
+        <td>JSON estruturado com <code>action</code> + <code>patient_updates</code></td>
+      </tr>
+      <tr>
+        <td>Modelo de IA</td>
+        <td>GPT-4o-mini (OpenAI)</td>
+        <td>Claude Sonnet 4.6 (Anthropic) — melhor em seguir instruções complexas</td>
+      </tr>
+      <tr>
+        <td>Atualização de dados</td>
+        <td>Manual ou por nós separados</td>
+        <td>Automaticamente via <code>patient_updates</code> em toda resposta</td>
+      </tr>
+      <tr>
+        <td>Pausar agente</td>
+        <td>Sem mecanismo claro</td>
+        <td>Ação <code>pause_agent</code> dedicada</td>
+      </tr>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+  <!-- FOOTER -->
+  <div style="text-align:center; color:#90a4ae; font-size:12px; padding-top: 20px;">
+    Floren Odonto — Workflow Atendimento WhatsApp V2 &nbsp;|&nbsp; Documento interno &nbsp;|&nbsp; Abril 2026
+  </div>
+
+</div>
+</body>
+</html>

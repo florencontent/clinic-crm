@@ -295,7 +295,7 @@ export default function MetaAdsPage() {
       {/* Tab content */}
       <div>
         {activeTab === "campanhas" && (
-          <CampaignsTab campaigns={data.campaigns} adsets={data.adsets} daily={data.daily} leadOrigins={data.leadOrigins} datePreset={data.datePreset} />
+          <CampaignsTab campaigns={data.campaigns} adsets={data.adsets} daily={data.daily} leadOrigins={data.leadOrigins} datePreset={data.datePreset} since={since} until={until} period={period} />
         )}
         {activeTab === "publicos" && (
           <AudiencesTab adsets={data.adsets} demographics={data.demographics} />

@@ -168,25 +168,59 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
     // creative fetch is optional — don't fail the whole request
   }
 
-  // 5. Daily breakdown — account-level (more reliable than level=campaign for time_increment=1)
-  // For "maximum", cap at last 30 days so the chart stays readable and the API stays responsive
-  const today = new Date();
-  const dailyDateParam = (since && until)
-    ? `time_range={"since":"${since}","until":"${until}"}`
-    : datePreset === "maximum"
-    ? `date_preset=last_30d`
-    : `date_preset=${datePreset}`;
+  // 5. Daily breakdown — use the exact period selected by the user, no substitutions
+  // For "maximum", the Meta API sometimes rejects time_increment=1 over very long ranges,
+  // so we fall back to time_increment=7 (weekly) — same period, less granular.
+  let dailyRawData: Record<string, unknown>[] = [];
 
-  const dailyRawData = await fetchAllPages(
-    `${ACCOUNT_ID}/insights?fields=spend,impressions,clicks,actions,date_start&${dailyDateParam}&time_increment=1&action_report_time=conversion`
-  );
+  async function fetchDailyEndpoint(endpoint: string): Promise<Record<string, unknown>[]> {
+    const url = `${BASE_URL}/${endpoint}&access_token=${ACCESS_TOKEN}&limit=500`;
+    const res = await fetch(url, { cache: "no-store" });
+    const json = await res.json();
+    if (json.error || !(json.data || []).length) return [];
+    const rows = [...json.data];
+    let nextUrl = json.paging?.next || null;
+    while (nextUrl) {
+      const pRes = await fetch(nextUrl, { cache: "no-store" });
+      const pJson = await pRes.json();
+      rows.push(...(pJson.data || []));
+      nextUrl = pJson.paging?.next || null;
+      if (nextUrl) await sleep(2000);
+    }
+    return rows;
+  }
 
-  // Aggregate by date
+  const fields = "fields=spend,impressions,clicks,actions,date_start";
+  try {
+    if (since && until) {
+      // Custom: exact range, daily
+      dailyRawData = await fetchDailyEndpoint(
+        `${ACCOUNT_ID}/insights?${fields}&time_range={"since":"${since}","until":"${until}"}&time_increment=1`
+      );
+    } else if (datePreset === "maximum") {
+      // Maximum: all account data — try daily first, fall back to weekly if the range is too large
+      dailyRawData = await fetchDailyEndpoint(
+        `${ACCOUNT_ID}/insights?${fields}&date_preset=maximum&time_increment=1`
+      );
+      if (dailyRawData.length === 0) {
+        dailyRawData = await fetchDailyEndpoint(
+          `${ACCOUNT_ID}/insights?${fields}&date_preset=maximum&time_increment=7`
+        );
+      }
+    } else {
+      // last_7d / last_14d / last_30d: exact preset, daily
+      dailyRawData = await fetchDailyEndpoint(
+        `${ACCOUNT_ID}/insights?${fields}&date_preset=${datePreset}&time_increment=1`
+      );
+    }
+  } catch {
+    // non-fatal — chart will be empty
+  }
+
+  // Aggregate by date — key is ISO format YYYY-MM-DD for precise range handling in the frontend
   const dailyMap = new Map<string, { spend: number; leads: number; impressions: number; clicks: number }>();
   for (const row of dailyRawData) {
-    const dateStr = row.date_start as string;
-    const [, month, day] = dateStr.split("-");
-    const key = `${day}/${month}`;
+    const key = row.date_start as string; // e.g. "2025-03-01"
     const existing = dailyMap.get(key) || { spend: 0, leads: 0, impressions: 0, clicks: 0 };
     existing.spend += parseFloat((row.spend as string) || "0");
     existing.leads += extractLeads(row.actions as Array<{ action_type: string; value: string }> | undefined);
@@ -304,13 +338,9 @@ async function fetchMetaAdsData(datePreset: DatePreset, since?: string, until?: 
     };
   });
 
-  // Daily — sorted by date ascending
+  // Daily — sorted by ISO date ascending
   const daily = Array.from(dailyMap.entries())
-    .sort((a, b) => {
-      const [ad, am] = a[0].split("/").map(Number);
-      const [bd, bm] = b[0].split("/").map(Number);
-      return am !== bm ? am - bm : ad - bd;
-    })
+    .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([date, v]) => ({ date, ...v }));
 
   const totalSpend = campaigns.reduce((s, c) => s + c.spend, 0);
@@ -421,7 +451,10 @@ export async function GET(request: Request) {
     if (cached) return NextResponse.json(cached);
 
     const data = await fetchMetaAdsData(datePreset, since, until);
-    await writeCache(cacheKey, data);
+    // Only cache if daily data is present — an empty daily array indicates a fetch issue
+    if (data.daily.length > 0) {
+      await writeCache(cacheKey, data);
+    }
     return NextResponse.json(data);
   } catch (error) {
     console.error("Meta Ads API error:", error);
